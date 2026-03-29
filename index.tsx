@@ -82,3 +82,4 @@ return ( <div className="min-h-screen bg-slate-100"> <style>{@media print { body
 </div>
 
 ); }
+export default App;
