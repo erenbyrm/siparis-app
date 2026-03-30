@@ -1,85 +1,1794 @@
-import React, { useEffect, useMemo, useState } from "react"; import { ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, CircleSlash, Clock3, Copy, FileDown, Filter, Home, Lock, LogOut, MessageCircle, Minus, Package, Pencil, Percent, Plus, RotateCcw, Save, Search, Send, Settings2, Shield, ShoppingCart, Trash2, User, UserPlus, UserRoundSearch, Users, X, } from "lucide-react"; import { motion } from "framer-motion"; import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; import { Button } from "@/components/ui/button"; import { Input } from "@/components/ui/input"; import { Textarea } from "@/components/ui/textarea"; import { Badge } from "@/components/ui/badge";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  CircleSlash,
+  FileDown,
+  Lock,
+  LogOut,
+  MessageCircle,
+  Minus,
+  Package,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Save,
+  Search,
+  Send,
+  Shield,
+  Trash2,
+  User,
+} from "lucide-react";
 
-type Product = { id: number; code: string; name: string; price: number; kdvRate: number }; type CartItem = Product & { quantity: number }; type Customer = { id: number; name: string; company: string; phone: string; address: string; note: string }; type CustomerDraft = { name: string; company: string; phone: string; address: string; note: string }; type UserRole = "admin" | "pazarlamaci" | "uretim" | "sevkiyat"; type AppUser = { id: number; username: string; password: string; role: UserRole; active: boolean }; type UserDraft = { username: string; password: string; role: UserRole; active: boolean }; type DraftProduct = { code: string; name: string; price: string; kdvRate: string }; type DiscountType = "percent" | "amount"; type DiscountState = { type: DiscountType; value: number | "" }; type OrderStatus = "Müşteriden Onay Bekleniyor" | "Müşteri Onayı Alındı" | "Hazırlanıyor" | "Sevkiyata Hazır" | "Tamamlandı" | "İptal"; type OrderLine = Product & { quantity: number; priceAfterDiscount: number; pendingQuantity: number; producedQuantity: number; readyForShipmentQuantity: number; sentQuantity: number }; type ShipmentRecord = { id: string; createdAt: string; createdBy: string; items: Array<{ itemId: number; code: string; name: string; quantity: number }> }; type CartSummary = { baseTotal: number; discountTotal: number; subTotal: number; vatTotal: number; grandTotal: number; totalItems: number; vatRate: number }; type OrderRecord = { id: string; createdAt: string; createdBy: string; createdByUserId: number; customer: Customer; items: OrderLine[]; summary: CartSummary; globalDiscount: DiscountState; status: OrderStatus; shipments: ShipmentRecord[] }; type SearchQuantityMap = Record<number, string>; type ShipmentDraftMap = Record<string, string>; type ReadyDraftMap = Record<string, string>; type ExpandedOrderMap = Record<string, boolean>; type PrintableState = { title: string; html: string }; type UserScreen = "dashboard" | "order_form"; type AdminScreen = "dashboard" | "orders";
+type Product = {
+  id: number;
+  code: string;
+  name: string;
+  price: number;
+  kdvRate: number;
+};
 
-const PRODUCTS_KEY = "siparis_products_v17"; const USERS_KEY = "siparis_users_v17"; const ORDERS_KEY = "siparis_orders_v17"; const CURRENT_USER_KEY = "siparis_current_user_v17"; const CUSTOMERS_KEY = "siparis_customers_v17";
+type Customer = {
+  id: number;
+  name: string;
+  company: string;
+  phone: string;
+  address: string;
+  note: string;
+};
 
-const initialProducts: Product[] = [ { id: 1, code: "SCC22", name: "2 + 2 Çift Çıkışlı Premium Alüminyum Merdiven", price: 1360, kdvRate: 20 }, { id: 2, code: "SCC33", name: "3 + 3 Çift Çıkışlı Premium Alüminyum Merdiven", price: 1755, kdvRate: 20 }, { id: 3, code: "SCC44", name: "4 + 4 Çift Çıkışlı Premium Alüminyum Merdiven", price: 2310, kdvRate: 20 }, { id: 4, code: "SCC55", name: "5 + 5 Çift Çıkışlı Premium Alüminyum Merdiven", price: 2880, kdvRate: 20 }, { id: 5, code: "SCC66", name: "6 + 6 Çift Çıkışlı Premium Alüminyum Merdiven", price: 3440, kdvRate: 20 }, ];
+type UserRole = "admin" | "pazarlamaci" | "uretim" | "sevkiyat";
 
-const initialCustomers: Customer[] = [ { id: 1, name: "Mehmet Yılmaz", company: "Yılmaz Hırdavat", phone: "0532 555 12 34", address: "Konya Organize Sanayi", note: "Örnek müşteri" }, { id: 2, name: "Ayşe Demir", company: "Demir Ticaret", phone: "0533 222 45 67", address: "Konya Karatay", note: "Örnek müşteri" }, { id: 3, name: "Hasan Kaya", company: "Kaya Yapı", phone: "0542 777 80 90", address: "Konya Selçuklu", note: "Örnek müşteri" }, ];
+type AppUser = {
+  id: number;
+  username: string;
+  password: string;
+  role: UserRole;
+  active: boolean;
+};
 
-const adminSeedUser: AppUser = { id: 1, username: "EREN", password: "3736", role: "admin", active: true }; const salesSeedUser: AppUser = { id: 2, username: "PAZARLAMACI", password: "2222", role: "pazarlamaci", active: true }; const productionSeedUser: AppUser = { id: 3, username: "ÜRETİM", password: "1111", role: "uretim", active: true }; const shipmentSeedUser: AppUser = { id: 4, username: "SEVKIYAT", password: "0000", role: "sevkiyat", active: true };
+type DiscountType = "percent" | "amount";
 
-const initialOrders: OrderRecord[] = [ { id: "SIP-200001-2", createdAt: "28.03.2026 09:15:00", createdBy: "PAZARLAMACI", createdByUserId: 2, customer: initialCustomers[0], items: [ { ...initialProducts[0], quantity: 6, priceAfterDiscount: 1224, pendingQuantity: 4, producedQuantity: 6, readyForShipmentQuantity: 0, sentQuantity: 2 }, { ...initialProducts[1], quantity: 4, priceAfterDiscount: 1579.5, pendingQuantity: 2, producedQuantity: 4, readyForShipmentQuantity: 1, sentQuantity: 2 }, ], summary: { baseTotal: 15260, discountTotal: 1526, subTotal: 13734, vatTotal: 2746.8, grandTotal: 16480.8, totalItems: 10, vatRate: 20 }, globalDiscount: { type: "percent", value: 10 }, status: "Sevkiyata Hazır", shipments: [{ id: "SIP-200001-SH1", createdAt: "28.03.2026 10:45:00", createdBy: "SEVKIYAT", items: [{ itemId: 1, code: initialProducts[0].code, name: initialProducts[0].name, quantity: 2 }, { itemId: 2, code: initialProducts[1].code, name: initialProducts[1].name, quantity: 2 }] }], }, { id: "SIP-200002-1", createdAt: "28.03.2026 10:20:00", createdBy: "PAZARLAMACI", createdByUserId: 2, customer: initialCustomers[1], items: [{ ...initialProducts[2], quantity: 3, priceAfterDiscount: 2310, pendingQuantity: 0, producedQuantity: 3, readyForShipmentQuantity: 0, sentQuantity: 3 }], summary: { baseTotal: 6930, discountTotal: 0, subTotal: 6930, vatTotal: 1386, grandTotal: 8316, totalItems: 3, vatRate: 20 }, globalDiscount: { type: "percent", value: 0 }, status: "Tamamlandı", shipments: [{ id: "SIP-200002-SH1", createdAt: "28.03.2026 12:20:00", createdBy: "SEVKIYAT", items: [{ itemId: 3, code: initialProducts[2].code, name: initialProducts[2].name, quantity: 3 }] }] }, { id: "SIP-200003-2", createdAt: "28.03.2026 11:05:00", createdBy: "PAZARLAMACI", createdByUserId: 2, customer: initialCustomers[2], items: [{ ...initialProducts[3], quantity: 5, priceAfterDiscount: 2736, pendingQuantity: 5, producedQuantity: 0, readyForShipmentQuantity: 0, sentQuantity: 0 }, { ...initialProducts[4], quantity: 2, priceAfterDiscount: 3268, pendingQuantity: 2, producedQuantity: 0, readyForShipmentQuantity: 0, sentQuantity: 0 }], summary: { baseTotal: 21280, discountTotal: 1064, subTotal: 20216, vatTotal: 4043.2, grandTotal: 24259.2, totalItems: 7, vatRate: 20 }, globalDiscount: { type: "percent", value: 5 }, status: "Müşteri Onayı Alındı", shipments: [] }, { id: "SIP-200004-1", createdAt: "28.03.2026 11:40:00", createdBy: "PAZARLAMACI", createdByUserId: 2, customer: initialCustomers[0], items: [{ ...initialProducts[0], quantity: 2, priceAfterDiscount: 1360, pendingQuantity: 2, producedQuantity: 0, readyForShipmentQuantity: 0, sentQuantity: 0 }], summary: { baseTotal: 2720, discountTotal: 0, subTotal: 2720, vatTotal: 544, grandTotal: 3264, totalItems: 2, vatRate: 20 }, globalDiscount: { type: "percent", value: 0 }, status: "Müşteriden Onay Bekleniyor", shipments: [] }, { id: "SIP-200005-2", createdAt: "28.03.2026 12:10:00", createdBy: "PAZARLAMACI", createdByUserId: 2, customer: initialCustomers[1], items: [{ ...initialProducts[1], quantity: 5, priceAfterDiscount: 1667.25, pendingQuantity: 3, producedQuantity: 2, readyForShipmentQuantity: 0, sentQuantity: 0 }, { ...initialProducts[4], quantity: 1, priceAfterDiscount: 3268, pendingQuantity: 1, producedQuantity: 0, readyForShipmentQuantity: 0, sentQuantity: 0 }], summary: { baseTotal: 12215, discountTotal: 171, subTotal: 12044, vatTotal: 2408.8, grandTotal: 14452.8, totalItems: 6, vatRate: 20 }, globalDiscount: { type: "percent", value: 5 }, status: "Hazırlanıyor", shipments: [] }, { id: "SIP-200006-1", createdAt: "28.03.2026 12:45:00", createdBy: "PAZARLAMACI", createdByUserId: 2, customer: initialCustomers[2], items: [{ ...initialProducts[2], quantity: 2, priceAfterDiscount: 2310, pendingQuantity: 0, producedQuantity: 2, readyForShipmentQuantity: 0, sentQuantity: 2 }], summary: { baseTotal: 4620, discountTotal: 0, subTotal: 4620, vatTotal: 924, grandTotal: 5544, totalItems: 2, vatRate: 20 }, globalDiscount: { type: "percent", value: 0 }, status: "Tamamlandı", shipments: [{ id: "SIP-200006-SH1", createdAt: "28.03.2026 13:20:00", createdBy: "SEVKIYAT", items: [{ itemId: 3, code: initialProducts[2].code, name: initialProducts[2].name, quantity: 2 }] }] }, { id: "SIP-200007-1", createdAt: "28.03.2026 13:30:00", createdBy: "PAZARLAMACI", createdByUserId: 2, customer: initialCustomers[0], items: [{ ...initialProducts[3], quantity: 1, priceAfterDiscount: 2880, pendingQuantity: 1, producedQuantity: 0, readyForShipmentQuantity: 0, sentQuantity: 0 }], summary: { baseTotal: 2880, discountTotal: 0, subTotal: 2880, vatTotal: 576, grandTotal: 3456, totalItems: 1, vatRate: 20 }, globalDiscount: { type: "percent", value: 0 }, status: "İptal", shipments: [] }, { id: "SIP-200008-2", createdAt: "28.03.2026 14:10:00", createdBy: "PAZARLAMACI", createdByUserId: 2, customer: initialCustomers[1], items: [{ ...initialProducts[0], quantity: 3, priceAfterDiscount: 1292, pendingQuantity: 0, producedQuantity: 3, readyForShipmentQuantity: 2, sentQuantity: 1 }, { ...initialProducts[1], quantity: 2, priceAfterDiscount: 1667.25, pendingQuantity: 1, producedQuantity: 2, readyForShipmentQuantity: 1, sentQuantity: 1 }], summary: { baseTotal: 7590, discountTotal: 379.5, subTotal: 7210.5, vatTotal: 1442.1, grandTotal: 8652.6, totalItems: 5, vatRate: 20 }, globalDiscount: { type: "percent", value: 5 }, status: "Sevkiyata Hazır", shipments: [{ id: "SIP-200008-SH1", createdAt: "28.03.2026 14:50:00", createdBy: "SEVKIYAT", items: [{ itemId: 1, code: initialProducts[0].code, name: initialProducts[0].name, quantity: 1 }, { itemId: 2, code: initialProducts[1].code, name: initialProducts[1].name, quantity: 1 }] }] }, { id: "SIP-200009-2", createdAt: "28.03.2026 15:00:00", createdBy: "PAZARLAMACI", createdByUserId: 2, customer: initialCustomers[2], items: [{ ...initialProducts[4], quantity: 4, priceAfterDiscount: 3268, pendingQuantity: 4, producedQuantity: 0, readyForShipmentQuantity: 0, sentQuantity: 0 }], summary: { baseTotal: 13760, discountTotal: 0, subTotal: 13760, vatTotal: 2752, grandTotal: 16512, totalItems: 4, vatRate: 20 }, globalDiscount: { type: "percent", value: 0 }, status: "Müşteriden Onay Bekleniyor", shipments: [] }, { id: "SIP-200010-1", createdAt: "28.03.2026 15:40:00", createdBy: "PAZARLAMACI", createdByUserId: 2, customer: initialCustomers[0], items: [{ ...initialProducts[2], quantity: 1, priceAfterDiscount: 2194.5, pendingQuantity: 1, producedQuantity: 0, readyForShipmentQuantity: 0, sentQuantity: 0 }], summary: { baseTotal: 2310, discountTotal: 115.5, subTotal: 2194.5, vatTotal: 438.9, grandTotal: 2633.4, totalItems: 1, vatRate: 20 }, globalDiscount: { type: "percent", value: 5 }, status: "Müşteri Onayı Alındı", shipments: [] }, ];
+type DiscountState = {
+  type: DiscountType;
+  value: number | "";
+};
 
-const emptyDraftProduct = (): DraftProduct => ({ code: "", name: "", price: "", kdvRate: "20" }); const emptyUserDraft = (): UserDraft => ({ username: "", password: "", role: "pazarlamaci", active: true }); const emptyCustomerDraft = (): CustomerDraft => ({ name: "", company: "", phone: "", address: "", note: "" });
+type OrderStatus =
+  | "Müşteriden Onay Bekleniyor"
+  | "Müşteri Onayı Alındı"
+  | "Hazırlanıyor"
+  | "Sevkiyata Hazır"
+  | "Tamamlandı"
+  | "İptal";
 
-function formatTRY(value: number | string): string { return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 2 }).format(Number(value || 0)); } function normalizeNumber(value: number | string | ""): number { if (value === "") return 0; const parsed = Number(value); return Number.isFinite(parsed) ? parsed : 0; } function getRoleLabel(role: UserRole): string { if (role === "admin") return "Yönetici"; if (role === "uretim") return "Üretim"; if (role === "sevkiyat") return "Sevkiyat"; return "Pazarlamacı"; } function readStorage<T>(key: string, fallback: T): T { try { const raw = localStorage.getItem(key); if (!raw) return fallback; return JSON.parse(raw) as T; } catch { return fallback; } } function escapeHtml(text: string): string { return text.replaceAll("&", "&").replaceAll("<", "<").replaceAll(">", ">").replaceAll('"', """).replaceAll("'", "'"); } function getDiscountedPrice(price: number, discountType: DiscountType, discountValue: number | ""): number { const value = normalizeNumber(discountValue); if (discountType === "percent") return Math.max(price - (price * Math.min(Math.max(value, 0), 100)) / 100, 0); return Math.max(price - value, 0); } function computeSummary(items: OrderLine[], vatRate: number): CartSummary { return items.reduce<CartSummary>((acc, item) => { const base = item.price * item.quantity; const sub = item.priceAfterDiscount * item.quantity; const vat = sub * (vatRate / 100); acc.baseTotal += base; acc.discountTotal += base - sub; acc.subTotal += sub; acc.vatTotal += vat; acc.grandTotal += sub + vat; acc.totalItems += item.quantity; return acc; }, { baseTotal: 0, discountTotal: 0, subTotal: 0, vatTotal: 0, grandTotal: 0, totalItems: 0, vatRate }); } function validateCustomerDraft(draft: CustomerDraft): string { return draft.name.trim() ? "" : "Müşteri Adı Boş Olamaz."; } function validateUserDraft(draft: UserDraft, users: AppUser[], editingId: number | null): string { if (!draft.username.trim()) return "Kullanıcı Adı Boş Olamaz."; if (!draft.password.trim()) return "Şifre Boş Olamaz."; if (users.some((u) => u.username.trim().toUpperCase() === draft.username.trim().toUpperCase() && u.id !== editingId)) return "Bu Kullanıcı Adı Zaten Kayıtlı."; return ""; } function validateProductDraft(draft: DraftProduct, products: Product[], editingId: number | null): string { if (!draft.code.trim()) return "Stok Kodu Boş Olamaz."; if (!draft.name.trim()) return "Ürün Adı Boş Olamaz."; if (normalizeNumber(draft.price) <= 0) return "Fiyat 0'dan Büyük Olmalı."; if (products.some((p) => p.code.trim().toLowerCase() === draft.code.trim().toLowerCase() && p.id !== editingId)) return "Bu Stok Kodu Zaten Kayıtlı."; return ""; } function deriveOrderStatus(items: OrderLine[], currentStatus?: OrderStatus): OrderStatus { const totalPending = items.reduce((sum, item) => sum + item.pendingQuantity, 0); const totalReady = items.reduce((sum, item) => sum + item.readyForShipmentQuantity, 0); const totalSent = items.reduce((sum, item) => sum + item.sentQuantity, 0); if (currentStatus === "İptal") return "İptal"; if (totalPending === 0 && totalSent > 0) return "Tamamlandı"; if (totalReady > 0) return "Sevkiyata Hazır"; if (totalSent > 0) return "Hazırlanıyor"; return currentStatus ?? "Müşteri Onayı Alındı"; } function buildWhatsAppMessageForOrder(order: OrderRecord): string { return ["Sipariş Formu", Sipariş No: ${order.id}, Durum: ${order.status}, Müşteri: ${order.customer.name}, "", ...order.items.map((item, index) => ${index + 1}. [${item.code}] ${item.name} | ${item.quantity} Adet | ${formatTRY(item.priceAfterDiscount)}), "", Genel Toplam: ${formatTRY(order.summary.grandTotal)}].join("\n"); } function buildShipmentNote(order: OrderRecord, shipment: ShipmentRecord): string { return ["Sevkiyat Fişi", Sipariş No: ${order.id}, Sevkiyat No: ${shipment.id}, Müşteri: ${order.customer.name}, "", ...shipment.items.map((item, index) => ${index + 1}. [${item.code}] ${item.name} | ${item.quantity} Adet)].join("\n"); } function buildOrderPrintHtml(order: OrderRecord, title = "Sipariş Formu"): string { const rows = order.items.map((item) => <tr><td>${escapeHtml(item.code)}</td><td>${escapeHtml(item.name)}</td><td>${item.quantity}</td><td>${item.sentQuantity}</td><td>${item.pendingQuantity}</td><td>${escapeHtml(formatTRY(item.priceAfterDiscount))}</td></tr>).join(""); return <html><head><title>${escapeHtml(order.id)}</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px}th{background:#f5f5f5}</style></head><body><h1>${escapeHtml(title)}</h1><p><strong>Sipariş:</strong> ${escapeHtml(order.id)}</p><p><strong>Müşteri:</strong> ${escapeHtml(order.customer.name)}</p><table><thead><tr><th>Kod</th><th>Ürün</th><th>Sipariş</th><th>Gönderilen</th><th>Bekleyen</th><th>Net Fiyat</th></tr></thead><tbody>${rows}</tbody></table></body></html>; } function buildShipmentPrintHtml(order: OrderRecord, shipment: ShipmentRecord): string { const rows = shipment.items.map((item) => <tr><td>${escapeHtml(item.code)}</td><td>${escapeHtml(item.name)}</td><td>${item.quantity}</td></tr>).join(""); return <html><head><title>${escapeHtml(shipment.id)}</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px}th{background:#f5f5f5}</style></head><body><h1>Sevkiyat Fişi</h1><p><strong>Sipariş:</strong> ${escapeHtml(order.id)}</p><p><strong>Müşteri:</strong> ${escapeHtml(order.customer.name)}</p><table><thead><tr><th>Kod</th><th>Ürün</th><th>Adet</th></tr></thead><tbody>${rows}</tbody></table></body></html>; }
+type OrderLine = Product & {
+  quantity: number;
+  priceAfterDiscount: number;
+  pendingQuantity: number;
+  readyForShipmentQuantity: number;
+  sentQuantity: number;
+};
 
-function StepperInput({ value, onChange, min = 0, max }: { value: string; onChange: (value: string) => void; min?: number; max?: number }) { const numeric = normalizeNumber(value); const dec = () => onChange(String(Math.max(numeric - 1, min))); const inc = () => onChange(String(typeof max === "number" ? Math.min(numeric + 1, max) : numeric + 1)); return ( <div className="flex items-center gap-2"> <Button type="button" variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={dec}><Minus className="h-3.5 w-3.5" /></Button> <Input type="number" min={min} max={max} value={value} onChange={(e) => onChange(e.target.value)} className="rounded-2xl text-center" /> <Button type="button" variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={inc}><Plus className="h-3.5 w-3.5" /></Button> </div> ); }
+type ShipmentRecord = {
+  id: string;
+  createdAt: string;
+  createdBy: string;
+  items: Array<{
+    itemId: number;
+    code: string;
+    name: string;
+    quantity: number;
+  }>;
+};
 
-function CustomerPanel(props: CustomerPanelProps) { const { filteredCustomers, customerDraft, setCustomerDraft, customerMessage, saveCustomer, startEditCustomer, deleteCustomer, customerSearch, setCustomerSearch, setEditingCustomerId, resetCustomerForm, applyCustomerToForm, selectedCustomerId, open, setOpen } = props; return ( <Card className="rounded-[28px] border-0 shadow-sm no-print"> <CardHeader className="pb-2"> <button className="flex w-full items-center justify-between text-left" onClick={() => setOpen?.((prev) => !prev)}> <CardTitle className="flex items-center gap-2 text-base"><UserRoundSearch className="h-4 w-4" /> Müşteri Seç / Ekle</CardTitle> {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />} </button> </CardHeader> {open ? ( <CardContent className="space-y-4"> <div className="rounded-2xl border border-slate-200 bg-white p-4"> <div className="mb-3 flex items-center justify-between gap-2"> <p className="text-sm font-semibold text-slate-900">Müşteri Ekle / Düzenle</p> <div className="flex gap-2"> <Button variant="outline" size="sm" className="rounded-xl" onClick={() => { setEditingCustomerId(null); resetCustomerForm(); }}><RotateCcw className="mr-1 h-4 w-4" /> Temizle</Button> <Button size="sm" className="rounded-xl bg-slate-900 hover:bg-slate-800" onClick={saveCustomer}><Save className="mr-1 h-4 w-4" /> Kaydet</Button> </div> </div> <div className="space-y-3"> <Input value={customerDraft.name} onChange={(e) => setCustomerDraft((prev) => ({ ...prev, name: e.target.value }))} className="h-11 rounded-2xl" placeholder="Müşteri Adı" /> <Input value={customerDraft.company} onChange={(e) => setCustomerDraft((prev) => ({ ...prev, company: e.target.value }))} className="h-11 rounded-2xl" placeholder="Firma Adı" /> <Input value={customerDraft.phone} onChange={(e) => setCustomerDraft((prev) => ({ ...prev, phone: e.target.value }))} className="h-11 rounded-2xl" placeholder="Telefon" /> <Textarea value={customerDraft.address} onChange={(e) => setCustomerDraft((prev) => ({ ...prev, address: e.target.value }))} className="rounded-2xl" placeholder="Adres" /> <Textarea value={customerDraft.note} onChange={(e) => setCustomerDraft((prev) => ({ ...prev, note: e.target.value }))} className="rounded-2xl" placeholder="Not" /> </div> {customerMessage ? <div className="mt-3 rounded-2xl bg-slate-50 px-3 py-3 text-xs text-slate-600">{customerMessage}</div> : null} </div> <div className="rounded-2xl border border-slate-200 bg-white p-4"> <div className="mb-3 flex items-center justify-between gap-2"> <p className="text-sm font-semibold text-slate-900">Kayıtlı Müşteriler</p> <Input value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)} placeholder="Müşteri Ara" className="h-10 rounded-2xl" /> </div> <div className="max-h-72 space-y-2 overflow-y-auto pr-1"> {filteredCustomers.map((customer) => ( <div key={customer.id} className={rounded-2xl border p-3 ${selectedCustomerId === customer.id ? "border-slate-900 bg-slate-100" : "border-slate-200 bg-slate-50"}}> <p className="font-semibold text-slate-900">{customer.name}</p> <p className="mt-1 text-xs text-slate-500">{customer.company || "Firma Yok"}</p> <p className="mt-1 text-xs text-slate-500">{customer.phone || "Telefon Yok"}</p> <div className="mt-3 grid grid-cols-3 gap-2"> {applyCustomerToForm ? <Button variant="outline" size="sm" className="rounded-xl" onClick={() => applyCustomerToForm(customer)}>Seç</Button> : <div />} <Button variant="outline" size="sm" className="rounded-xl" onClick={() => startEditCustomer(customer)}><Pencil className="mr-1 h-4 w-4" /> Düzenle</Button> <Button variant="outline" size="sm" className="rounded-xl" onClick={() => deleteCustomer(customer.id)}><Trash2 className="mr-1 h-4 w-4" /> Sil</Button> </div> </div> ))} </div> </div> </CardContent> ) : null} </Card> ); }
+type OrderRecord = {
+  id: string;
+  createdAt: string;
+  createdBy: string;
+  createdByUserId: number;
+  customer: Customer;
+  items: OrderLine[];
+  globalDiscount: DiscountState;
+  vatRate: number;
+  status: OrderStatus;
+  shipments: ShipmentRecord[];
+};
 
-function OrderCard(props: OrderCardProps) { const { order, currentUser, canManageShipping, canManageProduction, shipmentDrafts, readyDrafts, expanded, toggleExpanded, updateShipmentDraft, updateReadyDraft, shipSelectedItems, markReadySelectedItems, updateOrderStatus, printSavedOrder, shareSavedOrder, printShipment, shareShipment, startEditOrder } = props; const isOwner = currentUser.id === order.createdByUserId; const isAdmin = currentUser.role === "admin"; const isShipmentUser = currentUser.role === "sevkiyat"; const canEditOrder = currentUser.role === "pazarlamaci" && isOwner && order.status === "Müşteriden Onay Bekleniyor"; const showPrices = currentUser.role === "admin" || currentUser.role === "pazarlamaci"; const pendingItemCount = order.items.reduce((t, i) => t + i.pendingQuantity, 0); return ( <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm"> <button type="button" className="flex w-full items-start justify-between gap-3 text-left" onClick={() => toggleExpanded(order.id)}> <div className="min-w-0 flex-1"> <p className="font-semibold text-slate-900">{order.customer.name || "-"}</p> <p className="mt-1 text-xs text-slate-500">{order.id} • {order.createdAt}</p> <div className="mt-2 flex flex-wrap items-center gap-2"> <Badge variant="outline" className="rounded-full">{order.status}</Badge> <Badge className="rounded-full bg-slate-100 text-slate-700 hover:bg-slate-100">{order.createdBy}</Badge> <Badge variant="secondary" className="rounded-full">Bekleyen {pendingItemCount}</Badge> </div> </div> {expanded ? <ChevronUp className="mt-1 h-4 w-4 shrink-0 text-slate-500" /> : <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-slate-500" />} </button> {expanded ? ( <> <div className="mt-3 rounded-2xl bg-slate-50 p-3 text-sm"> <div className="flex justify-between"><span className="text-slate-500">Müşteri</span><span>{order.customer.name || "-"}</span></div> <div className="mt-1 flex justify-between"><span className="text-slate-500">Firma</span><span>{order.customer.company || "-"}</span></div> <div className="mt-1 flex justify-between"><span className="text-slate-500">Bekleyen Ürün</span><span>{pendingItemCount}</span></div> {showPrices ? <div className="mt-2 flex justify-between font-semibold"><span>Genel Toplam</span><span>{formatTRY(order.summary.grandTotal)}</span></div> : null} </div> <div className="mt-3 space-y-2"> {order.items.map((item) => { const key = ${order.id}_${item.id}; return ( <div key={${order.id}-${item.id}} className="rounded-2xl bg-slate-50 p-3 text-sm"> <div className="flex items-start justify-between gap-2"> <div className="min-w-0 flex-1"> <p className="font-semibold text-slate-900">[{item.code}] {item.name}</p> <p className="text-xs text-slate-500">Sipariş: {item.quantity} • Hazır: {item.readyForShipmentQuantity} • Gönderilen: {item.sentQuantity} • Bekleyen: {item.pendingQuantity}</p> </div> {showPrices ? <div className="text-right font-semibold">{formatTRY(item.priceAfterDiscount)}</div> : null} </div> {canManageProduction && order.status !== "İptal" && item.pendingQuantity > 0 ? ( <div className="mt-3 no-print"> <label className="mb-1 block text-[11px] font-medium text-slate-500">Sevkiyata Hazır Adet</label> <StepperInput value={readyDrafts[key] ?? ""} min={0} max={item.pendingQuantity} onChange={(value) => updateReadyDraft(order.id, item.id, value)} /> </div> ) : null} {canManageShipping && order.status !== "İptal" && item.readyForShipmentQuantity > 0 ? ( <div className="mt-3 no-print"> <label className="mb-1 block text-[11px] font-medium text-slate-500">Gönderilecek Adet</label> <StepperInput value={shipmentDrafts[key] ?? ""} min={0} max={item.readyForShipmentQuantity} onChange={(value) => updateShipmentDraft(order.id, item.id, value)} /> </div> ) : null} </div> ); })} </div> <div className="mt-3 flex flex-wrap gap-2 no-print"> {(isOwner || isAdmin) && order.status === "Müşteriden Onay Bekleniyor" ? <Button variant="outline" size="sm" className="rounded-xl" onClick={() => updateOrderStatus(order.id, "Müşteri Onayı Alındı")}><Shield className="mr-1 h-4 w-4" /> Onay Alındı</Button> : null} {isOwner && order.status === "İptal" ? <Button variant="outline" size="sm" className="rounded-xl" onClick={() => updateOrderStatus(order.id, "Müşteriden Onay Bekleniyor")}><RotateCcw className="mr-1 h-4 w-4" /> İptali Kaldır</Button> : null} {canManageProduction && order.status !== "İptal" ? <Button variant="outline" size="sm" className="rounded-xl" onClick={() => markReadySelectedItems(order.id)}><CheckCircle2 className="mr-1 h-4 w-4" /> Sevkiyata Hazır</Button> : null} {canManageShipping && order.status !== "İptal" ? <><Button variant="outline" size="sm" className="rounded-xl" onClick={() => shipSelectedItems(order.id)}><Send className="mr-1 h-4 w-4" /> Seçileni Gönder</Button><Button variant="outline" size="sm" className="rounded-xl" onClick={() => updateOrderStatus(order.id, "Tamamlandı")}><CheckCircle2 className="mr-1 h-4 w-4" /> Tamamlandı</Button></> : null} {(isOwner || isAdmin) && order.status !== "İptal" ? <Button variant="outline" size="sm" className="rounded-xl" onClick={() => updateOrderStatus(order.id, "İptal")}><CircleSlash className="mr-1 h-4 w-4" /> İptal</Button> : null} {canEditOrder ? <Button variant="outline" size="sm" className="rounded-xl" onClick={() => startEditOrder(order)}><Pencil className="mr-1 h-4 w-4" /> Düzenle</Button> : null} {showPrices ? <Button variant="outline" size="sm" className="rounded-xl" onClick={() => printSavedOrder(order)}><FileDown className="mr-1 h-4 w-4" /> Yazdır</Button> : null} {showPrices ? <Button variant="outline" size="sm" className="rounded-xl" onClick={() => shareSavedOrder(order)}><MessageCircle className="mr-1 h-4 w-4" /> WhatsApp</Button> : null} </div> {order.shipments.length > 0 ? ( <div className="mt-3 rounded-2xl border border-dashed p-3"> <p className="text-sm font-semibold text-slate-900">Gönderim Geçmişi</p> <div className="mt-2 space-y-2"> {order.shipments.map((shipment) => ( <div key={shipment.id} className="rounded-2xl bg-slate-50 p-3 text-sm"> <p className="font-semibold text-slate-900">{shipment.createdAt} • {shipment.createdBy}</p> <div className="mt-1 space-y-1">{shipment.items.map((si) => <p key={${shipment.id}-${si.itemId}} className="text-xs text-slate-600">[{si.code}] {si.name} • {si.quantity} Adet</p>)}</div> {isShipmentUser || isAdmin ? <div className="mt-2 flex flex-wrap gap-2 no-print"><Button variant="outline" size="sm" className="rounded-xl" onClick={() => printShipment(order, shipment)}><FileDown className="mr-1 h-4 w-4" /> Sevkiyat Fişi</Button><Button variant="outline" size="sm" className="rounded-xl" onClick={() => shareShipment(order, shipment)}><MessageCircle className="mr-1 h-4 w-4" /> WhatsApp</Button></div> : null} </div> ))} </div> </div> ) : null} </> ) : null} </div> ); }
+type CartItem = Product & { quantity: number };
 
-export default function SiparisUygulamasi() { const [products, setProducts] = useState<Product[]>(initialProducts); const [users, setUsers] = useState<AppUser[]>([adminSeedUser, salesSeedUser, productionSeedUser, shipmentSeedUser]); const [customers, setCustomers] = useState<Customer[]>(initialCustomers); const [orders, setOrders] = useState<OrderRecord[]>(initialOrders); const [currentUserId, setCurrentUserId] = useState<number | null>(null); const [loginUsername, setLoginUsername] = useState(""); const [loginPassword, setLoginPassword] = useState(""); const [loginMessage, setLoginMessage] = useState(""); const [search, setSearch] = useState(""); const [cart, setCart] = useState<CartItem[]>([]); const [vatEnabled, setVatEnabled] = useState(false); const [vatRate, setVatRate] = useState<number | "">(20); const [globalDiscount, setGlobalDiscount] = useState<DiscountState>({ type: "percent", value: 0 }); const [customerDraft, setCustomerDraft] = useState<CustomerDraft>(emptyCustomerDraft()); const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null); const [editingCustomerId, setEditingCustomerId] = useState<number | null>(null); const [customerMessage, setCustomerMessage] = useState(""); const [customerSearch, setCustomerSearch] = useState(""); const [customerPanelOpen, setCustomerPanelOpen] = useState(true); const [managerOpen, setManagerOpen] = useState(false); const [usersOpen, setUsersOpen] = useState(false); const [editingProductId, setEditingProductId] = useState<number | null>(null); const [editingUserId, setEditingUserId] = useState<number | null>(null); const [editingOrderId, setEditingOrderId] = useState<string | null>(null); const [productDraft, setProductDraft] = useState<DraftProduct>(emptyDraftProduct()); const [userDraft, setUserDraft] = useState<UserDraft>(emptyUserDraft()); const [productMessage, setProductMessage] = useState(""); const [userMessage, setUserMessage] = useState(""); const [orderMessage, setOrderMessage] = useState(""); const [managerSearch, setManagerSearch] = useState(""); const [userSearch, setUserSearch] = useState(""); const [confirmReset, setConfirmReset] = useState(false); const [searchQuantities, setSearchQuantities] = useState<SearchQuantityMap>({}); const [shipmentDrafts, setShipmentDrafts] = useState<ShipmentDraftMap>({}); const [readyDrafts, setReadyDrafts] = useState<ReadyDraftMap>({}); const [printableState, setPrintableState] = useState<PrintableState | null>(null); const [adminOrderFilter, setAdminOrderFilter] = useState<OrderFilter>("all"); const [userScreen, setUserScreen] = useState<UserScreen>("dashboard"); const [adminScreen, setAdminScreen] = useState<AdminScreen>("dashboard"); const [pendingSearch, setPendingSearch] = useState(""); const [adminSearch, setAdminSearch] = useState(""); const [expandedOrders, setExpandedOrders] = useState<ExpandedOrderMap>({});
+type SearchQuantityMap = Record<number, string>;
+type ShipmentDraftMap = Record<string, string>;
+type ReadyDraftMap = Record<string, string>;
+type ExpandedOrderMap = Record<string, boolean>;
 
-useEffect(() => { setProducts(readStorage(PRODUCTS_KEY, initialProducts)); setUsers(readStorage(USERS_KEY, [adminSeedUser, salesSeedUser, productionSeedUser, shipmentSeedUser])); setCustomers(readStorage(CUSTOMERS_KEY, initialCustomers)); setOrders(readStorage(ORDERS_KEY, initialOrders)); setCurrentUserId(readStorage(CURRENT_USER_KEY, null)); }, []); useEffect(() => { localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products)); }, [products]); useEffect(() => { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }, [users]); useEffect(() => { localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(customers)); }, [customers]); useEffect(() => { localStorage.setItem(ORDERS_KEY, JSON.stringify(orders)); }, [orders]); useEffect(() => { localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUserId)); }, [currentUserId]); useEffect(() => { setSearchQuantities((prev) => { const next: SearchQuantityMap = {}; products.forEach((p) => { next[p.id] = prev[p.id] ?? "1"; }); return next; }); }, [products]); useEffect(() => { if (!printableState) return; const originalTitle = document.title; const originalBody = document.body.innerHTML; document.title = printableState.title; document.body.innerHTML = printableState.html; window.print(); document.body.innerHTML = originalBody; document.title = originalTitle; window.location.reload(); }, [printableState]);
+const PRODUCTS_KEY = "siparis_products_v18";
+const USERS_KEY = "siparis_users_v18";
+const ORDERS_KEY = "siparis_orders_v18";
+const CURRENT_USER_KEY = "siparis_current_user_v18";
+const CUSTOMERS_KEY = "siparis_customers_v18";
 
-const currentUser = useMemo(() => users.find((u) => u.id === currentUserId) ?? null, [users, currentUserId]); const isAdmin = currentUser?.role === "admin"; const canManageShipping = currentUser?.role === "admin" || currentUser?.role === "sevkiyat"; const canManageProduction = currentUser?.role === "admin" || currentUser?.role === "uretim"; const canCreateOrders = currentUser?.role === "pazarlamaci";
+const initialProducts: Product[] = [
+  { id: 1, code: "SCC22", name: "2 + 2 Çift Çıkışlı Premium Alüminyum Merdiven", price: 1360, kdvRate: 20 },
+  { id: 2, code: "SCC33", name: "3 + 3 Çift Çıkışlı Premium Alüminyum Merdiven", price: 1755, kdvRate: 20 },
+  { id: 3, code: "SCC44", name: "4 + 4 Çift Çıkışlı Premium Alüminyum Merdiven", price: 2310, kdvRate: 20 },
+  { id: 4, code: "SCC55", name: "5 + 5 Çift Çıkışlı Premium Alüminyum Merdiven", price: 2880, kdvRate: 20 },
+  { id: 5, code: "SCC66", name: "6 + 6 Çift Çıkışlı Premium Alüminyum Merdiven", price: 3440, kdvRate: 20 },
+];
 
-const baseVisibleOrders = useMemo(() => { if (!currentUser) return [] as OrderRecord[]; if (currentUser.role === "admin") return orders; if (currentUser.role === "pazarlamaci") return orders.filter((o) => o.createdByUserId === currentUser.id); if (currentUser.role === "uretim") { return orders.filter((o) => o.status !== "Müşteriden Onay Bekleniyor" && o.status !== "İptal"); } return orders.filter((o) => o.status !== "Müşteriden Onay Bekleniyor" && o.status !== "Müşteri Onayı Alındı" && o.status !== "İptal" && (o.status === "Tamamlandı" || o.items.some((item) => item.readyForShipmentQuantity > 0 || item.sentQuantity > 0)));
+const initialCustomers: Customer[] = [
+  { id: 1, name: "Mehmet Yılmaz", company: "Yılmaz Hırdavat", phone: "0532 555 12 34", address: "Konya Organize Sanayi", note: "Örnek müşteri" },
+  { id: 2, name: "Ayşe Demir", company: "Demir Ticaret", phone: "0533 222 45 67", address: "Konya Karatay", note: "Örnek müşteri" },
+  { id: 3, name: "Hasan Kaya", company: "Kaya Yapı", phone: "0542 777 80 90", address: "Konya Selçuklu", note: "Örnek müşteri" },
+];
 
-}, [orders, currentUser]);
+const initialUsers: AppUser[] = [
+  { id: 1, username: "EREN", password: "3736", role: "admin", active: true },
+  { id: 2, username: "PAZARLAMACI", password: "2222", role: "pazarlamaci", active: true },
+  { id: 3, username: "ÜRETİM", password: "1111", role: "uretim", active: true },
+  { id: 4, username: "SEVKIYAT", password: "0000", role: "sevkiyat", active: true },
+];
 
-const pendingOrders = useMemo(() => baseVisibleOrders.filter((o) => o.status !== "Tamamlandı"), [baseVisibleOrders]); const filteredPendingOrders = useMemo(() => { const q = pendingSearch.toLowerCase().trim(); return !q ? pendingOrders : pendingOrders.filter((o) => [o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status].join(" ").toLowerCase().includes(q)); }, [pendingOrders, pendingSearch]); const adminOrderResults = useMemo(() => { if (!isAdmin) return [] as OrderRecord[]; let list = orders; if (adminOrderFilter !== "all") list = list.filter((o) => o.status === adminOrderFilter); const q = adminSearch.toLowerCase().trim(); if (q) list = list.filter((o) => [o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status].join(" ").toLowerCase().includes(q)); return list; }, [orders, adminOrderFilter, adminSearch, isAdmin]); const filteredProducts = useMemo(() => { const q = search.toLowerCase().trim(); if (!q) return [] as Product[]; return products.filter((p) => p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)); }, [products, search]); const filteredManagerProducts = useMemo(() => { const q = managerSearch.toLowerCase().trim(); return !q ? products : products.filter((p) => p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)); }, [products, managerSearch]); const filteredUsers = useMemo(() => { const q = userSearch.toLowerCase().trim(); return !q ? users : users.filter((u) => u.username.toLowerCase().includes(q)); }, [users, userSearch]); const filteredCustomers = useMemo(() => { const q = customerSearch.toLowerCase().trim(); return !q ? customers : customers.filter((c) => [c.name, c.company, c.phone].join(" ").toLowerCase().includes(q)); }, [customers, customerSearch]);
+const initialOrders: OrderRecord[] = [
+  {
+    id: "SIP-200001",
+    createdAt: "28.03.2026 09:15",
+    createdBy: "PAZARLAMACI",
+    createdByUserId: 2,
+    customer: initialCustomers[0],
+    items: [
+      { ...initialProducts[0], quantity: 6, priceAfterDiscount: 1224, pendingQuantity: 4, readyForShipmentQuantity: 0, sentQuantity: 2 },
+      { ...initialProducts[1], quantity: 4, priceAfterDiscount: 1579.5, pendingQuantity: 2, readyForShipmentQuantity: 1, sentQuantity: 1 },
+    ],
+    globalDiscount: { type: "percent", value: 10 },
+    vatRate: 20,
+    status: "Sevkiyata Hazır",
+    shipments: [
+      {
+        id: "SH-200001-1",
+        createdAt: "28.03.2026 10:45",
+        createdBy: "SEVKIYAT",
+        items: [
+          { itemId: 1, code: initialProducts[0].code, name: initialProducts[0].name, quantity: 2 },
+          { itemId: 2, code: initialProducts[1].code, name: initialProducts[1].name, quantity: 1 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "SIP-200002",
+    createdAt: "28.03.2026 10:20",
+    createdBy: "PAZARLAMACI",
+    createdByUserId: 2,
+    customer: initialCustomers[1],
+    items: [
+      { ...initialProducts[2], quantity: 3, priceAfterDiscount: 2310, pendingQuantity: 0, readyForShipmentQuantity: 0, sentQuantity: 3 },
+    ],
+    globalDiscount: { type: "percent", value: 0 },
+    vatRate: 20,
+    status: "Tamamlandı",
+    shipments: [
+      {
+        id: "SH-200002-1",
+        createdAt: "28.03.2026 12:20",
+        createdBy: "SEVKIYAT",
+        items: [{ itemId: 3, code: initialProducts[2].code, name: initialProducts[2].name, quantity: 3 }],
+      },
+    ],
+  },
+  {
+    id: "SIP-200003",
+    createdAt: "28.03.2026 11:05",
+    createdBy: "PAZARLAMACI",
+    createdByUserId: 2,
+    customer: initialCustomers[2],
+    items: [
+      { ...initialProducts[3], quantity: 5, priceAfterDiscount: 2736, pendingQuantity: 5, readyForShipmentQuantity: 0, sentQuantity: 0 },
+      { ...initialProducts[4], quantity: 2, priceAfterDiscount: 3268, pendingQuantity: 2, readyForShipmentQuantity: 0, sentQuantity: 0 },
+    ],
+    globalDiscount: { type: "percent", value: 5 },
+    vatRate: 20,
+    status: "Müşteri Onayı Alındı",
+    shipments: [],
+  },
+  {
+    id: "SIP-200004",
+    createdAt: "28.03.2026 11:40",
+    createdBy: "PAZARLAMACI",
+    createdByUserId: 2,
+    customer: initialCustomers[0],
+    items: [
+      { ...initialProducts[0], quantity: 2, priceAfterDiscount: 1360, pendingQuantity: 2, readyForShipmentQuantity: 0, sentQuantity: 0 },
+    ],
+    globalDiscount: { type: "percent", value: 0 },
+    vatRate: 20,
+    status: "Müşteriden Onay Bekleniyor",
+    shipments: [],
+  },
+  {
+    id: "SIP-200005",
+    createdAt: "28.03.2026 12:10",
+    createdBy: "PAZARLAMACI",
+    createdByUserId: 2,
+    customer: initialCustomers[1],
+    items: [
+      { ...initialProducts[1], quantity: 5, priceAfterDiscount: 1667.25, pendingQuantity: 3, readyForShipmentQuantity: 0, sentQuantity: 0 },
+      { ...initialProducts[4], quantity: 1, priceAfterDiscount: 3268, pendingQuantity: 1, readyForShipmentQuantity: 0, sentQuantity: 0 },
+    ],
+    globalDiscount: { type: "percent", value: 5 },
+    vatRate: 20,
+    status: "Hazırlanıyor",
+    shipments: [],
+  },
+  {
+    id: "SIP-200006",
+    createdAt: "28.03.2026 13:30",
+    createdBy: "PAZARLAMACI",
+    createdByUserId: 2,
+    customer: initialCustomers[0],
+    items: [
+      { ...initialProducts[3], quantity: 1, priceAfterDiscount: 2880, pendingQuantity: 1, readyForShipmentQuantity: 0, sentQuantity: 0 },
+    ],
+    globalDiscount: { type: "percent", value: 0 },
+    vatRate: 20,
+    status: "İptal",
+    shipments: [],
+  },
+];
 
-const processedCart = useMemo(() => cart.map((item) => { const live = products.find((p) => p.id === item.id) ?? item; const currentPrice = live.price; return { ...item, code: live.code, name: live.name, price: currentPrice, kdvRate: live.kdvRate, priceAfterDiscount: getDiscountedPrice(currentPrice, globalDiscount.type, globalDiscount.value) }; }), [cart, products, globalDiscount]); const effectiveVatRate = vatEnabled ? normalizeNumber(vatRate) : 0; const cartSummary = useMemo(() => computeSummary(processedCart.map((i) => ({ ...i, pendingQuantity: i.quantity, producedQuantity: 0, readyForShipmentQuantity: 0, sentQuantity: 0 })), effectiveVatRate), [processedCart, effectiveVatRate]); const orderNo = useMemo(() => SIP-${Date.now().toString().slice(-6)}-${processedCart.length}, [processedCart.length]); const duplicateCodes = useMemo(() => { const m = new Map<string, number>(); products.forEach((p) => m.set(p.code.toLowerCase(), (m.get(p.code.toLowerCase()) || 0) + 1)); return Array.from(m.values()).filter((v) => v > 1).length; }, [products]);
+function readStorage<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
 
-const login = () => { const u = users.find((x) => x.username.toUpperCase() === loginUsername.trim().toUpperCase() && x.password === loginPassword.trim()); if (!u) return setLoginMessage("Kullanıcı Adı Veya Şifre Hatalı."); if (!u.active) return setLoginMessage("Bu Kullanıcı Pasif Durumda."); setCurrentUserId(u.id); setLoginUsername(""); setLoginPassword(""); setLoginMessage(""); setUserScreen("dashboard"); setAdminScreen("dashboard"); }; const logout = () => { setCurrentUserId(null); setCart([]); setOrderMessage(""); setEditingOrderId(null); setUserScreen("dashboard"); setAdminScreen("dashboard"); }; const toggleExpandedOrder = (id: string) => setExpandedOrders((prev) => ({ ...prev, [id]: !prev[id] })); const applyCustomerToForm = (customer: Customer) => { setSelectedCustomerId(customer.id); setCustomerDraft({ name: customer.name, company: customer.company, phone: customer.phone, address: customer.address, note: customer.note }); }; const resetCustomerForm = () => { setSelectedCustomerId(null); setCustomerDraft(emptyCustomerDraft()); }; const saveCustomer = () => { const err = validateCustomerDraft(customerDraft); if (err) return setCustomerMessage(err); const normalized: Customer = { id: editingCustomerId ?? ((customers.at(0)?.id ?? 0) + customers.length + 1), name: customerDraft.name.trim(), company: customerDraft.company.trim(), phone: customerDraft.phone.trim(), address: customerDraft.address.trim(), note: customerDraft.note.trim() }; if (editingCustomerId === null) setCustomers((prev) => [normalized, ...prev]); else setCustomers((prev) => prev.map((c) => c.id === editingCustomerId ? normalized : c)); setEditingCustomerId(null); applyCustomerToForm(normalized); setCustomerMessage("Müşteri Kaydedildi."); }; const startEditCustomer = (customer: Customer) => { setEditingCustomerId(customer.id); setCustomerDraft({ name: customer.name, company: customer.company, phone: customer.phone, address: customer.address, note: customer.note }); setCustomerPanelOpen(true); }; const deleteCustomer = (id: number) => setCustomers((prev) => prev.filter((c) => c.id !== id)); const addToCart = (product: Product, quantity = 1) => { const qty = Math.max(quantity, 1); setCart((prev) => { const existing = prev.find((x) => x.id === product.id); if (existing) return prev.map((x) => x.id === product.id ? { ...x, quantity: x.quantity + qty } : x); return [...prev, { ...product, quantity: qty }]; }); }; const updateSearchQuantity = (productId: number, value: string) => setSearchQuantities((prev) => ({ ...prev, [productId]: value })); const addFromSearch = (product: Product) => { addToCart(product, Math.max(normalizeNumber(searchQuantities[product.id] ?? "1"), 1)); setSearchQuantities((prev) => ({ ...prev, [product.id]: "1" })); }; const updateQuantity = (id: number, value: string) => setCart((prev) => prev.map((x) => x.id === id ? { ...x, quantity: Math.max(normalizeNumber(value), 0) } : x).filter((x) => x.quantity > 0)); const removeFromCart = (id: number) => setCart((prev) => prev.filter((x) => x.id !== id)); const clearOrderForm = () => { setCart([]); setSearch(""); resetCustomerForm(); setGlobalDiscount({ type: "percent", value: 0 }); setVatEnabled(false); setVatRate(20); setEditingOrderId(null); setUserScreen("dashboard"); };
+function formatTRY(value: number): string {
+  return new Intl.NumberFormat("tr-TR", {
+    style: "currency",
+    currency: "TRY",
+    maximumFractionDigits: 2,
+  }).format(value || 0);
+}
 
-const createOrder = () => { if (!currentUser || currentUser.role !== "pazarlamaci") return; if (!processedCart.length) return setOrderMessage("Sipariş Sepeti Boş Olamaz."); if (!customerDraft.name.trim()) return setOrderMessage("Önce Müşteri Seç Veya Ekle."); const customer = selectedCustomerId ? customers.find((c) => c.id === selectedCustomerId) ?? { id: -1, ...customerDraft } : { id: -1, ...customerDraft }; const items: OrderLine[] = processedCart.map((item) => ({ ...item, pendingQuantity: item.quantity, producedQuantity: 0, readyForShipmentQuantity: 0, sentQuantity: 0 })); const newOrder: OrderRecord = { id: orderNo, createdAt: new Date().toLocaleString("tr-TR"), createdBy: currentUser.username, createdByUserId: currentUser.id, customer, items, summary: computeSummary(items, effectiveVatRate), globalDiscount: { ...globalDiscount }, status: "Müşteriden Onay Bekleniyor", shipments: [] }; setOrders((prev) => [newOrder, ...prev]); setOrderMessage("Sipariş Kaydedildi."); clearOrderForm(); }; const startEditOrder = (order: OrderRecord) => { if (!currentUser || currentUser.role !== "pazarlamaci" || currentUser.id !== order.createdByUserId || order.status !== "Müşteriden Onay Bekleniyor") return; setEditingOrderId(order.id); setCart(order.items.filter((x) => x.pendingQuantity > 0).map((x) => ({ id: x.id, code: x.code, name: x.name, price: x.price, kdvRate: x.kdvRate, quantity: x.pendingQuantity }))); setGlobalDiscount(order.globalDiscount); setVatEnabled(order.summary.vatRate > 0); setVatRate(order.summary.vatRate || 20); applyCustomerToForm(order.customer); setUserScreen("order_form"); }; const saveEditedOrder = () => { if (!editingOrderId) return; setOrders((prev) => prev.map((order) => { if (order.id !== editingOrderId) return order; const items: OrderLine[] = processedCart.map((item) => ({ ...item, pendingQuantity: item.quantity, producedQuantity: 0, readyForShipmentQuantity: 0, sentQuantity: 0 })); const customer = selectedCustomerId ? customers.find((c) => c.id === selectedCustomerId) ?? { id: -1, ...customerDraft } : { id: -1, ...customerDraft }; return { ...order, customer, items, summary: computeSummary(items, effectiveVatRate), globalDiscount: { ...globalDiscount }, shipments: [] }; })); setOrderMessage("Sipariş Güncellendi."); clearOrderForm(); }; const updateOrderStatus = (orderId: string, status: OrderStatus) => { if (!currentUser) return; setOrders((prev) => prev.map((order) => { if (order.id !== orderId) return order; const isOwner = order.createdByUserId === currentUser.id; if (order.status === "İptal") { if (currentUser.role === "pazarlamaci" && isOwner && status === "Müşteriden Onay Bekleniyor") { return { ...order, status: "Müşteriden Onay Bekleniyor" }; } return order; } if (currentUser.role === "pazarlamaci") { if (isOwner && status === "Müşteri Onayı Alındı") return { ...order, status }; if (isOwner && status === "İptal") return { ...order, status: "İptal" }; return order; } if (currentUser.role === "sevkiyat") { if (status === "Tamamlandı") return { ...order, status }; return order; } if (currentUser.role === "admin") { if (status === "İptal") return { ...order, status: "İptal" }; if (status === "Tamamlandı" || status === "Müşteri Onayı Alındı") return { ...order, status }; return order; } return order; })); }; const updateShipmentDraft = (orderId: string, itemId: number, value: string) => setShipmentDrafts((prev) => ({ ...prev, [${orderId}_${itemId}]: value })); const updateReadyDraft = (orderId: string, itemId: number, value: string) => setReadyDrafts((prev) => ({ ...prev, [${orderId}_${itemId}]: value })); const markReadySelectedItems = (orderId: string) => { if (!canManageProduction) return; setOrders((prev) => prev.map((order) => { if (order.id !== orderId || order.status === "İptal") return order; let changed = false; const items = order.items.map((item) => { const qty = Math.min(item.pendingQuantity, Math.max(normalizeNumber(readyDrafts[${orderId}_${item.id}]), 0)); if (qty <= 0) return item; changed = true; return { ...item, pendingQuantity: item.pendingQuantity - qty, producedQuantity: item.producedQuantity + qty, readyForShipmentQuantity: item.readyForShipmentQuantity + qty, }; }); return changed ? { ...order, items, status: deriveOrderStatus(items, order.status) } : order; })); setReadyDrafts((prev) => { const next = { ...prev }; Object.keys(next).forEach((key) => { if (key.startsWith(${orderId}_)) next[key] = ""; }); return next; }); }; const shipSelectedItems = (orderId: string) => { if (!canManageShipping || !currentUser) return; setOrders((prev) => prev.map((order) => { if (order.id !== orderId || order.status === "İptal") return order; const shipmentItems: ShipmentRecord["items"] = []; const items = order.items.map((item) => { const qty = Math.min(item.readyForShipmentQuantity, Math.max(normalizeNumber(shipmentDrafts[${orderId}_${item.id}]), 0)); if (qty <= 0) return item; shipmentItems.push({ itemId: item.id, code: item.code, name: item.name, quantity: qty }); return { ...item, readyForShipmentQuantity: item.readyForShipmentQuantity - qty, sentQuantity: item.sentQuantity + qty, }; }); if (!shipmentItems.length) return order; const shipments = [{ id: ${order.id}-SH-${Date.now().toString().slice(-5)}, createdAt: new Date().toLocaleString("tr-TR"), createdBy: currentUser.username, items: shipmentItems }, ...order.shipments]; return { ...order, items, shipments, status: deriveOrderStatus(items, order.status) }; })); setShipmentDrafts((prev) => { const next = { ...prev }; Object.keys(next).forEach((key) => { if (key.startsWith(${orderId}_)) next[key] = ""; }); return next; }); }; const saveProduct = () => { const err = validateProductDraft(productDraft, products, editingProductId); if (err) return setProductMessage(err); const p: Product = { id: editingProductId ?? ((products.at(-1)?.id ?? 0) + 1), code: productDraft.code.trim().toUpperCase(), name: productDraft.name.trim(), price: normalizeNumber(productDraft.price), kdvRate: normalizeNumber(productDraft.kdvRate) }; if (editingProductId === null) setProducts((prev) => [p, ...prev]); else setProducts((prev) => prev.map((x) => x.id === editingProductId ? p : x)); setEditingProductId(null); setProductDraft(emptyDraftProduct()); setProductMessage("Ürün Kaydedildi."); }; const saveUser = () => { const err = validateUserDraft(userDraft, users, editingUserId); if (err) return setUserMessage(err); const u: AppUser = { id: editingUserId ?? ((users.at(-1)?.id ?? 0) + 1), username: userDraft.username.trim().toUpperCase(), password: userDraft.password.trim(), role: userDraft.role, active: userDraft.active }; if (editingUserId === null) setUsers((prev) => [u, ...prev]); else setUsers((prev) => prev.map((x) => x.id === editingUserId ? u : x)); setEditingUserId(null); setUserDraft(emptyUserDraft()); setUserMessage("Kullanıcı Kaydedildi."); }; const currentTempCustomer = selectedCustomerId ? customers.find((c) => c.id === selectedCustomerId) ?? { id: -1, ...customerDraft } : { id: -1, ...customerDraft }; const handlePrintCurrent = () => { if (!currentUser || !processedCart.length) return; const items: OrderLine[] = processedCart.map((item) => ({ ...item, pendingQuantity: item.quantity, producedQuantity: 0, readyForShipmentQuantity: 0, sentQuantity: 0 })); const tempOrder: OrderRecord = { id: orderNo, createdAt: new Date().toLocaleString("tr-TR"), createdBy: currentUser.username, createdByUserId: currentUser.id, customer: currentTempCustomer, items, summary: computeSummary(items, effectiveVatRate), globalDiscount, status: "Müşteriden Onay Bekleniyor", shipments: [] }; setPrintableState({ title: tempOrder.id, html: buildOrderPrintHtml(tempOrder) }); }; const printSavedOrder = (order: OrderRecord) => setPrintableState({ title: order.id, html: buildOrderPrintHtml(order) }); const printShipment = (order: OrderRecord, shipment: ShipmentRecord) => setPrintableState({ title: shipment.id, html: buildShipmentPrintHtml(order, shipment) }); const handleWhatsAppShareCurrent = () => { if (!currentUser || !processedCart.length) return; const items: OrderLine[] = processedCart.map((item) => ({ ...item, pendingQuantity: item.quantity, producedQuantity: 0, readyForShipmentQuantity: 0, sentQuantity: 0 })); const tempOrder: OrderRecord = { id: orderNo, createdAt: new Date().toLocaleString("tr-TR"), createdBy: currentUser.username, createdByUserId: currentUser.id, customer: currentTempCustomer, items, summary: computeSummary(items, effectiveVatRate), globalDiscount, status: "Müşteriden Onay Bekleniyor", shipments: [] }; window.open(https://wa.me/?text=${encodeURIComponent(buildWhatsAppMessageForOrder(tempOrder))}, "_blank"); }; const shareSavedOrder = (order: OrderRecord) => window.open(https://wa.me/?text=${encodeURIComponent(buildWhatsAppMessageForOrder(order))}, "_blank"); const shareShipment = (order: OrderRecord, shipment: ShipmentRecord) => window.open(https://wa.me/?text=${encodeURIComponent(buildShipmentNote(order, shipment))}, "_blank");
+function normalizeNumber(value: string | number | ""): number {
+  if (value === "") return 0;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
-if (!currentUser) { return ( <div className="min-h-screen bg-gradient-to-b from-slate-100 via-white to-slate-100 p-4"> <div className="mx-auto max-w-md pt-8"> <Card className="overflow-hidden rounded-[32px] border-0 shadow-xl shadow-slate-200/70"> <div className="bg-gradient-to-r from-slate-900 to-slate-700 px-6 py-8 text-white"> <div className="text-center"><h1 className="text-2xl font-bold tracking-tight">Sipariş Yönetimi</h1><p className="mt-2 text-sm text-white/75">Kullanıcı adı ve şifre ile giriş yap.</p></div> </div> <CardContent className="space-y-4 p-6"> <div className="relative"><User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input className="h-12 rounded-2xl border-slate-200 bg-white pl-10" placeholder="Kullanıcı Adı" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value.toUpperCase())} /></div> <div className="relative"><Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input type="password" className="h-12 rounded-2xl border-slate-200 bg-white pl-10" placeholder="Şifre" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && login()} /></div> {loginMessage ? <div className="rounded-2xl border border-red-100 bg-red-50 px-3 py-3 text-sm text-red-700">{loginMessage}</div> : null} <Button onClick={login} className="h-12 w-full rounded-2xl bg-slate-900 text-white hover:bg-slate-800">Giriş Yap</Button> </CardContent> </Card> </div> </div> ); }
+function getRoleLabel(role: UserRole): string {
+  if (role === "admin") return "Yönetici";
+  if (role === "uretim") return "Üretim";
+  if (role === "sevkiyat") return "Sevkiyat";
+  return "Pazarlamacı";
+}
 
-return ( <div className="min-h-screen bg-slate-100"> <style>{@media print { body { background: white; } .no-print { display:none !important; } }}</style> <div className="mx-auto w-full max-w-md"> <div className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/95 px-4 py-4 shadow-sm backdrop-blur no-print"> <div className="flex items-center justify-between gap-3"> <div><h1 className="text-xl font-bold tracking-tight text-slate-900">Mobil Sipariş</h1><p className="mt-1 text-xs text-slate-500">{currentUser.username} • {getRoleLabel(currentUser.role)}</p></div> <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={logout}><LogOut className="h-4 w-4" /></Button> </div> </div> <div className="space-y-4 p-4"> {canCreateOrders && userScreen === "dashboard" ? ( <Card className="overflow-hidden rounded-[28px] border-0 shadow-sm"> <div className="bg-gradient-to-r from-slate-900 to-slate-700 px-5 py-5 text-white"><p className="text-xs uppercase tracking-[0.2em] text-white/60">Pazarlamacı Paneli</p><h2 className="mt-2 text-2xl font-bold">Hoş Geldin, {currentUser.username}</h2></div> <CardContent className="p-5"><Button className="h-12 w-full rounded-2xl bg-slate-900 text-white hover:bg-slate-800" onClick={() => { clearOrderForm(); setCustomerPanelOpen(true); setUserScreen("order_form"); }}><Plus className="mr-2 h-4 w-4" /> Yeni Sipariş</Button></CardContent> </Card> ) : null}
+function getDiscountedPrice(price: number, discountType: DiscountType, discountValue: number | ""): number {
+  const value = normalizeNumber(discountValue);
+  if (discountType === "percent") {
+    return Math.max(price - (price * Math.min(Math.max(value, 0), 100)) / 100, 0);
+  }
+  return Math.max(price - value, 0);
+}
 
-{canCreateOrders && userScreen === "order_form" ? (
-        <>
-          <CustomerPanel filteredCustomers={filteredCustomers} customerDraft={customerDraft} setCustomerDraft={setCustomerDraft} customerMessage={customerMessage} saveCustomer={saveCustomer} startEditCustomer={startEditCustomer} deleteCustomer={deleteCustomer} customerSearch={customerSearch} setCustomerSearch={setCustomerSearch} setEditingCustomerId={setEditingCustomerId} resetCustomerForm={resetCustomerForm} applyCustomerToForm={applyCustomerToForm} selectedCustomerId={selectedCustomerId} open={customerPanelOpen} setOpen={setCustomerPanelOpen} />
-          <Card className="rounded-[28px] border-0 shadow-sm no-print"><CardContent className="p-4"><div className="flex gap-2"><Button variant="outline" className="flex-1 rounded-2xl" onClick={clearOrderForm}><ArrowLeft className="mr-2 h-4 w-4" /> Geri</Button><Button variant="outline" className="flex-1 rounded-2xl" onClick={() => setUserScreen("dashboard")}><Home className="mr-2 h-4 w-4" /> Ana Sayfa</Button></div></CardContent></Card>
-          <Card className="rounded-[28px] border-0 shadow-sm"><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-base"><Search className="h-4 w-4" /> Ürün Ara</CardTitle><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Stok Kodu Veya Stok Adı Yaz" className="h-11 rounded-2xl border-slate-200 bg-slate-50" /></CardHeader><CardContent>{search.trim() === "" ? <div className="rounded-2xl border border-dashed p-5 text-center text-sm text-slate-500">Arama Yapınca Ürünler Görünür.</div> : filteredProducts.length === 0 ? <div className="rounded-2xl border border-dashed p-5 text-center text-sm text-slate-500">Uygun Ürün Bulunamadı.</div> : <div className="max-h-[46vh] space-y-3 overflow-y-auto pr-1">{filteredProducts.map((product) => <motion.div key={product.id} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-slate-200 bg-slate-50 p-3"><div className="flex items-start gap-3"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-200"><Package className="h-5 w-5 text-slate-600" /></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className="rounded-full">{product.code}</Badge><Badge variant="secondary" className="rounded-full">{formatTRY(product.price)}</Badge></div><p className="mt-2 break-words text-sm font-semibold leading-5 text-slate-900">{product.name}</p></div></div><div className="mt-3 flex items-end gap-2"><div className="flex-1"><label className="mb-1 block text-[11px] font-medium text-slate-500">Adet</label><StepperInput value={searchQuantities[product.id] ?? "1"} min={1} onChange={(value) => updateSearchQuantity(product.id, value)} /></div><Button onClick={() => addFromSearch(product)} className="rounded-2xl bg-slate-900 hover:bg-slate-800" size="sm"><Plus className="mr-2 h-4 w-4" /> Ekle</Button></div></motion.div>)}</div>}</CardContent></Card>
-          <Card className="rounded-[28px] border-0 shadow-sm"><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-base"><Percent className="h-4 w-4" /> Fiyatlandırma</CardTitle></CardHeader><CardContent className="space-y-3"><div className="grid grid-cols-2 gap-3"><div><label className="mb-1 block text-[11px] font-medium text-slate-500">İskonto Tipi</label><select value={globalDiscount.type} onChange={(e) => setGlobalDiscount((prev) => ({ ...prev, type: e.target.value as DiscountType }))} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none"><option value="percent">Yüzde (%)</option><option value="amount">Tutar (₺)</option></select></div><div><label className="mb-1 block text-[11px] font-medium text-slate-500">Toplu İskonto</label><Input type="number" min="0" value={globalDiscount.value} onChange={(e) => setGlobalDiscount((prev) => ({ ...prev, value: e.target.value === "" ? "" : Math.max(Number(e.target.value), 0) }))} className="rounded-2xl" /></div></div><div className="rounded-2xl border p-3"><label className="flex items-center gap-2 text-sm font-medium text-slate-900"><input type="checkbox" checked={vatEnabled} onChange={(e) => setVatEnabled(e.target.checked)} /> Kdv Uygula</label>{vatEnabled ? <div className="mt-3"><label className="mb-1 block text-[11px] font-medium text-slate-500">Kdv %</label><Input type="number" min="0" value={vatRate} onChange={(e) => setVatRate(e.target.value === "" ? "" : Math.max(Number(e.target.value), 0))} className="rounded-2xl" /></div> : <p className="mt-2 text-xs text-slate-500">Sipariş varsayılan olarak Kdvsiz başlar.</p>}</div></CardContent></Card>
-          <Card className="rounded-[28px] border-0 shadow-sm"><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-base"><ShoppingCart className="h-4 w-4" /> Sipariş Sepeti</CardTitle></CardHeader><CardContent className="space-y-4">{processedCart.length === 0 ? <div className="rounded-2xl border border-dashed p-5 text-center text-sm text-slate-500">Henüz Ürün Eklenmedi.</div> : processedCart.map((item) => <div key={item.id} className="rounded-2xl border p-3"><div className="flex items-start justify-between gap-2"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className="rounded-full">{item.code}</Badge><span className="text-xs text-slate-500">Liste Fiyatı: {formatTRY(item.price)}</span></div><p className="mt-2 break-words text-sm font-semibold leading-5 text-slate-900">{item.name}</p><p className="mt-1 text-xs text-slate-500">Net Fiyat: {formatTRY(item.priceAfterDiscount)}</p></div><Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)} className="h-8 w-8 rounded-full"><Trash2 className="h-4 w-4" /></Button></div><div className="mt-3"><label className="mb-1 block text-[11px] font-medium text-slate-500">Miktar</label><StepperInput value={String(item.quantity)} min={1} onChange={(value) => updateQuantity(item.id, value)} /></div></div>)}</CardContent></Card>
-          <Card className="rounded-[28px] border-0 shadow-sm"><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-base">Sipariş Özeti</CardTitle></CardHeader><CardContent className="space-y-3"><div className="rounded-2xl bg-slate-50 p-4 text-sm"><div className="flex justify-between"><span>Brüt Tutar</span><span>{formatTRY(cartSummary.baseTotal)}</span></div><div className="mt-2 flex justify-between"><span>İskonto</span><span>- {formatTRY(cartSummary.discountTotal)}</span></div><div className="mt-2 flex justify-between"><span>Ara Toplam</span><span>{formatTRY(cartSummary.subTotal)}</span></div><div className="mt-2 flex justify-between"><span>Kdv</span><span>{formatTRY(cartSummary.vatTotal)}</span></div><div className="mt-3 flex justify-between border-t pt-3 text-base font-bold"><span>Genel Toplam</span><span>{formatTRY(cartSummary.grandTotal)}</span></div></div>{orderMessage ? <div className="rounded-2xl bg-slate-50 px-3 py-3 text-xs text-slate-600">{orderMessage}</div> : null}<div className="grid grid-cols-2 gap-3 no-print"><Button onClick={handlePrintCurrent} className="rounded-2xl py-6" variant="outline"><FileDown className="mr-2 h-4 w-4" /> Yazdır</Button><Button onClick={handleWhatsAppShareCurrent} className="rounded-2xl py-6 bg-slate-900 hover:bg-slate-800"><MessageCircle className="mr-2 h-4 w-4" /> WhatsApp</Button></div>{editingOrderId ? <Button onClick={saveEditedOrder} className="h-12 w-full rounded-2xl bg-slate-900 hover:bg-slate-800">Siparişi Güncelle</Button> : <Button onClick={createOrder} className="h-12 w-full rounded-2xl bg-slate-900 hover:bg-slate-800">Siparişi Kaydet</Button>}</CardContent></Card>
-        </>
-      ) : null}
+function deriveOrderStatus(items: OrderLine[], currentStatus?: OrderStatus): OrderStatus {
+  const totalPending = items.reduce((sum, item) => sum + item.pendingQuantity, 0);
+  const totalReady = items.reduce((sum, item) => sum + item.readyForShipmentQuantity, 0);
+  const totalSent = items.reduce((sum, item) => sum + item.sentQuantity, 0);
 
-      {isAdmin ? (
-        <>
-          {adminScreen === "dashboard" ? (
-            <Card className="overflow-hidden rounded-[28px] border-0 shadow-sm no-print">
-              <div className="bg-gradient-to-r from-slate-900 to-slate-700 px-5 py-5 text-white"><p className="text-xs uppercase tracking-[0.2em] text-white/60">Yönetici Paneli</p><h2 className="mt-2 text-2xl font-bold">Hoş Geldin, {currentUser.username}</h2></div>
-              <CardContent className="p-5 space-y-4"><div className="grid grid-cols-2 gap-3"><div className="rounded-3xl border border-slate-100 bg-slate-50 p-4"><p className="text-xs text-slate-500">Toplam Sipariş</p><p className="mt-1 text-2xl font-bold text-slate-900">{orders.length}</p></div><div className="rounded-3xl border border-slate-100 bg-slate-50 p-4"><p className="text-xs text-slate-500">Bekleyen</p><p className="mt-1 text-2xl font-bold text-slate-900">{orders.filter((o) => o.status !== "Tamamlandı" && o.status !== "İptal").length}</p></div></div><Button className="h-12 w-full rounded-2xl bg-slate-900 hover:bg-slate-800" onClick={() => setAdminScreen("orders")}><Search className="mr-2 h-4 w-4" /> Siparişler</Button></CardContent>
-            </Card>
-          ) : (
-            <>
-              <Card className="rounded-[28px] border-0 shadow-sm no-print"><CardContent className="p-4"><Button variant="outline" className="w-full rounded-2xl" onClick={() => setAdminScreen("dashboard")}><ArrowLeft className="mr-2 h-4 w-4" /> Geri</Button></CardContent></Card>
-              <Card className="rounded-[28px] border-0 shadow-sm no-print"><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-base"><Filter className="h-4 w-4" /> Sipariş Filtresi</CardTitle></CardHeader><CardContent className="space-y-3"><select value={adminOrderFilter} onChange={(e) => setAdminOrderFilter(e.target.value as OrderFilter)} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none"><option value="all">Tümü</option><option value="Müşteriden Onay Bekleniyor">Müşteriden Onay Bekleniyor</option><option value="Müşteri Onayı Alındı">Müşteri Onayı Alındı</option><option value="Hazırlanıyor">Hazırlanıyor</option><option value="Sevkiyata Hazır">Sevkiyata Hazır</option><option value="Tamamlandı">Tamamlandı</option><option value="İptal">İptal</option></select><Input value={adminSearch} onChange={(e) => setAdminSearch(e.target.value)} placeholder="Siparişlerde Ara" className="h-10 rounded-2xl" /></CardContent></Card>
-              <Card className="rounded-[28px] border-0 shadow-sm"><CardHeader className="pb-2"><CardTitle className="text-base">Sipariş Sonuçları</CardTitle></CardHeader><CardContent className="space-y-3">{adminOrderResults.length === 0 ? <div className="rounded-2xl border border-dashed p-5 text-center text-sm text-slate-500">Sonuç Yok.</div> : adminOrderResults.map((order) => <OrderCard key={`admin-${order.id}`} order={order} currentUser={currentUser} canManageShipping={!!canManageShipping} canManageProduction={!!canManageProduction} shipmentDrafts={shipmentDrafts} readyDrafts={readyDrafts} expanded={!!expandedOrders[`admin-${order.id}`]} toggleExpanded={(id) => toggleExpandedOrder(`admin-${id}`)} updateShipmentDraft={updateShipmentDraft} updateReadyDraft={updateReadyDraft} shipSelectedItems={shipSelectedItems} markReadySelectedItems={markReadySelectedItems} updateOrderStatus={updateOrderStatus} printSavedOrder={printSavedOrder} shareSavedOrder={shareSavedOrder} printShipment={printShipment} shareShipment={shareShipment} startEditOrder={startEditOrder} />)}</CardContent></Card>
-            </>
-          )}
-          <Card className="rounded-[28px] border-0 shadow-sm no-print"><CardHeader className="pb-2"><button className="flex w-full items-center justify-between text-left" onClick={() => setManagerOpen((prev) => !prev)}><CardTitle className="flex items-center gap-2 text-base"><Settings2 className="h-4 w-4" /> Ürün Yönetim Paneli</CardTitle>{managerOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</button></CardHeader>{managerOpen ? <CardContent className="space-y-4"><div className="grid grid-cols-3 gap-2"><div className="rounded-2xl bg-slate-50 p-3 text-center"><p className="text-[11px] text-slate-500">Toplam Ürün</p><p className="mt-1 text-lg font-bold">{products.length}</p></div><div className="rounded-2xl bg-slate-50 p-3 text-center"><p className="text-[11px] text-slate-500">Bekleyen Sipariş</p><p className="mt-1 text-lg font-bold">{orders.filter((o) => o.status !== "Tamamlandı" && o.status !== "İptal").length}</p></div><div className="rounded-2xl bg-slate-50 p-3 text-center"><p className="text-[11px] text-slate-500">Mükerrer Kod</p><p className="mt-1 text-lg font-bold">{duplicateCodes}</p></div></div><div className="rounded-2xl border p-3"><div className="mb-3 flex items-center justify-between gap-2"><p className="text-sm font-semibold">Ürün Ekle / Düzenle</p><div className="flex gap-2"><Button variant="outline" size="sm" className="rounded-xl" onClick={() => { setEditingProductId(null); setProductDraft(emptyDraftProduct()); }}><RotateCcw className="mr-1 h-4 w-4" /> Temizle</Button><Button size="sm" className="rounded-xl bg-slate-900 hover:bg-slate-800" onClick={saveProduct}><Save className="mr-1 h-4 w-4" /> Kaydet</Button></div></div><div className="grid grid-cols-2 gap-3"><Input value={productDraft.code} onChange={(e) => setProductDraft((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))} className="rounded-2xl" placeholder="Stok Kodu" /><Input type="number" min="0" value={productDraft.price} onChange={(e) => setProductDraft((prev) => ({ ...prev, price: e.target.value }))} className="rounded-2xl" placeholder="Fiyat" /><div className="col-span-2"><Textarea value={productDraft.name} onChange={(e) => setProductDraft((prev) => ({ ...prev, name: e.target.value }))} className="rounded-2xl" placeholder="Ürün Adı" /></div><Input type="number" min="0" value={productDraft.kdvRate} onChange={(e) => setProductDraft((prev) => ({ ...prev, kdvRate: e.target.value }))} className="rounded-2xl" placeholder="Kdv %" /></div>{productMessage ? <div className="mt-3 rounded-2xl bg-slate-50 px-3 py-3 text-xs text-slate-600">{productMessage}</div> : null}</div><div className="rounded-2xl border p-3"><div className="mb-3 flex items-center justify-between gap-2"><p className="text-sm font-semibold">Kayıtlı Ürünler</p><Input value={managerSearch} onChange={(e) => setManagerSearch(e.target.value)} placeholder="Ürün Ara" className="h-10 rounded-2xl" /></div><div className="max-h-72 space-y-2 overflow-y-auto pr-1">{filteredManagerProducts.map((product) => <div key={product.id} className="rounded-2xl border bg-slate-50 p-3"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className="rounded-full">{product.code}</Badge><Badge variant="secondary" className="rounded-full">{formatTRY(product.price)}</Badge></div><p className="mt-2 text-sm font-semibold text-slate-900">{product.name}</p><div className="mt-3 grid grid-cols-3 gap-2"><Button variant="outline" size="sm" className="rounded-xl" onClick={() => { setEditingProductId(product.id); setProductDraft({ code: product.code, name: product.name, price: String(product.price), kdvRate: String(product.kdvRate) }); }}><Pencil className="mr-1 h-4 w-4" /> Düzenle</Button><Button variant="outline" size="sm" className="rounded-xl" onClick={() => { const nextId = (products.at(-1)?.id ?? 0) + 1; setProducts((prev) => [{ ...product, id: nextId, code: `${product.code}-KOPYA`, name: `${product.name} Kopya` }, ...prev]); }}><Copy className="mr-1 h-4 w-4" /> Kopyala</Button><Button variant="outline" size="sm" className="rounded-xl" onClick={() => setProducts((prev) => prev.filter((p) => p.id !== product.id))}><Trash2 className="mr-1 h-4 w-4" /> Sil</Button></div></div>)}</div></div><div className="rounded-2xl border border-dashed p-3">{!confirmReset ? <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setConfirmReset(true)}><RotateCcw className="mr-1 h-4 w-4" /> Ürünleri Sıfırla</Button> : <div className="flex gap-2"><Button size="sm" className="rounded-xl" onClick={() => { setProducts(initialProducts); setConfirmReset(false); }}>Onayla</Button><Button variant="outline" size="sm" className="rounded-xl" onClick={() => setConfirmReset(false)}><X className="mr-1 h-4 w-4" /> Vazgeç</Button></div>}</div></CardContent> : null}</Card>
-          <Card className="rounded-[28px] border-0 shadow-sm no-print"><CardHeader className="pb-2"><button className="flex w-full items-center justify-between text-left" onClick={() => setUsersOpen((prev) => !prev)}><CardTitle className="flex items-center gap-2 text-base"><Users className="h-4 w-4" /> Kullanıcı Yönetimi</CardTitle>{usersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</button></CardHeader>{usersOpen ? <CardContent className="space-y-4"><div className="grid grid-cols-3 gap-2"><div className="rounded-2xl bg-slate-50 p-3 text-center"><p className="text-[11px] text-slate-500">Toplam Kullanıcı</p><p className="mt-1 text-lg font-bold">{users.length}</p></div><div className="rounded-2xl bg-slate-50 p-3 text-center"><p className="text-[11px] text-slate-500">Aktif</p><p className="mt-1 text-lg font-bold">{users.filter((u) => u.active).length}</p></div><div className="rounded-2xl bg-slate-50 p-3 text-center"><p className="text-[11px] text-slate-500">Sipariş</p><p className="mt-1 text-lg font-bold">{orders.length}</p></div></div><div className="rounded-2xl border p-3"><div className="mb-3 flex items-center justify-between gap-2"><p className="text-sm font-semibold">Kullanıcı Ekle / Düzenle</p><div className="flex gap-2"><Button variant="outline" size="sm" className="rounded-xl" onClick={() => { setEditingUserId(null); setUserDraft(emptyUserDraft()); }}><UserPlus className="mr-1 h-4 w-4" /> Temizle</Button><Button size="sm" className="rounded-xl bg-slate-900 hover:bg-slate-800" onClick={saveUser}><Save className="mr-1 h-4 w-4" /> Kaydet</Button></div></div><div className="grid grid-cols-2 gap-3"><Input value={userDraft.username} onChange={(e) => setUserDraft((prev) => ({ ...prev, username: e.target.value.toUpperCase() }))} className="rounded-2xl" placeholder="Kullanıcı Adı" /><Input value={userDraft.password} onChange={(e) => setUserDraft((prev) => ({ ...prev, password: e.target.value }))} className="rounded-2xl" placeholder="Şifre" /><select value={userDraft.role} onChange={(e) => setUserDraft((prev) => ({ ...prev, role: e.target.value as UserRole }))} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none"><option value="pazarlamaci">Pazarlamacı</option><option value="admin">Yönetici</option><option value="uretim">Üretim</option><option value="sevkiyat">Sevkiyat</option></select><select value={userDraft.active ? "active" : "passive"} onChange={(e) => setUserDraft((prev) => ({ ...prev, active: e.target.value === "active" }))} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none"><option value="active">Aktif</option><option value="passive">Pasif</option></select></div>{userMessage ? <div className="mt-3 rounded-2xl bg-slate-50 px-3 py-3 text-xs text-slate-600">{userMessage}</div> : null}</div><div className="rounded-2xl border p-3"><div className="mb-3 flex items-center justify-between gap-2"><p className="text-sm font-semibold">Kayıtlı Kullanıcılar</p><Input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="Kullanıcı Ara" className="h-10 rounded-2xl" /></div><div className="max-h-72 space-y-2 overflow-y-auto pr-1">{filteredUsers.map((user) => <div key={user.id} className="rounded-2xl border bg-slate-50 p-3"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className="rounded-full">{user.username}</Badge><Badge variant="secondary" className="rounded-full">{getRoleLabel(user.role)}</Badge><Badge variant="secondary" className="rounded-full">{user.active ? "Aktif" : "Pasif"}</Badge></div><div className="mt-3 grid grid-cols-2 gap-2"><Button variant="outline" size="sm" className="rounded-xl" onClick={() => { setEditingUserId(user.id); setUserDraft({ username: user.username, password: user.password, role: user.role, active: user.active }); }}><Pencil className="mr-1 h-4 w-4" /> Düzenle</Button><Button variant="outline" size="sm" className="rounded-xl" onClick={() => { if (!["EREN", "SEVKIYAT", "ÜRETİM", "PAZARLAMACI"].includes(user.username)) setUsers((prev) => prev.filter((u) => u.id !== user.id)); }}><Trash2 className="mr-1 h-4 w-4" /> Sil</Button></div></div>)}</div></div></CardContent> : null}</Card>
-        </>
-      ) : null}
+  if (currentStatus === "İptal") return "İptal";
+  if (totalPending === 0 && totalSent > 0) return "Tamamlandı";
+  if (totalReady > 0) return "Sevkiyata Hazır";
+  if (totalSent > 0) return "Hazırlanıyor";
+  return currentStatus ?? "Müşteri Onayı Alındı";
+}
 
-      {!isAdmin ? (
-        <Card className="rounded-[28px] border-0 shadow-sm"><CardHeader className="pb-2"><div className="space-y-3"><CardTitle className="flex items-center gap-2 text-base"><Clock3 className="h-4 w-4" /> Siparişler</CardTitle><Input value={pendingSearch} onChange={(e) => setPendingSearch(e.target.value)} placeholder="Sipariş Ara" className="h-10 rounded-2xl" /></div></CardHeader><CardContent className="space-y-3">{filteredPendingOrders.length === 0 ? <div className="rounded-2xl border border-dashed p-5 text-center text-sm text-slate-500">Sipariş Yok.</div> : filteredPendingOrders.map((order) => <OrderCard key={order.id} order={order} currentUser={currentUser} canManageShipping={!!canManageShipping} canManageProduction={!!canManageProduction} shipmentDrafts={shipmentDrafts} readyDrafts={readyDrafts} expanded={!!expandedOrders[order.id]} toggleExpanded={toggleExpandedOrder} updateShipmentDraft={updateShipmentDraft} updateReadyDraft={updateReadyDraft} shipSelectedItems={shipSelectedItems} markReadySelectedItems={markReadySelectedItems} updateOrderStatus={updateOrderStatus} printSavedOrder={printSavedOrder} shareSavedOrder={shareSavedOrder} printShipment={printShipment} shareShipment={shareShipment} startEditOrder={startEditOrder} />)}</CardContent></Card>
-      ) : null}
+function calcOrderTotals(order: OrderRecord) {
+  const baseTotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subTotal = order.items.reduce((sum, item) => sum + item.priceAfterDiscount * item.quantity, 0);
+  const vatTotal = subTotal * (order.vatRate / 100);
+  return {
+    baseTotal,
+    subTotal,
+    vatTotal,
+    grandTotal: subTotal + vatTotal,
+  };
+}
+
+function buildOrderMessage(order: OrderRecord) {
+  const totals = calcOrderTotals(order);
+  return [
+    "Sipariş Formu",
+    `Sipariş No: ${order.id}`,
+    `Durum: ${order.status}`,
+    `Müşteri: ${order.customer.name}`,
+    "",
+    ...order.items.map(
+      (item, index) =>
+        `${index + 1}. [${item.code}] ${item.name} | ${item.quantity} Adet | ${formatTRY(item.priceAfterDiscount)}`
+    ),
+    "",
+    `Genel Toplam: ${formatTRY(totals.grandTotal)}`,
+  ].join("\n");
+}
+
+function buildShipmentMessage(order: OrderRecord, shipment: ShipmentRecord) {
+  return [
+    "Sevkiyat Fişi",
+    `Sipariş No: ${order.id}`,
+    `Sevkiyat No: ${shipment.id}`,
+    `Müşteri: ${order.customer.name}`,
+    "",
+    ...shipment.items.map(
+      (item, index) => `${index + 1}. [${item.code}] ${item.name} | ${item.quantity} Adet`
+    ),
+  ].join("\n");
+}
+
+function stepperButtonStyle(): React.CSSProperties {
+  return {
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    border: "1px solid #d1d5db",
+    background: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  };
+}
+
+function inputStyle(): React.CSSProperties {
+  return {
+    width: "100%",
+    borderRadius: 14,
+    border: "1px solid #d1d5db",
+    padding: "10px 12px",
+    fontSize: 14,
+    outline: "none",
+    boxSizing: "border-box",
+  };
+}
+
+function cardStyle(): React.CSSProperties {
+  return {
+    background: "#fff",
+    borderRadius: 24,
+    boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+    padding: 16,
+  };
+}
+
+function buttonStyle(primary = false): React.CSSProperties {
+  return {
+    borderRadius: 14,
+    border: primary ? "1px solid #0f172a" : "1px solid #d1d5db",
+    background: primary ? "#0f172a" : "#fff",
+    color: primary ? "#fff" : "#111827",
+    padding: "10px 14px",
+    fontSize: 14,
+    fontWeight: 600,
+  };
+}
+
+function StepperInput({
+  value,
+  onChange,
+  min = 0,
+  max,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  min?: number;
+  max?: number;
+}) {
+  const numeric = normalizeNumber(value);
+
+  const dec = () => {
+    onChange(String(Math.max(numeric - 1, min)));
+  };
+
+  const inc = () => {
+    const next = typeof max === "number" ? Math.min(numeric + 1, max) : numeric + 1;
+    onChange(String(next));
+  };
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <button type="button" onClick={dec} style={stepperButtonStyle()}>
+        <Minus size={14} />
+      </button>
+      <input
+        type="number"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ ...inputStyle(), textAlign: "center" }}
+      />
+      <button type="button" onClick={inc} style={stepperButtonStyle()}>
+        <Plus size={14} />
+      </button>
     </div>
-  </div>
-</div>
+  );
+}
 
-); }
-export default App;
+export default function App() {
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [users, setUsers] = useState<AppUser[]>(initialUsers);
+  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
+  const [orders, setOrders] = useState<OrderRecord[]>(initialOrders);
+
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [loginUsername, setLoginUsername] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginMessage, setLoginMessage] = useState("");
+
+  const [search, setSearch] = useState("");
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [vatEnabled, setVatEnabled] = useState(false);
+  const [vatRate, setVatRate] = useState<number | "">(20);
+  const [globalDiscount, setGlobalDiscount] = useState<DiscountState>({ type: "percent", value: 0 });
+
+  const [customerDraft, setCustomerDraft] = useState<Customer>({
+    id: -1,
+    name: "",
+    company: "",
+    phone: "",
+    address: "",
+    note: "",
+  });
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+
+  const [searchQuantities, setSearchQuantities] = useState<SearchQuantityMap>({});
+  const [shipmentDrafts, setShipmentDrafts] = useState<ShipmentDraftMap>({});
+  const [readyDrafts, setReadyDrafts] = useState<ReadyDraftMap>({});
+  const [expandedOrders, setExpandedOrders] = useState<ExpandedOrderMap>({});
+
+  const [pendingSearch, setPendingSearch] = useState("");
+  const [adminSearch, setAdminSearch] = useState("");
+  const [adminFilter, setAdminFilter] = useState<"all" | OrderStatus>("all");
+
+  const [userScreen, setUserScreen] = useState<UserScreen>("dashboard");
+  const [adminScreen, setAdminScreen] = useState<AdminScreen>("dashboard");
+
+  useEffect(() => {
+    setProducts(readStorage(PRODUCTS_KEY, initialProducts));
+    setUsers(readStorage(USERS_KEY, initialUsers));
+    setCustomers(readStorage(CUSTOMERS_KEY, initialCustomers));
+    setOrders(readStorage(ORDERS_KEY, initialOrders));
+    setCurrentUserId(readStorage(CURRENT_USER_KEY, null));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+  }, [products]);
+
+  useEffect(() => {
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  }, [users]);
+
+  useEffect(() => {
+    localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(customers));
+  }, [customers]);
+
+  useEffect(() => {
+    localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+  }, [orders]);
+
+  useEffect(() => {
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUserId));
+  }, [currentUserId]);
+
+  useEffect(() => {
+    const next: SearchQuantityMap = {};
+    products.forEach((p) => {
+      next[p.id] = "1";
+    });
+    setSearchQuantities(next);
+  }, [products]);
+
+  const currentUser = useMemo(
+    () => users.find((u) => u.id === currentUserId) ?? null,
+    [users, currentUserId]
+  );
+
+  const isAdmin = currentUser?.role === "admin";
+  const canManageProduction = currentUser?.role === "uretim" || currentUser?.role === "admin";
+  const canManageShipping = currentUser?.role === "sevkiyat" || currentUser?.role === "admin";
+  const canCreateOrders = currentUser?.role === "pazarlamaci";
+
+  const filteredProducts = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return [];
+    return products.filter(
+      (p) => p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)
+    );
+  }, [products, search]);
+
+  const baseVisibleOrders = useMemo(() => {
+    if (!currentUser) return [] as OrderRecord[];
+
+    if (currentUser.role === "admin") return orders;
+
+    if (currentUser.role === "pazarlamaci") {
+      return orders.filter(
+        (o) =>
+          o.createdByUserId === currentUser.id ||
+          (o.status === "İptal" && o.createdByUserId === currentUser.id)
+      );
+    }
+
+    if (currentUser.role === "uretim") {
+      return orders.filter(
+        (o) =>
+          o.status !== "Müşteriden Onay Bekleniyor" &&
+          o.status !== "İptal"
+      );
+    }
+
+    return orders.filter(
+      (o) =>
+        o.status === "Sevkiyata Hazır" ||
+        o.status === "Tamamlandı" ||
+        o.items.some((item) => item.readyForShipmentQuantity > 0 || item.sentQuantity > 0)
+    );
+  }, [orders, currentUser]);
+
+  const pendingOrders = useMemo(() => {
+    return baseVisibleOrders.filter((o) => o.status !== "Tamamlandı");
+  }, [baseVisibleOrders]);
+
+  const filteredPendingOrders = useMemo(() => {
+    const q = pendingSearch.toLowerCase().trim();
+    if (!q) return pendingOrders;
+    return pendingOrders.filter((o) =>
+      [o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status]
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [pendingOrders, pendingSearch]);
+
+  const adminOrderResults = useMemo(() => {
+    if (!isAdmin) return [] as OrderRecord[];
+    let list = orders;
+
+    if (adminFilter !== "all") {
+      list = list.filter((o) => o.status === adminFilter);
+    }
+
+    const q = adminSearch.toLowerCase().trim();
+    if (q) {
+      list = list.filter((o) =>
+        [o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status]
+          .join(" ")
+          .toLowerCase()
+          .includes(q)
+      );
+    }
+
+    return list;
+  }, [orders, isAdmin, adminFilter, adminSearch]);
+
+  const processedCart = useMemo(() => {
+    return cart.map((item) => {
+      const current = products.find((p) => p.id === item.id) ?? item;
+      const priceAfterDiscount = getDiscountedPrice(
+        current.price,
+        globalDiscount.type,
+        globalDiscount.value
+      );
+      return {
+        ...current,
+        quantity: item.quantity,
+        priceAfterDiscount,
+      };
+    });
+  }, [cart, products, globalDiscount]);
+
+  const effectiveVatRate = vatEnabled ? normalizeNumber(vatRate) : 0;
+
+  const cartTotals = useMemo(() => {
+    const baseTotal = processedCart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const subTotal = processedCart.reduce(
+      (sum, item) => sum + item.priceAfterDiscount * item.quantity,
+      0
+    );
+    const vatTotal = subTotal * (effectiveVatRate / 100);
+    return {
+      baseTotal,
+      discountTotal: baseTotal - subTotal,
+      subTotal,
+      vatTotal,
+      grandTotal: subTotal + vatTotal,
+    };
+  }, [processedCart, effectiveVatRate]);
+
+  const orderNo = useMemo(() => {
+    return `SIP-${Date.now().toString().slice(-6)}`;
+  }, [processedCart.length]);
+
+  const login = () => {
+    const user = users.find(
+      (u) =>
+        u.username.toUpperCase() === loginUsername.trim().toUpperCase() &&
+        u.password === loginPassword.trim()
+    );
+
+    if (!user) {
+      setLoginMessage("Kullanıcı Adı Veya Şifre Hatalı.");
+      return;
+    }
+
+    if (!user.active) {
+      setLoginMessage("Bu Kullanıcı Pasif Durumda.");
+      return;
+    }
+
+    setCurrentUserId(user.id);
+    setLoginUsername("");
+    setLoginPassword("");
+    setLoginMessage("");
+    setUserScreen("dashboard");
+    setAdminScreen("dashboard");
+  };
+
+  const logout = () => {
+    setCurrentUserId(null);
+    setCart([]);
+    setUserScreen("dashboard");
+    setAdminScreen("dashboard");
+  };
+
+  const addToCart = (product: Product, quantity = 1) => {
+    const safeQuantity = Math.max(quantity, 1);
+    setCart((prev) => {
+      const existing = prev.find((x) => x.id === product.id);
+      if (existing) {
+        return prev.map((x) =>
+          x.id === product.id ? { ...x, quantity: x.quantity + safeQuantity } : x
+        );
+      }
+      return [...prev, { ...product, quantity: safeQuantity }];
+    });
+  };
+
+  const addFromSearch = (product: Product) => {
+    const quantity = Math.max(normalizeNumber(searchQuantities[product.id] ?? "1"), 1);
+    addToCart(product, quantity);
+    setSearchQuantities((prev) => ({ ...prev, [product.id]: "1" }));
+  };
+
+  const updateQuantity = (id: number, value: string) => {
+    setCart((prev) =>
+      prev
+        .map((item) =>
+          item.id === id ? { ...item, quantity: Math.max(normalizeNumber(value), 0) } : item
+        )
+        .filter((item) => item.quantity > 0)
+    );
+  };
+
+  const removeFromCart = (id: number) => {
+    setCart((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const resetOrderForm = () => {
+    setCart([]);
+    setSearch("");
+    setSelectedCustomerId(null);
+    setCustomerDraft({
+      id: -1,
+      name: "",
+      company: "",
+      phone: "",
+      address: "",
+      note: "",
+    });
+    setGlobalDiscount({ type: "percent", value: 0 });
+    setVatEnabled(false);
+    setVatRate(20);
+    setUserScreen("dashboard");
+  };
+
+  const createOrder = () => {
+    if (!currentUser || currentUser.role !== "pazarlamaci") return;
+    if (!processedCart.length) return;
+    if (!customerDraft.name.trim()) return;
+
+    const chosenCustomer =
+      selectedCustomerId != null
+        ? customers.find((c) => c.id === selectedCustomerId) ?? customerDraft
+        : customerDraft;
+
+    const items: OrderLine[] = processedCart.map((item) => ({
+      ...item,
+      pendingQuantity: item.quantity,
+      readyForShipmentQuantity: 0,
+      sentQuantity: 0,
+    }));
+
+    const newOrder: OrderRecord = {
+      id: orderNo,
+      createdAt: new Date().toLocaleString("tr-TR"),
+      createdBy: currentUser.username,
+      createdByUserId: currentUser.id,
+      customer: chosenCustomer,
+      items,
+      globalDiscount,
+      vatRate: effectiveVatRate,
+      status: "Müşteriden Onay Bekleniyor",
+      shipments: [],
+    };
+
+    setOrders((prev) => [newOrder, ...prev]);
+    resetOrderForm();
+  };
+
+  const updateOrderStatus = (orderId: string, status: OrderStatus) => {
+    if (!currentUser) return;
+
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id !== orderId) return order;
+
+        const isOwner = order.createdByUserId === currentUser.id;
+
+        if (order.status === "İptal") {
+          if (currentUser.role === "pazarlamaci" && isOwner && status === "Müşteriden Onay Bekleniyor") {
+            return { ...order, status: "Müşteriden Onay Bekleniyor" };
+          }
+          return order;
+        }
+
+        if (currentUser.role === "pazarlamaci") {
+          if (isOwner && status === "Müşteri Onayı Alındı") return { ...order, status };
+          if (isOwner && status === "İptal") return { ...order, status: "İptal" };
+          return order;
+        }
+
+        if (currentUser.role === "sevkiyat") {
+          if (status === "Tamamlandı") return { ...order, status };
+          return order;
+        }
+
+        if (currentUser.role === "admin") {
+          if (status === "İptal" || status === "Tamamlandı" || status === "Müşteri Onayı Alındı") {
+            return { ...order, status };
+          }
+          return order;
+        }
+
+        return order;
+      })
+    );
+  };
+
+  const markReadySelectedItems = (orderId: string) => {
+    if (!canManageProduction) return;
+
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id !== orderId || order.status === "İptal") return order;
+
+        let changed = false;
+
+        const nextItems = order.items.map((item) => {
+          const key = `${orderId}_${item.id}`;
+          const qty = Math.min(item.pendingQuantity, Math.max(normalizeNumber(readyDrafts[key]), 0));
+
+          if (qty <= 0) return item;
+
+          changed = true;
+
+          return {
+            ...item,
+            pendingQuantity: item.pendingQuantity - qty,
+            readyForShipmentQuantity: item.readyForShipmentQuantity + qty,
+          };
+        });
+
+        if (!changed) return order;
+
+        return {
+          ...order,
+          items: nextItems,
+          status: deriveOrderStatus(nextItems, order.status),
+        };
+      })
+    );
+
+    setReadyDrafts((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((key) => {
+        if (key.startsWith(`${orderId}_`)) next[key] = "";
+      });
+      return next;
+    });
+  };
+
+  const shipSelectedItems = (orderId: string) => {
+    if (!canManageShipping || !currentUser) return;
+
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id !== orderId || order.status === "İptal") return order;
+
+        const shipmentItems: ShipmentRecord["items"] = [];
+
+        const nextItems = order.items.map((item) => {
+          const key = `${orderId}_${item.id}`;
+          const qty = Math.min(
+            item.readyForShipmentQuantity,
+            Math.max(normalizeNumber(shipmentDrafts[key]), 0)
+          );
+
+          if (qty <= 0) return item;
+
+          shipmentItems.push({
+            itemId: item.id,
+            code: item.code,
+            name: item.name,
+            quantity: qty,
+          });
+
+          return {
+            ...item,
+            readyForShipmentQuantity: item.readyForShipmentQuantity - qty,
+            sentQuantity: item.sentQuantity + qty,
+          };
+        });
+
+        if (!shipmentItems.length) return order;
+
+        const shipment: ShipmentRecord = {
+          id: `SH-${Date.now().toString().slice(-6)}`,
+          createdAt: new Date().toLocaleString("tr-TR"),
+          createdBy: currentUser.username,
+          items: shipmentItems,
+        };
+
+        return {
+          ...order,
+          items: nextItems,
+          shipments: [shipment, ...order.shipments],
+          status: deriveOrderStatus(nextItems, order.status),
+        };
+      })
+    );
+
+    setShipmentDrafts((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((key) => {
+        if (key.startsWith(`${orderId}_`)) next[key] = "";
+      });
+      return next;
+    });
+  };
+
+  const toggleExpanded = (id: string) => {
+    setExpandedOrders((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const printOrder = (order: OrderRecord) => {
+    const totals = calcOrderTotals(order);
+    const html = `
+      <html>
+        <head>
+          <title>${order.id}</title>
+          <style>
+            body { font-family: Arial; padding: 24px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+            th { background: #f5f5f5; }
+          </style>
+        </head>
+        <body>
+          <h1>Sipariş Formu</h1>
+          <p><strong>Sipariş:</strong> ${order.id}</p>
+          <p><strong>Müşteri:</strong> ${order.customer.name}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Kod</th>
+                <th>Ürün</th>
+                <th>Adet</th>
+                <th>Gönderilen</th>
+                <th>Bekleyen</th>
+                <th>Net Fiyat</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${order.items
+                .map(
+                  (item) => `
+                    <tr>
+                      <td>${item.code}</td>
+                      <td>${item.name}</td>
+                      <td>${item.quantity}</td>
+                      <td>${item.sentQuantity}</td>
+                      <td>${item.pendingQuantity}</td>
+                      <td>${formatTRY(item.priceAfterDiscount)}</td>
+                    </tr>`
+                )
+                .join("")}
+            </tbody>
+          </table>
+          <p><strong>Genel Toplam:</strong> ${formatTRY(totals.grandTotal)}</p>
+        </body>
+      </html>
+    `;
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+    w.print();
+  };
+
+  const printShipment = (order: OrderRecord, shipment: ShipmentRecord) => {
+    const html = `
+      <html>
+        <head>
+          <title>${shipment.id}</title>
+          <style>
+            body { font-family: Arial; padding: 24px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+            th { background: #f5f5f5; }
+          </style>
+        </head>
+        <body>
+          <h1>Sevkiyat Fişi</h1>
+          <p><strong>Sipariş:</strong> ${order.id}</p>
+          <p><strong>Müşteri:</strong> ${order.customer.name}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Kod</th>
+                <th>Ürün</th>
+                <th>Adet</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${shipment.items
+                .map(
+                  (item) => `
+                    <tr>
+                      <td>${item.code}</td>
+                      <td>${item.name}</td>
+                      <td>${item.quantity}</td>
+                    </tr>`
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+    w.print();
+  };
+
+  const shareOrder = (order: OrderRecord) => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(buildOrderMessage(order))}`, "_blank");
+  };
+
+  const shareShipment = (order: OrderRecord, shipment: ShipmentRecord) => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(buildShipmentMessage(order, shipment))}`, "_blank");
+  };
+
+  if (!currentUser) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "linear-gradient(to bottom, #f1f5f9, #ffffff, #f1f5f9)",
+          padding: 16,
+          boxSizing: "border-box",
+        }}
+      >
+        <div style={{ maxWidth: 420, margin: "0 auto", paddingTop: 32 }}>
+          <div style={{ ...cardStyle(), overflow: "hidden", padding: 0 }}>
+            <div
+              style={{
+                background: "linear-gradient(to right, #0f172a, #334155)",
+                color: "#fff",
+                padding: 24,
+                textAlign: "center",
+              }}
+            >
+              <h1 style={{ margin: 0, fontSize: 28 }}>Sipariş Yönetimi</h1>
+              <p style={{ marginTop: 10, opacity: 0.8 }}>Kullanıcı adı ve şifre ile giriş yap.</p>
+            </div>
+
+            <div style={{ padding: 24, display: "grid", gap: 12 }}>
+              <div style={{ position: "relative" }}>
+                <User size={16} style={{ position: "absolute", left: 12, top: 14, color: "#94a3b8" }} />
+                <input
+                  style={{ ...inputStyle(), paddingLeft: 36 }}
+                  placeholder="Kullanıcı Adı"
+                  value={loginUsername}
+                  onChange={(e) => setLoginUsername(e.target.value.toUpperCase())}
+                />
+              </div>
+
+              <div style={{ position: "relative" }}>
+                <Lock size={16} style={{ position: "absolute", left: 12, top: 14, color: "#94a3b8" }} />
+                <input
+                  type="password"
+                  style={{ ...inputStyle(), paddingLeft: 36 }}
+                  placeholder="Şifre"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && login()}
+                />
+              </div>
+
+              {loginMessage ? (
+                <div
+                  style={{
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    color: "#b91c1c",
+                    borderRadius: 14,
+                    padding: 12,
+                    fontSize: 14,
+                  }}
+                >
+                  {loginMessage}
+                </div>
+              ) : null}
+
+              <button style={buttonStyle(true)} onClick={login}>
+                Giriş Yap
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const renderOrderCard = (order: OrderRecord, adminPrefix = "") => {
+    const isOwner = currentUser.id === order.createdByUserId;
+    const isAdminUser = currentUser.role === "admin";
+    const isShipmentUser = currentUser.role === "sevkiyat";
+    const showPrices = currentUser.role === "admin" || currentUser.role === "pazarlamaci";
+    const expandedKey = `${adminPrefix}${order.id}`;
+    const expanded = !!expandedOrders[expandedKey];
+    const totals = calcOrderTotals(order);
+
+    return (
+      <div key={expandedKey} style={{ ...cardStyle(), border: "1px solid #e5e7eb" }}>
+        <button
+          type="button"
+          onClick={() => toggleExpanded(expandedKey)}
+          style={{
+            width: "100%",
+            background: "transparent",
+            border: "none",
+            textAlign: "left",
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            padding: 0,
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, color: "#0f172a" }}>{order.customer.name}</div>
+            <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>
+              {order.id} • {order.createdAt}
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+              <span style={{ border: "1px solid #d1d5db", borderRadius: 999, padding: "4px 10px", fontSize: 12 }}>
+                {order.status}
+              </span>
+              <span style={{ background: "#f1f5f9", borderRadius: 999, padding: "4px 10px", fontSize: 12 }}>
+                {order.createdBy}
+              </span>
+            </div>
+          </div>
+          {expanded ? <ChevronUp size={18} color="#64748b" /> : <ChevronDown size={18} color="#64748b" />}
+        </button>
+
+        {expanded ? (
+          <div style={{ marginTop: 14 }}>
+            <div
+              style={{
+                background: "#f8fafc",
+                borderRadius: 16,
+                padding: 12,
+                fontSize: 14,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "#64748b" }}>Müşteri</span>
+                <span>{order.customer.name}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                <span style={{ color: "#64748b" }}>Firma</span>
+                <span>{order.customer.company || "-"}</span>
+              </div>
+              {showPrices ? (
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontWeight: 700 }}>
+                  <span>Genel Toplam</span>
+                  <span>{formatTRY(totals.grandTotal)}</span>
+                </div>
+              ) : null}
+            </div>
+
+            <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+              {order.items.map((item) => {
+                const key = `${order.id}_${item.id}`;
+                return (
+                  <div
+                    key={key}
+                    style={{
+                      background: "#f8fafc",
+                      borderRadius: 16,
+                      padding: 12,
+                      fontSize: 14,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                          [{item.code}] {item.name}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+                          Sipariş: {item.quantity} • Hazır: {item.readyForShipmentQuantity} • Gönderilen: {item.sentQuantity} • Bekleyen: {item.pendingQuantity}
+                        </div>
+                      </div>
+                      {showPrices ? <div style={{ fontWeight: 700 }}>{formatTRY(item.priceAfterDiscount)}</div> : null}
+                    </div>
+
+                    {canManageProduction && order.status !== "İptal" && item.pendingQuantity > 0 ? (
+                      <div style={{ marginTop: 10 }}>
+                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Sevkiyata Hazır Adet</div>
+                        <StepperInput
+                          value={readyDrafts[key] ?? ""}
+                          min={0}
+                          max={item.pendingQuantity}
+                          onChange={(value) =>
+                            setReadyDrafts((prev) => ({ ...prev, [key]: value }))
+                          }
+                        />
+                      </div>
+                    ) : null}
+
+                    {canManageShipping && order.status !== "İptal" && item.readyForShipmentQuantity > 0 ? (
+                      <div style={{ marginTop: 10 }}>
+                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Gönderilecek Adet</div>
+                        <StepperInput
+                          value={shipmentDrafts[key] ?? ""}
+                          min={0}
+                          max={item.readyForShipmentQuantity}
+                          onChange={(value) =>
+                            setShipmentDrafts((prev) => ({ ...prev, [key]: value }))
+                          }
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+              {(isOwner || isAdminUser) && order.status === "Müşteriden Onay Bekleniyor" ? (
+                <button style={buttonStyle()} onClick={() => updateOrderStatus(order.id, "Müşteri Onayı Alındı")}>
+                  <Shield size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                  Onay Alındı
+                </button>
+              ) : null}
+
+              {isOwner && order.status === "İptal" ? (
+                <button style={buttonStyle()} onClick={() => updateOrderStatus(order.id, "Müşteriden Onay Bekleniyor")}>
+                  <RotateCcw size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                  İptali Kaldır
+                </button>
+              ) : null}
+
+              {canManageProduction && order.status !== "İptal" ? (
+                <button style={buttonStyle()} onClick={() => markReadySelectedItems(order.id)}>
+                  <CheckCircle2 size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                  Sevkiyata Hazır
+                </button>
+              ) : null}
+
+              {canManageShipping && order.status !== "İptal" ? (
+                <>
+                  <button style={buttonStyle()} onClick={() => shipSelectedItems(order.id)}>
+                    <Send size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                    Seçileni Gönder
+                  </button>
+                  <button style={buttonStyle()} onClick={() => updateOrderStatus(order.id, "Tamamlandı")}>
+                    <CheckCircle2 size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                    Tamamlandı
+                  </button>
+                </>
+              ) : null}
+
+              {(isOwner || isAdminUser) && order.status !== "İptal" ? (
+                <button style={buttonStyle()} onClick={() => updateOrderStatus(order.id, "İptal")}>
+                  <CircleSlash size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                  İptal
+                </button>
+              ) : null}
+
+              {showPrices ? (
+                <button style={buttonStyle()} onClick={() => printOrder(order)}>
+                  <FileDown size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                  Yazdır
+                </button>
+              ) : null}
+
+              {showPrices ? (
+                <button style={buttonStyle()} onClick={() => shareOrder(order)}>
+                  <MessageCircle size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                  WhatsApp
+                </button>
+              ) : null}
+            </div>
+
+            {order.shipments.length > 0 ? (
+              <div
+                style={{
+                  marginTop: 12,
+                  border: "1px dashed #cbd5e1",
+                  borderRadius: 16,
+                  padding: 12,
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>Gönderim Geçmişi</div>
+                <div style={{ display: "grid", gap: 8 }}>
+                  {order.shipments.map((shipment) => (
+                    <div key={shipment.id} style={{ background: "#f8fafc", borderRadius: 16, padding: 12 }}>
+                      <div style={{ fontWeight: 700 }}>
+                        {shipment.createdAt} • {shipment.createdBy}
+                      </div>
+                      <div style={{ marginTop: 6, display: "grid", gap: 4 }}>
+                        {shipment.items.map((si) => (
+                          <div key={`${shipment.id}_${si.itemId}`} style={{ fontSize: 12, color: "#475569" }}>
+                            [{si.code}] {si.name} • {si.quantity} Adet
+                          </div>
+                        ))}
+                      </div>
+                      {isShipmentUser || isAdminUser ? (
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                          <button style={buttonStyle()} onClick={() => printShipment(order, shipment)}>
+                            <FileDown size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                            Sevkiyat Fişi
+                          </button>
+                          <button style={buttonStyle()} onClick={() => shareShipment(order, shipment)}>
+                            <MessageCircle size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                            WhatsApp
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#f1f5f9", paddingBottom: 40 }}>
+      <div
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
+          background: "rgba(255,255,255,0.95)",
+          borderBottom: "1px solid #e5e7eb",
+          padding: 16,
+          backdropFilter: "blur(8px)",
+        }}
+      >
+        <div style={{ maxWidth: 420, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 20, color: "#0f172a" }}>Mobil Sipariş</div>
+            <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+              {currentUser.username} • {getRoleLabel(currentUser.role)}
+            </div>
+          </div>
+          <button style={buttonStyle()} onClick={logout}>
+            <LogOut size={16} />
+          </button>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 420, margin: "0 auto", padding: 16, display: "grid", gap: 16 }}>
+        {canCreateOrders && userScreen === "dashboard" ? (
+          <div style={{ ...cardStyle(), overflow: "hidden", padding: 0 }}>
+            <div style={{ background: "linear-gradient(to right, #0f172a, #334155)", color: "#fff", padding: 20 }}>
+              <div style={{ fontSize: 11, opacity: 0.7, textTransform: "uppercase", letterSpacing: 2 }}>
+                Pazarlamacı Paneli
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>
+                Hoş Geldin, {currentUser.username}
+              </div>
+            </div>
+            <div style={{ padding: 20 }}>
+              <button
+                style={{ ...buttonStyle(true), width: "100%" }}
+                onClick={() => {
+                  resetOrderForm();
+                  setUserScreen("order_form");
+                }}
+              >
+                <Plus size={16} style={{ marginRight: 8, verticalAlign: "middle" }} />
+                Yeni Sipariş
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {canCreateOrders && userScreen === "order_form" ? (
+          <>
+            <div style={cardStyle()}>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button style={{ ...buttonStyle(), flex: 1 }} onClick={resetOrderForm}>
+                  <ArrowLeft size={16} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                  Geri
+                </button>
+              </div>
+            </div>
+
+            <div style={cardStyle()}>
+              <div style={{ fontWeight: 700, marginBottom: 10 }}>Müşteri Seç / Ekle</div>
+              <div style={{ display: "grid", gap: 10 }}>
+                <input
+                  style={inputStyle()}
+                  placeholder="Müşteri Adı"
+                  value={customerDraft.name}
+                  onChange={(e) => setCustomerDraft((prev) => ({ ...prev, name: e.target.value }))}
+                />
+                <input
+                  style={inputStyle()}
+                  placeholder="Firma Adı"
+                  value={customerDraft.company}
+                  onChange={(e) => setCustomerDraft((prev) => ({ ...prev, company: e.target.value }))}
+                />
+                <input
+                  style={inputStyle()}
+                  placeholder="Telefon"
+                  value={customerDraft.phone}
+                  onChange={(e) => setCustomerDraft((prev) => ({ ...prev, phone: e.target.value }))}
+                />
+                <textarea
+                  style={{ ...inputStyle(), minHeight: 70 }}
+                  placeholder="Adres"
+                  value={customerDraft.address}
+                  onChange={(e) => setCustomerDraft((prev) => ({ ...prev, address: e.target.value }))}
+                />
+              </div>
+
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 13, color: "#64748b", marginBottom: 8 }}>Kayıtlı Müşteriler</div>
+                <div style={{ display: "grid", gap: 8 }}>
+                  {customers.map((customer) => (
+                    <button
+                      key={customer.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCustomerId(customer.id);
+                        setCustomerDraft(customer);
+                      }}
+                      style={{
+                        textAlign: "left",
+                        borderRadius: 14,
+                        border:
+                          selectedCustomerId === customer.id
+                            ? "1px solid #0f172a"
+                            : "1px solid #d1d5db",
+                        background:
+                          selectedCustomerId === customer.id ? "#f8fafc" : "#fff",
+                        padding: 12,
+                      }}
+                    >
+                      <div style={{ fontWeight: 700 }}>{customer.name}</div>
+                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+                        {customer.company}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={cardStyle()}>
+              <div style={{ fontWeight: 700, marginBottom: 10 }}>
+                <Search size={16} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                Ürün Ara
+              </div>
+              <input
+                style={inputStyle()}
+                placeholder="Stok Kodu Veya Stok Adı Yaz"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+
+              <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+                {search.trim() === "" ? (
+                  <div style={{ color: "#64748b", fontSize: 14 }}>Arama Yapınca Ürünler Görünür.</div>
+                ) : filteredProducts.length === 0 ? (
+                  <div style={{ color: "#64748b", fontSize: 14 }}>Uygun Ürün Bulunamadı.</div>
+                ) : (
+                  filteredProducts.map((product) => (
+                    <div
+                      key={product.id}
+                      style={{
+                        borderRadius: 16,
+                        border: "1px solid #e5e7eb",
+                        background: "#f8fafc",
+                        padding: 12,
+                      }}
+                    >
+                      <div style={{ display: "flex", gap: 10 }}>
+                        <div
+                          style={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 16,
+                            background: "#e2e8f0",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Package size={18} color="#475569" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            <span style={{ border: "1px solid #d1d5db", borderRadius: 999, padding: "4px 10px", fontSize: 12 }}>
+                              {product.code}
+                            </span>
+                            <span style={{ background: "#e2e8f0", borderRadius: 999, padding: "4px 10px", fontSize: 12 }}>
+                              {formatTRY(product.price)}
+                            </span>
+                          </div>
+                          <div style={{ marginTop: 8, fontWeight: 700 }}>{product.name}</div>
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: 10 }}>
+                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Adet</div>
+                        <StepperInput
+                          value={searchQuantities[product.id] ?? "1"}
+                          min={1}
+                          onChange={(value) =>
+                            setSearchQuantities((prev) => ({ ...prev, [product.id]: value }))
+                          }
+                        />
+                      </div>
+
+                      <button
+                        style={{ ...buttonStyle(true), width: "100%", marginTop: 10 }}
+                        onClick={() => addFromSearch(product)}
+                      >
+                        <Plus size={16} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                        Ekle
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div style={cardStyle()}>
+              <div style={{ fontWeight: 700, marginBottom: 10 }}>Fiyatlandırma</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>İskonto Tipi</div>
+                  <select
+                    value={globalDiscount.type}
+                    onChange={(e) =>
+                      setGlobalDiscount((prev) => ({
+                        ...prev,
+                        type: e.target.value as DiscountType,
+                      }))
+                    }
+                    style={inputStyle()}
+                  >
+                    <option value="percent">Yüzde (%)</option>
+                    <option value="amount">Tutar (₺)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Toplu İskonto</div>
+                  <input
+                    type="number"
+                    min="0"
+                    value={globalDiscount.value}
+                    onChange={(e) =>
+                      setGlobalDiscount((prev) => ({
+                        ...prev,
+                        value: e.target.value === "" ? "" : Math.max(Number(e.target.value), 0),
+                      }))
+                    }
+                    style={inputStyle()}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginTop: 12, border: "1px solid #d1d5db", borderRadius: 16, padding: 12 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={vatEnabled}
+                    onChange={(e) => setVatEnabled(e.target.checked)}
+                  />
+                  <span>Kdv Uygula</span>
+                </label>
+
+                {vatEnabled ? (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Kdv %</div>
+                    <input
+                      type="number"
+                      min="0"
+                      value={vatRate}
+                      onChange={(e) =>
+                        setVatRate(e.target.value === "" ? "" : Math.max(Number(e.target.value), 0))
+                      }
+                      style={inputStyle()}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 8, fontSize: 12, color: "#64748b" }}>
+                    Sipariş varsayılan olarak Kdvsiz başlar.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={cardStyle()}>
+              <div style={{ fontWeight: 700, marginBottom: 10 }}>Sipariş Sepeti</div>
+              {processedCart.length === 0 ? (
+                <div style={{ color: "#64748b", fontSize: 14 }}>Henüz Ürün Eklenmedi.</div>
+              ) : (
+                <div style={{ display: "grid", gap: 10 }}>
+                  {processedCart.map((item) => (
+                    <div key={item.id} style={{ border: "1px solid #e5e7eb", borderRadius: 16, padding: 12 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            <span style={{ border: "1px solid #d1d5db", borderRadius: 999, padding: "4px 10px", fontSize: 12 }}>
+                              {item.code}
+                            </span>
+                            <span style={{ fontSize: 12, color: "#64748b" }}>
+                              Liste Fiyatı: {formatTRY(item.price)}
+                            </span>
+                          </div>
+                          <div style={{ marginTop: 8, fontWeight: 700 }}>{item.name}</div>
+                          <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>
+                            Net Fiyat: {formatTRY(item.priceAfterDiscount)}
+                          </div>
+                        </div>
+                        <button style={buttonStyle()} onClick={() => removeFromCart(item.id)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+
+                      <div style={{ marginTop: 10 }}>
+                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Miktar</div>
+                        <StepperInput
+                          value={String(item.quantity)}
+                          min={1}
+                          onChange={(value) => updateQuantity(item.id, value)}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={cardStyle()}>
+              <div style={{ fontWeight: 700, marginBottom: 10 }}>Sipariş Özeti</div>
+              <div style={{ background: "#f8fafc", borderRadius: 16, padding: 12, fontSize: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span>Brüt Tutar</span>
+                  <span>{formatTRY(cartTotals.baseTotal)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                  <span>İskonto</span>
+                  <span>- {formatTRY(cartTotals.discountTotal)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                  <span>Ara Toplam</span>
+                  <span>{formatTRY(cartTotals.subTotal)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                  <span>Kdv</span>
+                  <span>{formatTRY(cartTotals.vatTotal)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, paddingTop: 10, borderTop: "1px solid #e5e7eb", fontWeight: 800 }}>
+                  <span>Genel Toplam</span>
+                  <span>{formatTRY(cartTotals.grandTotal)}</span>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
+                <button
+                  style={buttonStyle()}
+                  onClick={() => {
+                    const tempOrder: OrderRecord = {
+                      id: orderNo,
+                      createdAt: new Date().toLocaleString("tr-TR"),
+                      createdBy: currentUser.username,
+                      createdByUserId: currentUser.id,
+                      customer: customerDraft,
+                      items: processedCart.map((item) => ({
+                        ...item,
+                        pendingQuantity: item.quantity,
+                        readyForShipmentQuantity: 0,
+                        sentQuantity: 0,
+                      })),
+                      globalDiscount,
+                      vatRate: effectiveVatRate,
+                      status: "Müşteriden Onay Bekleniyor",
+                      shipments: [],
+                    };
+                    printOrder(tempOrder);
+                  }}
+                >
+                  <FileDown size={16} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                  Yazdır
+                </button>
+
+                <button
+                  style={{ ...buttonStyle(true) }}
+                  onClick={() => {
+                    const tempOrder: OrderRecord = {
+                      id: orderNo,
+                      createdAt: new Date().toLocaleString("tr-TR"),
+                      createdBy: currentUser.username,
+                      createdByUserId: currentUser.id,
+                      customer: customerDraft,
+                      items: processedCart.map((item) => ({
+                        ...item,
+                        pendingQuantity: item.quantity,
+                        readyForShipmentQuantity: 0,
+                        sentQuantity: 0,
+                      })),
+                      globalDiscount,
+                      vatRate: effectiveVatRate,
+                      status: "Müşteriden Onay Bekleniyor",
+                      shipments: [],
+                    };
+                    shareOrder(tempOrder);
+                  }}
+                >
+                  <MessageCircle size={16} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                  WhatsApp
+                </button>
+              </div>
+
+              <button
+                style={{ ...buttonStyle(true), width: "100%", marginTop: 12 }}
+                onClick={createOrder}
+              >
+                Siparişi Kaydet
+              </button>
+            </div>
+          </>
+        ) : null}
+
+        {isAdmin ? (
+          <>
+            {adminScreen === "dashboard" ? (
+              <div style={{ ...cardStyle(), overflow: "hidden", padding: 0 }}>
+                <div style={{ background: "linear-gradient(to right, #0f172a, #334155)", color: "#fff", padding: 20 }}>
+                  <div style={{ fontSize: 11, opacity: 0.7, textTransform: "uppercase", letterSpacing: 2 }}>
+                    Yönetici Paneli
+                  </div>
+                  <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>
+                    Hoş Geldin, {currentUser.username}
+                  </div>
+                </div>
+                <div style={{ padding: 20, display: "grid", gap: 12 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div style={{ border: "1px solid #e5e7eb", borderRadius: 18, padding: 14, background: "#f8fafc" }}>
+                      <div style={{ fontSize: 12, color: "#64748b" }}>Toplam Sipariş</div>
+                      <div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{orders.length}</div>
+                    </div>
+                    <div style={{ border: "1px solid #e5e7eb", borderRadius: 18, padding: 14, background: "#f8fafc" }}>
+                      <div style={{ fontSize: 12, color: "#64748b" }}>Bekleyen</div>
+                      <div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>
+                        {orders.filter((o) => o.status !== "Tamamlandı" && o.status !== "İptal").length}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    style={{ ...buttonStyle(true), width: "100%" }}
+                    onClick={() => setAdminScreen("orders")}
+                  >
+                    <Search size={16} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                    Siparişler
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div style={cardStyle()}>
+                  <button style={{ ...buttonStyle(), width: "100%" }} onClick={() => setAdminScreen("dashboard")}>
+                    <ArrowLeft size={16} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                    Geri
+                  </button>
+                </div>
+
+                <div style={cardStyle()}>
+                  <div style={{ fontWeight: 700, marginBottom: 10 }}>Sipariş Filtresi</div>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    <select
+                      value={adminFilter}
+                      onChange={(e) => setAdminFilter(e.target.value as "all" | OrderStatus)}
+                      style={inputStyle()}
+                    >
+                      <option value="all">Tümü</option>
+                      <option value="Müşteriden Onay Bekleniyor">Müşteriden Onay Bekleniyor</option>
+                      <option value="Müşteri Onayı Alındı">Müşteri Onayı Alındı</option>
+                      <option value="Hazırlanıyor">Hazırlanıyor</option>
+                      <option value="Sevkiyata Hazır">Sevkiyata Hazır</option>
+                      <option value="Tamamlandı">Tamamlandı</option>
+                      <option value="İptal">İptal</option>
+                    </select>
+
+                    <input
+                      style={inputStyle()}
+                      placeholder="Siparişlerde Ara"
+                      value={adminSearch}
+                      onChange={(e) => setAdminSearch(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div style={cardStyle()}>
+                  <div style={{ fontWeight: 700, marginBottom: 10 }}>Sipariş Sonuçları</div>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {adminOrderResults.length === 0
+                      ? <div style={{ color: "#64748b", fontSize: 14 }}>Sonuç Yok.</div>
+                      : adminOrderResults.map((order) => renderOrderCard(order, "admin_"))}
+                  </div>
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <div style={cardStyle()}>
+            <div style={{ fontWeight: 700, marginBottom: 10 }}>Siparişler</div>
+            <input
+              style={{ ...inputStyle(), marginBottom: 12 }}
+              placeholder="Sipariş Ara"
+              value={pendingSearch}
+              onChange={(e) => setPendingSearch(e.target.value)}
+            />
+            <div style={{ display: "grid", gap: 10 }}>
+              {filteredPendingOrders.length === 0
+                ? <div style={{ color: "#64748b", fontSize: 14 }}>Sipariş Yok.</div>
+                : filteredPendingOrders.map((order) => renderOrderCard(order))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
