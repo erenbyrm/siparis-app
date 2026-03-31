@@ -324,15 +324,48 @@ function getRoleLabel(role: UserRole): string {
 }
 
 function normalizeSearchText(value: string): string {
-  return value
+  return String(value ?? "")
     .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/ı/g, "i")
+    .replace(/İ/g, "i")
     .replace(/ğ/g, "g")
     .replace(/ü/g, "u")
     .replace(/ş/g, "s")
     .replace(/ö/g, "o")
     .replace(/ç/g, "c")
-    .replace(/[^a-z0-9]/g, "");
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function matchesSearch(fields: Array<string | number | undefined | null>, query: string): boolean {
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) return true;
+
+  const queryParts = normalizedQuery.split(" ").filter(Boolean);
+  const haystack = normalizeSearchText(fields.filter((field) => field !== undefined && field !== null).join(" "));
+
+  return queryParts.every((part) => haystack.includes(part));
+}
+
+function scoreSearch(fields: Array<string | number | undefined | null>, query: string): number {
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) return 0;
+
+  const haystack = normalizeSearchText(fields.filter((field) => field !== undefined && field !== null).join(" "));
+  let score = 0;
+
+  if (haystack.startsWith(normalizedQuery)) score += 100;
+  if (haystack.includes(normalizedQuery)) score += 50;
+
+  normalizedQuery.split(" ").filter(Boolean).forEach((part) => {
+    if (haystack.startsWith(part)) score += 20;
+    if (haystack.includes(part)) score += 10;
+  });
+
+  return score;
 }
 
 function getDiscountedPrice(price: number, discountType: DiscountType, discountValue: number | ""): number {
@@ -520,6 +553,9 @@ export default function App() {
   const [customerMessage, setCustomerMessage] = useState("");
   const [userMessage, setUserMessage] = useState("");
 
+  const [completedSectionOpen, setCompletedSectionOpen] = useState(false);
+  const [completedSearch, setCompletedSearch] = useState("");
+
   useEffect(() => {
     setProducts(readStorage(PRODUCTS_KEY, initialProducts));
     setUsers(readStorage(USERS_KEY, initialUsers));
@@ -548,53 +584,39 @@ export default function App() {
   const canCreateOrders = currentUser?.role === "pazarlamaci";
 
   const filteredProducts = useMemo(() => {
-    const q = normalizeSearchText(search.trim());
+    const q = search.trim();
     if (!q) return [] as Product[];
 
     return [...products]
-      .filter((p) => {
-        const codeText = normalizeSearchText(p.code);
-        const nameText = normalizeSearchText(p.name);
-        return codeText.includes(q) || nameText.includes(q);
-      })
-      .sort((a, b) => {
-        const aCode = normalizeSearchText(a.code);
-        const bCode = normalizeSearchText(b.code);
-        const aStarts = aCode.startsWith(q) ? 1 : 0;
-        const bStarts = bCode.startsWith(q) ? 1 : 0;
-        return bStarts - aStarts;
-      });
+      .filter((p) => matchesSearch([p.code, p.name], q))
+      .sort((a, b) => scoreSearch([b.code, b.name], q) - scoreSearch([a.code, a.name], q));
   }, [products, search]);
 
   const managerProducts = useMemo(() => {
-    const q = normalizeSearchText(productSearch.trim());
-    if (!q) return products;
+    const q = productSearch.trim();
+    if (!q) return [...products].sort((a, b) => b.id - a.id);
 
     return [...products]
-      .filter((p) => {
-        const codeText = normalizeSearchText(p.code);
-        const nameText = normalizeSearchText(p.name);
-        return codeText.includes(q) || nameText.includes(q);
-      })
-      .sort((a, b) => {
-        const aCode = normalizeSearchText(a.code);
-        const bCode = normalizeSearchText(b.code);
-        const aStarts = aCode.startsWith(q) ? 1 : 0;
-        const bStarts = bCode.startsWith(q) ? 1 : 0;
-        return bStarts - aStarts;
-      });
+      .filter((p) => matchesSearch([p.code, p.name], q))
+      .sort((a, b) => scoreSearch([b.code, b.name], q) - scoreSearch([a.code, a.name], q));
   }, [products, productSearch]);
 
   const managerCustomers = useMemo(() => {
-    const q = customerSearch.toLowerCase().trim();
-    if (!q) return customers;
-    return customers.filter((c) => [c.name, c.company, c.phone].join(" ").toLowerCase().includes(q));
+    const q = customerSearch.trim();
+    if (!q) return [...customers].sort((a, b) => b.id - a.id);
+
+    return [...customers]
+      .filter((c) => matchesSearch([c.name, c.company, c.phone, c.address, c.note], q))
+      .sort((a, b) => scoreSearch([b.name, b.company, b.phone, b.address, b.note], q) - scoreSearch([a.name, a.company, a.phone, a.address, a.note], q));
   }, [customers, customerSearch]);
 
   const managerUsers = useMemo(() => {
-    const q = userSearch.toLowerCase().trim();
-    if (!q) return users;
-    return users.filter((u) => [u.username, getRoleLabel(u.role)].join(" ").toLowerCase().includes(q));
+    const q = userSearch.trim();
+    if (!q) return [...users].sort((a, b) => b.id - a.id);
+
+    return [...users]
+      .filter((u) => matchesSearch([u.username, getRoleLabel(u.role), u.active ? "aktif" : "pasif"], q))
+      .sort((a, b) => scoreSearch([b.username, getRoleLabel(b.role), b.active ? "aktif" : "pasif"], q) - scoreSearch([a.username, getRoleLabel(a.role), a.active ? "aktif" : "pasif"], q));
   }, [users, userSearch]);
 
   const baseVisibleOrders = useMemo(() => {
@@ -613,14 +635,13 @@ export default function App() {
   };
 
   const filteredPendingOrders = useMemo(() => {
-    const q = pendingSearch.toLowerCase().trim();
+    const q = pendingSearch.trim();
     const sorted = [...baseVisibleOrders].sort((a, b) => parseCreatedAt(b.createdAt) - parseCreatedAt(a.createdAt));
     if (!q) return sorted;
-    return sorted.filter((o) => [o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status].join(" ").toLowerCase().includes(q));
+    return sorted
+      .filter((o) => matchesSearch([o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status], q))
+      .sort((a, b) => scoreSearch([b.id, b.customer.name, b.customer.company, b.createdBy, b.createdAt, b.status], q) - scoreSearch([a.id, a.customer.name, a.customer.company, a.createdBy, a.createdAt, a.status], q));
   }, [baseVisibleOrders, pendingSearch]);
-
-  const [completedSectionOpen, setCompletedSectionOpen] = useState(false);
-  const [completedSearch, setCompletedSearch] = useState("");
 
   const completedOrders = useMemo(() => {
     return [...baseVisibleOrders]
@@ -629,18 +650,22 @@ export default function App() {
   }, [baseVisibleOrders]);
 
   const filteredCompletedOrders = useMemo(() => {
-    const q = completedSearch.toLowerCase().trim();
+    const q = completedSearch.trim();
     if (!q) return completedOrders;
-    return completedOrders.filter((o) => [o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status].join(" ").toLowerCase().includes(q));
+    return completedOrders
+      .filter((o) => matchesSearch([o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status], q))
+      .sort((a, b) => scoreSearch([b.id, b.customer.name, b.customer.company, b.createdBy, b.createdAt, b.status], q) - scoreSearch([a.id, a.customer.name, a.customer.company, a.createdBy, a.createdAt, a.status], q));
   }, [completedOrders, completedSearch]);
 
   const adminOrderResults = useMemo(() => {
     if (!isAdmin) return [] as OrderRecord[];
     let list = [...orders].sort((a, b) => parseCreatedAt(b.createdAt) - parseCreatedAt(a.createdAt));
     if (adminFilter !== "all") list = list.filter((o) => o.status === adminFilter);
-    const q = adminSearch.toLowerCase().trim();
-    if (q) list = list.filter((o) => [o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status].join(" ").toLowerCase().includes(q));
-    return list;
+    const q = adminSearch.trim();
+    if (!q) return list;
+    return list
+      .filter((o) => matchesSearch([o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status], q))
+      .sort((a, b) => scoreSearch([b.id, b.customer.name, b.customer.company, b.createdBy, b.createdAt, b.status], q) - scoreSearch([a.id, a.customer.name, a.customer.company, a.createdBy, a.createdAt, a.status], q));
   }, [orders, isAdmin, adminFilter, adminSearch]);
 
   const processedCart = useMemo(() => {
@@ -1316,9 +1341,9 @@ export default function App() {
 
             <div style={cardStyle()}>
               <div style={{ fontWeight: 700, marginBottom: 10 }}><Search size={16} style={{ marginRight: 6, verticalAlign: "middle" }} /> Ürün Ara</div>
-              <input style={inputStyle()} placeholder="Stok Kodu Veya Stok Adı Yaz" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <input style={inputStyle()} placeholder="Stok Kodu, ürün adı veya ölçü yaz" value={search} onChange={(e) => setSearch(e.target.value)} />
               <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-                {search.trim() === "" ? <div style={{ color: "#64748b", fontSize: 14 }}>Arama Yapınca Ürünler Görünür.</div> : filteredProducts.length === 0 ? <div style={{ color: "#64748b", fontSize: 14 }}>Uygun Ürün Bulunamadı.</div> : filteredProducts.map((product) => (
+                {search.trim() === "" ? <div style={{ color: "#64748b", fontSize: 14 }}>Arama yapınca ürünler görünür.</div> : filteredProducts.length === 0 ? <div style={{ color: "#64748b", fontSize: 14 }}>Uygun ürün bulunamadı.</div> : filteredProducts.map((product) => (
                   <div key={product.id} style={{ borderRadius: 16, border: "1px solid #e5e7eb", background: "#f8fafc", padding: 12 }}>
                     <div style={{ display: "flex", gap: 10 }}>
                       <div style={{ width: 48, height: 48, borderRadius: 16, background: "#e2e8f0", display: "flex", alignItems: "center", justifyContent: "center" }}><Package size={18} color="#475569" /></div>
@@ -1362,13 +1387,13 @@ export default function App() {
                     <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Kdv %</div>
                     <input type="number" min="0" value={vatRate} onChange={(e) => setVatRate(e.target.value === "" ? "" : Math.max(Number(e.target.value), 0))} style={inputStyle()} />
                   </div>
-                ) : <div style={{ marginTop: 8, fontSize: 12, color: "#64748b" }}>Sipariş varsayılan olarak Kdvsiz başlar.</div>}
+                ) : <div style={{ marginTop: 8, fontSize: 12, color: "#64748b" }}>Sipariş varsayılan olarak kdvsiz başlar.</div>}
               </div>
             </div>
 
             <div style={cardStyle()}>
               <div style={{ fontWeight: 700, marginBottom: 10 }}><ShoppingCart size={16} style={{ marginRight: 6, verticalAlign: "middle" }} /> Sipariş Sepeti</div>
-              {processedCart.length === 0 ? <div style={{ color: "#64748b", fontSize: 14 }}>Henüz Ürün Eklenmedi.</div> : (
+              {processedCart.length === 0 ? <div style={{ color: "#64748b", fontSize: 14 }}>Henüz ürün eklenmedi.</div> : (
                 <div style={{ display: "grid", gap: 10 }}>
                   {processedCart.map((item) => (
                     <div key={item.id} style={{ border: "1px solid #e5e7eb", borderRadius: 16, padding: 12 }}>
@@ -1434,9 +1459,9 @@ export default function App() {
                     <option value="Tamamlandı">Tamamlandı</option>
                     <option value="İptal">İptal</option>
                   </select>
-                  <input style={inputStyle()} placeholder="Siparişlerde Ara" value={adminSearch} onChange={(e) => setAdminSearch(e.target.value)} />
+                  <input style={inputStyle()} placeholder="Siparişlerde ara" value={adminSearch} onChange={(e) => setAdminSearch(e.target.value)} />
                 </div>
-                <div style={{ display: "grid", gap: 10, marginTop: 12 }}>{adminOrderResults.length === 0 ? <div style={{ color: "#64748b", fontSize: 14 }}>Sonuç Yok.</div> : adminOrderResults.map((order) => renderOrderCard(order, "admin_"))}</div>
+                <div style={{ display: "grid", gap: 10, marginTop: 12 }}>{adminOrderResults.length === 0 ? <div style={{ color: "#64748b", fontSize: 14 }}>Sonuç yok.</div> : adminOrderResults.map((order) => renderOrderCard(order, "admin_"))}</div>
               </div>
             ) : null}
 
@@ -1462,7 +1487,7 @@ export default function App() {
                   <button style={{ ...buttonStyle(true), marginTop: 10 }} onClick={importProductsFromText}><UserPlus size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Toplu Yükle</button>
                 </div>
 
-                <input style={{ ...inputStyle(), marginTop: 14 }} placeholder="Ürün Ara" value={productSearch} onChange={(e) => setProductSearch(e.target.value)} />
+                <input style={{ ...inputStyle(), marginTop: 14 }} placeholder="Ürün ara: kod, isim, ölçü..." value={productSearch} onChange={(e) => setProductSearch(e.target.value)} />
                 <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
                   {managerProducts.map((product) => (
                     <div key={product.id} style={{ border: "1px solid #e5e7eb", borderRadius: 16, padding: 12 }}>
@@ -1498,7 +1523,7 @@ export default function App() {
                   <button style={buttonStyle()} onClick={() => { setEditingCustomerId(null); setCustomerManageDraft({ name: "", company: "", phone: "", address: "", note: "" }); setCustomerMessage(""); }}><RotateCcw size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Temizle</button>
                   <button style={buttonStyle(true)} onClick={saveCustomer}><Save size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Kaydet</button>
                 </div>
-                <input style={{ ...inputStyle(), marginTop: 14 }} placeholder="Müşteri Ara" value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)} />
+                <input style={{ ...inputStyle(), marginTop: 14 }} placeholder="Müşteri ara: ad, soyad, firma, telefon..." value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)} />
                 <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
                   {managerCustomers.map((customer) => (
                     <div key={customer.id} style={{ border: "1px solid #e5e7eb", borderRadius: 16, padding: 12 }}>
@@ -1541,7 +1566,7 @@ export default function App() {
                   <button style={buttonStyle()} onClick={() => { setEditingUserId(null); setUserDraft({ username: "", password: "", role: "pazarlamaci", active: true }); setUserMessage(""); }}><RotateCcw size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Temizle</button>
                   <button style={buttonStyle(true)} onClick={saveUser}><Save size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Kaydet</button>
                 </div>
-                <input style={{ ...inputStyle(), marginTop: 14 }} placeholder="Kullanıcı Ara" value={userSearch} onChange={(e) => setUserSearch(e.target.value)} />
+                <input style={{ ...inputStyle(), marginTop: 14 }} placeholder="Kullanıcı ara" value={userSearch} onChange={(e) => setUserSearch(e.target.value)} />
                 <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
                   {managerUsers.map((user) => (
                     <div key={user.id} style={{ border: "1px solid #e5e7eb", borderRadius: 16, padding: 12 }}>
@@ -1568,27 +1593,27 @@ export default function App() {
         ) : (
           <div style={cardStyle()}>
             <div style={{ fontWeight: 700, marginBottom: 10 }}>Siparişler</div>
-            <input style={{ ...inputStyle(), marginBottom: 12 }} placeholder="Sipariş Ara" value={pendingSearch} onChange={(e) => setPendingSearch(e.target.value)} />
+            <input style={{ ...inputStyle(), marginBottom: 12 }} placeholder="Sipariş ara" value={pendingSearch} onChange={(e) => setPendingSearch(e.target.value)} />
             <div style={{ display: "grid", gap: 10 }}>
-              {filteredPendingOrders.filter((o) => o.status !== "Tamamlandı").length === 0 ? <div style={{ color: "#64748b", fontSize: 14 }}>Sipariş Yok.</div> : filteredPendingOrders.filter((o) => o.status !== "Tamamlandı").map((order) => renderOrderCard(order))}
-            <div style={{ marginTop: 16 }}>
-              <button
-                type="button"
-                onClick={() => setCompletedSectionOpen((prev) => !prev)}
-                style={{ ...buttonStyle(), width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}
-              >
-                <span>Tamamlanan Siparişler</span>
-                {completedSectionOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </button>
-              {completedSectionOpen ? (
-                <div style={{ marginTop: 10, border: "1px solid #e5e7eb", borderRadius: 16, padding: 12 }}>
-                  <input style={{ ...inputStyle(), marginBottom: 12 }} placeholder="Tamamlananlarda Ara" value={completedSearch} onChange={(e) => setCompletedSearch(e.target.value)} />
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {filteredCompletedOrders.length === 0 ? <div style={{ color: "#64748b", fontSize: 14 }}>Tamamlanan Sipariş Yok.</div> : filteredCompletedOrders.map((order) => renderOrderCard(order, "completed_"))}
+              {filteredPendingOrders.filter((o) => o.status !== "Tamamlandı").length === 0 ? <div style={{ color: "#64748b", fontSize: 14 }}>Sipariş yok.</div> : filteredPendingOrders.filter((o) => o.status !== "Tamamlandı").map((order) => renderOrderCard(order))}
+              <div style={{ marginTop: 16 }}>
+                <button
+                  type="button"
+                  onClick={() => setCompletedSectionOpen((prev) => !prev)}
+                  style={{ ...buttonStyle(), width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                >
+                  <span>Tamamlanan Siparişler</span>
+                  {completedSectionOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+                {completedSectionOpen ? (
+                  <div style={{ marginTop: 10, border: "1px solid #e5e7eb", borderRadius: 16, padding: 12 }}>
+                    <input style={{ ...inputStyle(), marginBottom: 12 }} placeholder="Tamamlananlarda ara" value={completedSearch} onChange={(e) => setCompletedSearch(e.target.value)} />
+                    <div style={{ display: "grid", gap: 10 }}>
+                      {filteredCompletedOrders.length === 0 ? <div style={{ color: "#64748b", fontSize: 14 }}>Tamamlanan sipariş yok.</div> : filteredCompletedOrders.map((order) => renderOrderCard(order, "completed_"))}
+                    </div>
                   </div>
-                </div>
-              ) : null}
-            </div>
+                ) : null}
+              </div>
             </div>
           </div>
         )}
