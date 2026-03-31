@@ -323,6 +323,18 @@ function getRoleLabel(role: UserRole): string {
   return "Pazarlamacı";
 }
 
+function normalizeSearchText(value: string): string {
+  return value
+    .toLocaleLowerCase("tr-TR")
+    .replace(/ı/g, "i")
+    .replace(/ğ/g, "g")
+    .replace(/ü/g, "u")
+    .replace(/ş/g, "s")
+    .replace(/ö/g, "o")
+    .replace(/ç/g, "c")
+    .replace(/[^a-z0-9]/g, "");
+}
+
 function getDiscountedPrice(price: number, discountType: DiscountType, discountValue: number | ""): number {
   const value = normalizeNumber(discountValue);
   if (discountType === "percent") {
@@ -536,15 +548,41 @@ export default function App() {
   const canCreateOrders = currentUser?.role === "pazarlamaci";
 
   const filteredProducts = useMemo(() => {
-    const q = search.toLowerCase().trim();
+    const q = normalizeSearchText(search.trim());
     if (!q) return [] as Product[];
-    return products.filter((p) => p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q));
+
+    return [...products]
+      .filter((p) => {
+        const codeText = normalizeSearchText(p.code);
+        const nameText = normalizeSearchText(p.name);
+        return codeText.includes(q) || nameText.includes(q);
+      })
+      .sort((a, b) => {
+        const aCode = normalizeSearchText(a.code);
+        const bCode = normalizeSearchText(b.code);
+        const aStarts = aCode.startsWith(q) ? 1 : 0;
+        const bStarts = bCode.startsWith(q) ? 1 : 0;
+        return bStarts - aStarts;
+      });
   }, [products, search]);
 
   const managerProducts = useMemo(() => {
-    const q = productSearch.toLowerCase().trim();
+    const q = normalizeSearchText(productSearch.trim());
     if (!q) return products;
-    return products.filter((p) => p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q));
+
+    return [...products]
+      .filter((p) => {
+        const codeText = normalizeSearchText(p.code);
+        const nameText = normalizeSearchText(p.name);
+        return codeText.includes(q) || nameText.includes(q);
+      })
+      .sort((a, b) => {
+        const aCode = normalizeSearchText(a.code);
+        const bCode = normalizeSearchText(b.code);
+        const aStarts = aCode.startsWith(q) ? 1 : 0;
+        const bStarts = bCode.startsWith(q) ? 1 : 0;
+        return bStarts - aStarts;
+      });
   }, [products, productSearch]);
 
   const managerCustomers = useMemo(() => {
