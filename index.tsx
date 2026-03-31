@@ -35,6 +35,34 @@ type Product = {
   kdvRate: number;
 };
 
+const getStatusStyle = (status: string) => {
+  switch (status) {
+    case "İptal":
+      return { background: "#fee2e2", color: "#b91c1c" };
+
+    case "Müşteriden Onay Bekleniyor":
+      return { background: "#fef9c3", color: "#92400e" };
+
+    case "Yönetici Onayı Bekleniyor":
+      return { background: "#e0f2fe", color: "#0369a1" };
+
+    case "Müşteri Onayı Alındı":
+      return { background: "#dbeafe", color: "#1e40af" };
+
+    case "Hazırlanıyor":
+      return { background: "#ede9fe", color: "#5b21b6" };
+
+    case "Sevkiyata Hazır":
+      return { background: "#ffedd5", color: "#c2410c" };
+
+    case "Tamamlandı":
+      return { background: "#dcfce7", color: "#166534" };
+
+    default:
+      return { background: "#f1f5f9", color: "#334155" };
+  }
+};
+
 type Customer = {
   id: number;
   name: string;
@@ -1058,7 +1086,19 @@ export default function App() {
         {expanded ? (
           <div style={{ marginTop: 14 }}>
             <div style={{ background: "#f8fafc", borderRadius: 16, padding: 12, fontSize: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748b" }}>Müşteri</span><span>{order.customer.name}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748b" }}>Müşteri</span>
+<span
+  style={{
+    background: getStatusStyle(order.status).background,
+    color: getStatusStyle(order.status).color,
+    padding: "4px 10px",
+    borderRadius: "999px",
+    fontSize: 12,
+    fontWeight: 600
+  }}
+>
+  {order.status}
+</span></div>
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span style={{ color: "#64748b" }}>Firma</span><span>{order.customer.company || "-"}</span></div>
               {showPrices ? <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontWeight: 700 }}><span>Genel Toplam</span><span>{formatTRY(totals.grandTotal)}</span></div> : null}
               {order.customerApprovedAt ? <div style={{ marginTop: 8, fontSize: 12, color: "#475569" }}>Müşteri Onayı: {order.customerApprovedAt} / {order.customerApprovedBy}</div> : null}
