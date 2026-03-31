@@ -512,54 +512,11 @@ export default function App() {
   const canManageShipping = currentUser?.role === "sevkiyat";
   const canCreateOrders = currentUser?.role === "pazarlamaci";
 
-  const filteredPendingOrders = useMemo(() => {
-  const q = pendingSearch.toLowerCase().trim();
-
-  const sorted = [...baseVisibleOrders].sort((a, b) => {
-    const parseDate = (value: string) => {
-      const [datePart, timePart = "00:00"] = value.split(" ");
-      const [day, month, year] = datePart.split(".");
-      return new Date(`${year}-${month}-${day}T${timePart}`).getTime() || 0;
-    };
-    return parseDate(b.createdAt) - parseDate(a.createdAt);
-  });
-
-  if (!q) return sorted;
-
-  return sorted.filter((o) =>
-    [o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status]
-      .join(" ")
-      .toLowerCase()
-      .includes(q)
-  );
-}, [baseVisibleOrders, pendingSearch]);
-
-  const [completedSectionOpen, setCompletedSectionOpen] = useState(false);
-const [completedSearch, setCompletedSearch] = useState("");
-
-const completedOrders = useMemo(() => {
-  const parseDate = (value: string) => {
-    const [datePart, timePart = "00:00"] = value.split(" ");
-    const [day, month, year] = datePart.split(".");
-    return new Date(`${year}-${month}-${day}T${timePart}`).getTime() || 0;
-  };
-
-  return [...baseVisibleOrders]
-    .filter((o) => o.status === "Tamamlandı")
-    .sort((a, b) => parseDate(b.createdAt) - parseDate(a.createdAt));
-}, [baseVisibleOrders]);
-
-const filteredCompletedOrders = useMemo(() => {
-  const q = completedSearch.toLowerCase().trim();
-  if (!q) return completedOrders;
-
-  return completedOrders.filter((o) =>
-    [o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status]
-      .join(" ")
-      .toLowerCase()
-      .includes(q)
-  );
-}, [completedOrders, completedSearch]);
+  const filteredProducts = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return [] as Product[];
+    return products.filter((p) => p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q));
+  }, [products, search]);
 
   const managerProducts = useMemo(() => {
     const q = productSearch.toLowerCase().trim();
@@ -588,39 +545,42 @@ const filteredCompletedOrders = useMemo(() => {
     return orders.filter((o) => ["Sevkiyata Hazır", "Tamamlandı"].includes(o.status) || o.items.some((item) => item.readyForShipmentQuantity > 0 || item.sentQuantity > 0));
   }, [orders, currentUser]);
 
-  const filteredPendingOrders = useMemo(() => {
-    const q = pendingSearch.toLowerCase().trim();
-    if (!q) return baseVisibleOrders;
-    return baseVisibleOrders.filter((o) => [o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status].join(" ").toLowerCase().includes(q));
-  }, [baseVisibleOrders, pendingSearch]);
-
-  const adminOrderResults = useMemo(() => {
-  if (!isAdmin) return [] as OrderRecord[];
-
-  const parseDate = (value: string) => {
+  const parseCreatedAt = (value: string) => {
     const [datePart, timePart = "00:00"] = value.split(" ");
     const [day, month, year] = datePart.split(".");
     return new Date(`${year}-${month}-${day}T${timePart}`).getTime() || 0;
   };
 
-  let list = [...orders].sort((a, b) => parseDate(b.createdAt) - parseDate(a.createdAt));
+  const filteredPendingOrders = useMemo(() => {
+    const q = pendingSearch.toLowerCase().trim();
+    const sorted = [...baseVisibleOrders].sort((a, b) => parseCreatedAt(b.createdAt) - parseCreatedAt(a.createdAt));
+    if (!q) return sorted;
+    return sorted.filter((o) => [o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status].join(" ").toLowerCase().includes(q));
+  }, [baseVisibleOrders, pendingSearch]);
 
-  if (adminFilter !== "all") {
-    list = list.filter((o) => o.status === adminFilter);
-  }
+  const [completedSectionOpen, setCompletedSectionOpen] = useState(false);
+  const [completedSearch, setCompletedSearch] = useState("");
 
-  const q = adminSearch.toLowerCase().trim();
-  if (q) {
-    list = list.filter((o) =>
-      [o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status]
-        .join(" ")
-        .toLowerCase()
-        .includes(q)
-    );
-  }
+  const completedOrders = useMemo(() => {
+    return [...baseVisibleOrders]
+      .filter((o) => o.status === "Tamamlandı")
+      .sort((a, b) => parseCreatedAt(b.createdAt) - parseCreatedAt(a.createdAt));
+  }, [baseVisibleOrders]);
 
-  return list;
-}, [orders, isAdmin, adminFilter, adminSearch]);
+  const filteredCompletedOrders = useMemo(() => {
+    const q = completedSearch.toLowerCase().trim();
+    if (!q) return completedOrders;
+    return completedOrders.filter((o) => [o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status].join(" ").toLowerCase().includes(q));
+  }, [completedOrders, completedSearch]);
+
+  const adminOrderResults = useMemo(() => {
+    if (!isAdmin) return [] as OrderRecord[];
+    let list = [...orders].sort((a, b) => parseCreatedAt(b.createdAt) - parseCreatedAt(a.createdAt));
+    if (adminFilter !== "all") list = list.filter((o) => o.status === adminFilter);
+    const q = adminSearch.toLowerCase().trim();
+    if (q) list = list.filter((o) => [o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status].join(" ").toLowerCase().includes(q));
+    return list;
+  }, [orders, isAdmin, adminFilter, adminSearch]);
 
   const processedCart = useMemo(() => {
     return cart.map((item) => {
@@ -1547,53 +1507,29 @@ const filteredCompletedOrders = useMemo(() => {
             <div style={{ fontWeight: 700, marginBottom: 10 }}>Siparişler</div>
             <input style={{ ...inputStyle(), marginBottom: 12 }} placeholder="Sipariş Ara" value={pendingSearch} onChange={(e) => setPendingSearch(e.target.value)} />
             <div style={{ display: "grid", gap: 10 }}>
-              {filteredPendingOrders.filter((o) => o.status !== "Tamamlandı").length === 0 ? (
-  <div style={{ color: "#64748b", fontSize: 14 }}>Sipariş Yok.</div>
-) : (
-  filteredPendingOrders
-    .filter((o) => o.status !== "Tamamlandı")
-    .map((order) => renderOrderCard(order))
-)}
-
-<div style={{ marginTop: 16 }}>
-  <button
-    type="button"
-    onClick={() => setCompletedSectionOpen((prev) => !prev)}
-    style={{
-      ...buttonStyle(),
-      width: "100%",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-    }}
-  >
-    <span>Tamamlanan Siparişler</span>
-    {completedSectionOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-  </button>
-
-  {completedSectionOpen ? (
-    <div
-      style={{
-        marginTop: 10,
-        border: "1px solid #e5e7eb",
-        borderRadius: 16,
-        padding: 12,
-      }}
-    >
-      <input
-        style={{ ...inputStyle(), marginBottom: 12 }}
-        placeholder="Tamamlananlarda Ara"
-        value={completedSearch}
-        onChange={(e) => setCompletedSearch(e.target.value)}
-      />
-
-      <div style={{ display: "grid", gap: 10 }}>
-        {filteredCompletedOrders.length === 0 ? (
-          <div style={{ color: "#64748b", fontSize: 14 }}>Tamamlanan Sipariş Yok.</div>
-        ) : (
-          filteredCompletedOrders.map((order) => renderOrderCard(order, "completed_"))
+              {filteredPendingOrders.filter((o) => o.status !== "Tamamlandı").length === 0 ? <div style={{ color: "#64748b", fontSize: 14 }}>Sipariş Yok.</div> : filteredPendingOrders.filter((o) => o.status !== "Tamamlandı").map((order) => renderOrderCard(order))}
+            <div style={{ marginTop: 16 }}>
+              <button
+                type="button"
+                onClick={() => setCompletedSectionOpen((prev) => !prev)}
+                style={{ ...buttonStyle(), width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+              >
+                <span>Tamamlanan Siparişler</span>
+                {completedSectionOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+              {completedSectionOpen ? (
+                <div style={{ marginTop: 10, border: "1px solid #e5e7eb", borderRadius: 16, padding: 12 }}>
+                  <input style={{ ...inputStyle(), marginBottom: 12 }} placeholder="Tamamlananlarda Ara" value={completedSearch} onChange={(e) => setCompletedSearch(e.target.value)} />
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {filteredCompletedOrders.length === 0 ? <div style={{ color: "#64748b", fontSize: 14 }}>Tamamlanan Sipariş Yok.</div> : filteredCompletedOrders.map((order) => renderOrderCard(order, "completed_"))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
-  ) : null}
-</div>
+  );
+}
