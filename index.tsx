@@ -523,6 +523,8 @@ export default function App() {
 
   const [customerDraft, setCustomerDraft] = useState<CustomerDraft>({ name: "", company: "", phone: "", address: "", note: "" });
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [customerPanelOpen, setCustomerPanelOpen] = useState(false);
+  const [customerFormSearch, setCustomerFormSearch] = useState("");
 
   const [searchQuantities, setSearchQuantities] = useState<SearchQuantityMap>({});
   const [shipmentDrafts, setShipmentDrafts] = useState<ShipmentDraftMap>({});
@@ -584,21 +586,33 @@ export default function App() {
   const canCreateOrders = currentUser?.role === "pazarlamaci";
 
   const filteredProducts = useMemo(() => {
-    const q = search.trim();
+    const q = normalizeSearchText(search);
     if (!q) return [] as Product[];
 
-    return [...products]
-      .filter((p) => matchesSearch([p.code, p.name], q))
-      .sort((a, b) => scoreSearch([b.code, b.name], q) - scoreSearch([a.code, a.name], q));
+    const qParts = q.split(" ").filter(Boolean);
+
+    return [...products].filter((p) => {
+      const codeText = normalizeSearchText(p.code);
+      const nameText = normalizeSearchText(p.name);
+      const combined = `${codeText} ${nameText}`;
+      return qParts.every((part) => combined.includes(part));
+    });
   }, [products, search]);
 
   const managerProducts = useMemo(() => {
-    const q = productSearch.trim();
+    const q = normalizeSearchText(productSearch);
     if (!q) return [...products].sort((a, b) => b.id - a.id);
 
+    const qParts = q.split(" ").filter(Boolean);
+
     return [...products]
-      .filter((p) => matchesSearch([p.code, p.name], q))
-      .sort((a, b) => scoreSearch([b.code, b.name], q) - scoreSearch([a.code, a.name], q));
+      .filter((p) => {
+        const codeText = normalizeSearchText(p.code);
+        const nameText = normalizeSearchText(p.name);
+        const combined = `${codeText} ${nameText}`;
+        return qParts.every((part) => combined.includes(part));
+      })
+      .sort((a, b) => b.id - a.id);
   }, [products, productSearch]);
 
   const managerCustomers = useMemo(() => {
@@ -610,13 +624,27 @@ export default function App() {
       .sort((a, b) => scoreSearch([b.name, b.company, b.phone, b.address, b.note], q) - scoreSearch([a.name, a.company, a.phone, a.address, a.note], q));
   }, [customers, customerSearch]);
 
+  const formCustomers = useMemo(() => {
+    const q = customerFormSearch.trim();
+    if (!q) return [...customers].sort((a, b) => b.id - a.id);
+
+    return [...customers]
+      .filter((c) => matchesSearch([c.name, c.company, c.phone, c.address, c.note], q))
+      .sort((a, b) => scoreSearch([b.name, b.company, b.phone, b.address, b.note], q) - scoreSearch([a.name, a.company, a.phone, a.address, a.note], q));
+  }, [customers, customerFormSearch]);
+
   const managerUsers = useMemo(() => {
-    const q = userSearch.trim();
+    const q = normalizeSearchText(userSearch);
     if (!q) return [...users].sort((a, b) => b.id - a.id);
 
+    const qParts = q.split(" ").filter(Boolean);
+
     return [...users]
-      .filter((u) => matchesSearch([u.username, getRoleLabel(u.role), u.active ? "aktif" : "pasif"], q))
-      .sort((a, b) => scoreSearch([b.username, getRoleLabel(b.role), b.active ? "aktif" : "pasif"], q) - scoreSearch([a.username, getRoleLabel(a.role), a.active ? "aktif" : "pasif"], q));
+      .filter((u) => {
+        const combined = normalizeSearchText([u.username, getRoleLabel(u.role), u.active ? "aktif" : "pasif"].join(" "));
+        return qParts.every((part) => combined.includes(part));
+      })
+      .sort((a, b) => b.id - a.id);
   }, [users, userSearch]);
 
   const baseVisibleOrders = useMemo(() => {
@@ -635,12 +663,16 @@ export default function App() {
   };
 
   const filteredPendingOrders = useMemo(() => {
-    const q = pendingSearch.trim();
+    const q = normalizeSearchText(pendingSearch);
     const sorted = [...baseVisibleOrders].sort((a, b) => parseCreatedAt(b.createdAt) - parseCreatedAt(a.createdAt));
     if (!q) return sorted;
-    return sorted
-      .filter((o) => matchesSearch([o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status], q))
-      .sort((a, b) => scoreSearch([b.id, b.customer.name, b.customer.company, b.createdBy, b.createdAt, b.status], q) - scoreSearch([a.id, a.customer.name, a.customer.company, a.createdBy, a.createdAt, a.status], q));
+
+    const qParts = q.split(" ").filter(Boolean);
+
+    return sorted.filter((o) => {
+      const combined = normalizeSearchText([o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status].join(" "));
+      return qParts.every((part) => combined.includes(part));
+    });
   }, [baseVisibleOrders, pendingSearch]);
 
   const completedOrders = useMemo(() => {
@@ -650,22 +682,31 @@ export default function App() {
   }, [baseVisibleOrders]);
 
   const filteredCompletedOrders = useMemo(() => {
-    const q = completedSearch.trim();
+    const q = normalizeSearchText(completedSearch);
     if (!q) return completedOrders;
-    return completedOrders
-      .filter((o) => matchesSearch([o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status], q))
-      .sort((a, b) => scoreSearch([b.id, b.customer.name, b.customer.company, b.createdBy, b.createdAt, b.status], q) - scoreSearch([a.id, a.customer.name, a.customer.company, a.createdBy, a.createdAt, a.status], q));
+
+    const qParts = q.split(" ").filter(Boolean);
+
+    return completedOrders.filter((o) => {
+      const combined = normalizeSearchText([o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status].join(" "));
+      return qParts.every((part) => combined.includes(part));
+    });
   }, [completedOrders, completedSearch]);
 
   const adminOrderResults = useMemo(() => {
     if (!isAdmin) return [] as OrderRecord[];
     let list = [...orders].sort((a, b) => parseCreatedAt(b.createdAt) - parseCreatedAt(a.createdAt));
     if (adminFilter !== "all") list = list.filter((o) => o.status === adminFilter);
-    const q = adminSearch.trim();
+
+    const q = normalizeSearchText(adminSearch);
     if (!q) return list;
-    return list
-      .filter((o) => matchesSearch([o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status], q))
-      .sort((a, b) => scoreSearch([b.id, b.customer.name, b.customer.company, b.createdBy, b.createdAt, b.status], q) - scoreSearch([a.id, a.customer.name, a.customer.company, a.createdBy, a.createdAt, a.status], q));
+
+    const qParts = q.split(" ").filter(Boolean);
+
+    return list.filter((o) => {
+      const combined = normalizeSearchText([o.id, o.customer.name, o.customer.company, o.createdBy, o.createdAt, o.status].join(" "));
+      return qParts.every((part) => combined.includes(part));
+    });
   }, [orders, isAdmin, adminFilter, adminSearch]);
 
   const processedCart = useMemo(() => {
@@ -1319,24 +1360,47 @@ export default function App() {
             </div>
 
             <div style={cardStyle()}>
-              <div style={{ fontWeight: 700, marginBottom: 10 }}>Müşteri Seç / Ekle</div>
-              <div style={{ display: "grid", gap: 10 }}>
-                <input style={inputStyle()} placeholder="Müşteri Adı" value={customerDraft.name} onChange={(e) => setCustomerDraft((prev) => ({ ...prev, name: e.target.value }))} />
-                <input style={inputStyle()} placeholder="Firma Adı" value={customerDraft.company} onChange={(e) => setCustomerDraft((prev) => ({ ...prev, company: e.target.value }))} />
-                <input style={inputStyle()} placeholder="Telefon" value={customerDraft.phone} onChange={(e) => setCustomerDraft((prev) => ({ ...prev, phone: e.target.value }))} />
-                <textarea style={{ ...inputStyle(), minHeight: 70 }} placeholder="Adres" value={customerDraft.address} onChange={(e) => setCustomerDraft((prev) => ({ ...prev, address: e.target.value }))} />
-              </div>
-              <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 13, color: "#64748b", marginBottom: 8 }}>Kayıtlı Müşteriler</div>
-                <div style={{ display: "grid", gap: 8 }}>
-                  {customers.map((customer) => (
-                    <button key={customer.id} type="button" onClick={() => { setSelectedCustomerId(customer.id); setCustomerDraft({ name: customer.name, company: customer.company, phone: customer.phone, address: customer.address, note: customer.note }); }} style={{ textAlign: "left", borderRadius: 14, border: selectedCustomerId === customer.id ? "1px solid #0f172a" : "1px solid #d1d5db", background: selectedCustomerId === customer.id ? "#f8fafc" : "#fff", padding: 12, cursor: "pointer" }}>
-                      <div style={{ fontWeight: 700 }}>{customer.name}</div>
-                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{customer.company}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setCustomerPanelOpen((prev) => !prev)}
+                style={{ width: "100%", background: "transparent", border: "none", padding: 0, display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", textAlign: "left" }}
+              >
+                <div style={{ fontWeight: 700 }}>Müşteri Seç / Ekle</div>
+                {customerPanelOpen ? <ChevronUp size={18} color="#64748b" /> : <ChevronDown size={18} color="#64748b" />}
+              </button>
+              {customerPanelOpen ? (
+                <>
+                  <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+                    <input
+                      style={inputStyle()}
+                      placeholder="Müşteri ara: ad, soyad, firma, telefon..."
+                      value={customerFormSearch}
+                      onChange={(e) => setCustomerFormSearch(e.target.value)}
+                    />
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ fontSize: 13, color: "#64748b", marginBottom: 8 }}>Kayıtlı Müşteriler</div>
+                    <div style={{ display: "grid", gap: 8, maxHeight: 220, overflowY: "auto" }}>
+                      {formCustomers.length === 0 ? <div style={{ color: "#64748b", fontSize: 13 }}>Uygun müşteri bulunamadı.</div> : formCustomers.map((customer) => (
+                        <button key={customer.id} type="button" onClick={() => { setSelectedCustomerId(customer.id); setCustomerDraft({ name: customer.name, company: customer.company, phone: customer.phone, address: customer.address, note: customer.note }); }} style={{ textAlign: "left", borderRadius: 14, border: selectedCustomerId === customer.id ? "1px solid #0f172a" : "1px solid #d1d5db", background: selectedCustomerId === customer.id ? "#f8fafc" : "#fff", padding: 12, cursor: "pointer" }}>
+                          <div style={{ fontWeight: 700 }}>{customer.name}</div>
+                          <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{customer.company}</div>
+                          <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{customer.phone}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 16, borderTop: "1px solid #e5e7eb", paddingTop: 12 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 10, fontSize: 14 }}>Yeni Müşteri Ekle</div>
+                    <div style={{ display: "grid", gap: 10 }}>
+                      <input style={inputStyle()} placeholder="Müşteri Adı" value={customerDraft.name} onChange={(e) => setCustomerDraft((prev) => ({ ...prev, name: e.target.value }))} />
+                      <input style={inputStyle()} placeholder="Firma Adı" value={customerDraft.company} onChange={(e) => setCustomerDraft((prev) => ({ ...prev, company: e.target.value }))} />
+                      <input style={inputStyle()} placeholder="Telefon" value={customerDraft.phone} onChange={(e) => setCustomerDraft((prev) => ({ ...prev, phone: e.target.value }))} />
+                      <textarea style={{ ...inputStyle(), minHeight: 70 }} placeholder="Adres" value={customerDraft.address} onChange={(e) => setCustomerDraft((prev) => ({ ...prev, address: e.target.value }))} />
+                    </div>
+                  </div>
+                </>
+              ) : null}
             </div>
 
             <div style={cardStyle()}>
