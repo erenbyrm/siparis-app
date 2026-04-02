@@ -1140,8 +1140,9 @@ export default function App() {
   };
 
   const importProductsFromText = () => {
-    const rows = bulkProductText.split("
-").map((x) => x.trim()).filter(Boolean);
+    const rows = bulkProductText.split(/
+?
+/).map((x) => x.trim()).filter(Boolean);
     if (rows.length <= 1) return setProductMessage("Yüklenecek veri bulunamadı.");
 
     setProducts((prev) => {
