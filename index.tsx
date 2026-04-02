@@ -841,13 +841,51 @@ export default function App() {
   };
 
   const importProductsFromText = () => {
-    const rows = bulkProductText
-      .split(/\r?\n/)
-      .map((x) => x.trim())
-      .filter(Boolean);
+  const rows = bulkProductText
+    .replaceAll("\r", "")
+    .split("\n")
+    .map((x) => x.trim())
+    .filter(Boolean);
 
-    if (rows.length <= 1) {
-      setProductMessage("Yüklenecek veri bulunamadı.");
+  if (rows.length <= 1) {
+    setProductMessage("Yüklenecek veri bulunamadı.");
+    return;
+  }
+
+  setProducts((prev) => {
+    const mapByCode = new Map(
+      prev.map((p) => [p.code.trim().toUpperCase(), p] as const)
+    );
+
+    rows.slice(1).forEach((row) => {
+      const parts = row.split(/\t|,/).map((p) => p.trim());
+      if (parts.length < 5) return;
+
+      const [orderNoRaw, codeRaw, nameRaw, priceRaw, kdvRateRaw] = parts;
+      const code = codeRaw.toUpperCase();
+
+      if (!code || !nameRaw || normalizeNumber(priceRaw) <= 0) return;
+
+      const existing = mapByCode.get(code);
+
+      mapByCode.set(code, {
+        id: existing?.id ?? generateId(),
+        orderNo:
+          normalizeNumber(orderNoRaw) > 0
+            ? normalizeNumber(orderNoRaw)
+            : existing?.orderNo ?? mapByCode.size + 1,
+        code,
+        name: nameRaw,
+        price: normalizeNumber(priceRaw),
+        kdvRate: normalizeNumber(kdvRateRaw) || 20,
+      });
+    });
+
+    return [...mapByCode.values()].sort((a, b) => a.orderNo - b.orderNo);
+  });
+
+  setProductMessage("Toplu ürün yükleme / güncelleme tamamlandı.");
+};
       return;
     }
 
