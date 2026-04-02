@@ -140,11 +140,11 @@ type UserDraft = {
 type UserScreen = "dashboard" | "order_form";
 type AdminSection = "none" | "orders" | "products" | "customers" | "users";
 
-const PRODUCTS_KEY = "siparis_products_v30";
-const USERS_KEY = "siparis_users_v30";
-const ORDERS_KEY = "siparis_orders_v30";
-const CURRENT_USER_KEY = "siparis_current_user_v30";
-const CUSTOMERS_KEY = "siparis_customers_v30";
+const PRODUCTS_KEY = "siparis_products_v31";
+const USERS_KEY = "siparis_users_v31";
+const ORDERS_KEY = "siparis_orders_v31";
+const CURRENT_USER_KEY = "siparis_current_user_v31";
+const CUSTOMERS_KEY = "siparis_customers_v31";
 
 const initialProducts: Product[] = [
   { id: 1, orderNo: 1, code: "SCC22", name: "2 + 2 Çift Çıkışlı Premium Alüminyum Merdiven", price: 1360, kdvRate: 20 },
@@ -191,32 +191,9 @@ const initialOrders: OrderRecord[] = [
         createdAt: "28.03.2026 10:45",
         createdBy: "SEVKIYAT",
         items: [
-          { itemId: 1, code: initialProducts[0].code, name: initialProducts[0].name, quantity: 2 },
-          { itemId: 2, code: initialProducts[1].code, name: initialProducts[1].name, quantity: 1 },
+          { itemId: 1, code: "SCC22", name: "2 + 2 Çift Çıkışlı Premium Alüminyum Merdiven", quantity: 2 },
+          { itemId: 2, code: "SCC33", name: "3 + 3 Çift Çıkışlı Premium Alüminyum Merdiven", quantity: 1 },
         ],
-      },
-    ],
-  },
-  {
-    id: "SIP-300002",
-    createdAt: "28.03.2026 10:20",
-    createdBy: "PAZARLAMACI",
-    createdByUserId: 2,
-    customer: initialCustomers[1],
-    items: [{ ...initialProducts[2], quantity: 3, priceAfterDiscount: 2310, pendingQuantity: 0, readyForShipmentQuantity: 0, sentQuantity: 3 }],
-    globalDiscount: { type: "percent", value: 0 },
-    vatRate: 20,
-    status: "Tamamlandı",
-    customerApprovedAt: "28.03.2026 10:30",
-    customerApprovedBy: "PAZARLAMACI",
-    managerApprovedAt: "28.03.2026 10:40",
-    managerApprovedBy: "EREN",
-    shipments: [
-      {
-        id: "SH-300002-1",
-        createdAt: "28.03.2026 12:20",
-        createdBy: "SEVKIYAT",
-        items: [{ itemId: 3, code: initialProducts[2].code, name: initialProducts[2].name, quantity: 3 }],
       },
     ],
   },
@@ -273,9 +250,7 @@ function normalizeSearchText(value: string): string {
 function matchesSearch(fields: Array<string | number | undefined | null>, query: string): boolean {
   const q = normalizeSearchText(query);
   if (!q) return true;
-  const haystack = normalizeSearchText(
-    fields.filter((x) => x !== undefined && x !== null).join(" ")
-  );
+  const haystack = normalizeSearchText(fields.filter((x) => x !== undefined && x !== null).join(" "));
   return q.split(" ").every((part) => haystack.includes(part));
 }
 
@@ -303,12 +278,7 @@ function calcOrderTotals(order: OrderRecord) {
   const baseTotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const subTotal = order.items.reduce((sum, item) => sum + item.priceAfterDiscount * item.quantity, 0);
   const vatTotal = subTotal * (order.vatRate / 100);
-  return {
-    baseTotal,
-    subTotal,
-    vatTotal,
-    grandTotal: subTotal + vatTotal,
-  };
+  return { baseTotal, subTotal, vatTotal, grandTotal: subTotal + vatTotal };
 }
 
 function generateId() {
@@ -394,7 +364,6 @@ function StepperInput({
   max?: number;
 }) {
   const numeric = normalizeNumber(value);
-
   const dec = () => onChange(String(Math.max(numeric - 1, min)));
   const inc = () => onChange(String(typeof max === "number" ? Math.min(numeric + 1, max) : numeric + 1));
 
@@ -403,7 +372,14 @@ function StepperInput({
       <button type="button" onClick={dec} style={smallIconButtonStyle()}>
         <Minus size={14} />
       </button>
-      <input type="number" min={min} max={max} value={value} onChange={(e) => onChange(e.target.value)} style={{ ...inputStyle(), textAlign: "center" }} />
+      <input
+        type="number"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ ...inputStyle(), textAlign: "center" }}
+      />
       <button type="button" onClick={inc} style={smallIconButtonStyle()}>
         <Plus size={14} />
       </button>
@@ -635,9 +611,10 @@ export default function App() {
     if (!processedCart.length) return;
     if (!customerDraft.name.trim()) return;
 
-    const chosenCustomer: Customer = selectedCustomerId != null
-      ? customers.find((c) => c.id === selectedCustomerId) ?? { id: generateId(), ...customerDraft }
-      : { id: generateId(), ...customerDraft };
+    const chosenCustomer: Customer =
+      selectedCustomerId != null
+        ? customers.find((c) => c.id === selectedCustomerId) ?? { id: generateId(), ...customerDraft }
+        : { id: generateId(), ...customerDraft };
 
     const items: OrderLine[] = processedCart.map((item) => ({
       ...item,
@@ -665,120 +642,286 @@ export default function App() {
 
   const approveCustomer = (orderId: string) => {
     if (!currentUser || currentUser.role !== "pazarlamaci") return;
-    setOrders((prev) => prev.map((order) => {
-      if (order.id !== orderId || order.createdByUserId !== currentUser.id) return order;
-      if (order.status !== "Müşteriden Onay Bekleniyor") return order;
-      return {
-        ...order,
-        status: "Yönetici Onayı Bekleniyor",
-        customerApprovedAt: new Date().toLocaleString("tr-TR"),
-        customerApprovedBy: currentUser.username,
-      };
-    }));
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id !== orderId || order.createdByUserId !== currentUser.id) return order;
+        if (order.status !== "Müşteriden Onay Bekleniyor") return order;
+        return {
+          ...order,
+          status: "Yönetici Onayı Bekleniyor",
+          customerApprovedAt: new Date().toLocaleString("tr-TR"),
+          customerApprovedBy: currentUser.username,
+        };
+      })
+    );
   };
 
   const managerApprove = (orderId: string) => {
     if (!currentUser || currentUser.role !== "admin") return;
-    setOrders((prev) => prev.map((order) => {
-      if (order.id !== orderId || order.status !== "Yönetici Onayı Bekleniyor") return order;
-      return {
-        ...order,
-        status: "Hazırlanıyor",
-        managerApprovedAt: new Date().toLocaleString("tr-TR"),
-        managerApprovedBy: currentUser.username,
-      };
-    }));
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id !== orderId || order.status !== "Yönetici Onayı Bekleniyor") return order;
+        return {
+          ...order,
+          status: "Hazırlanıyor",
+          managerApprovedAt: new Date().toLocaleString("tr-TR"),
+          managerApprovedBy: currentUser.username,
+        };
+      })
+    );
   };
 
   const managerCancel = (orderId: string) => {
     if (!currentUser || currentUser.role !== "admin") return;
-    setOrders((prev) => prev.map((order) => {
-      if (order.id !== orderId) return order;
-      if (order.status === "Tamamlandı") return order;
-      return {
-        ...order,
-        status: "İptal",
-        cancelledAt: new Date().toLocaleString("tr-TR"),
-        cancelledBy: currentUser.username,
-      };
-    }));
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id !== orderId) return order;
+        if (order.status === "Tamamlandı") return order;
+        return {
+          ...order,
+          status: "İptal",
+          cancelledAt: new Date().toLocaleString("tr-TR"),
+          cancelledBy: currentUser.username,
+        };
+      })
+    );
   };
 
   const ownerCancel = (orderId: string) => {
     if (!currentUser || currentUser.role !== "pazarlamaci") return;
-    setOrders((prev) => prev.map((order) => {
-      if (order.id !== orderId || order.createdByUserId !== currentUser.id) return order;
-      if (["Tamamlandı", "İptal"].includes(order.status)) return order;
-      return {
-        ...order,
-        status: "İptal",
-        cancelledAt: new Date().toLocaleString("tr-TR"),
-        cancelledBy: currentUser.username,
-      };
-    }));
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id !== orderId || order.createdByUserId !== currentUser.id) return order;
+        if (["Tamamlandı", "İptal"].includes(order.status)) return order;
+        return {
+          ...order,
+          status: "İptal",
+          cancelledAt: new Date().toLocaleString("tr-TR"),
+          cancelledBy: currentUser.username,
+        };
+      })
+    );
   };
 
   const ownerUncancel = (orderId: string) => {
     if (!currentUser || currentUser.role !== "pazarlamaci") return;
-    setOrders((prev) => prev.map((order) => {
-      if (order.id !== orderId || order.createdByUserId !== currentUser.id || order.status !== "İptal") return order;
-      return {
-        ...order,
-        status: "Müşteriden Onay Bekleniyor",
-        cancelledAt: undefined,
-        cancelledBy: undefined,
-      };
-    }));
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id !== orderId || order.createdByUserId !== currentUser.id || order.status !== "İptal") return order;
+        return {
+          ...order,
+          status: "Müşteriden Onay Bekleniyor",
+          cancelledAt: undefined,
+          cancelledBy: undefined,
+        };
+      })
+    );
   };
 
   const markReadySelectedItems = (orderId: string) => {
-    if (!canManageProduction || !currentUser) return;
-    setOrders((prev) => prev.map((order) => {
-      if (order.id !== orderId || order.status === "İptal") return order;
-      let changed = false;
-      const nextItems = order.items.map((item) => {
-        const key = `${orderId}_${item.id}`;
-        const qty = Math.min(item.pendingQuantity, Math.max(normalizeNumber(readyDrafts[key]), 0));
-        if (qty <= 0) return item;
-        changed = true;
-        return { ...item, pendingQuantity: item.pendingQuantity - qty, readyForShipmentQuantity: item.readyForShipmentQuantity + qty };
-      });
-      if (!changed) return order;
-      return { ...order, items: nextItems, status: deriveOrderStatus(nextItems, "Hazırlanıyor") };
-    }));
+    if (!canManageProduction) return;
+
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id !== orderId || order.status === "İptal") return order;
+
+        let changed = false;
+        const nextItems = order.items.map((item) => {
+          const key = `${orderId}_${item.id}`;
+          const qty = Math.min(item.pendingQuantity, Math.max(normalizeNumber(readyDrafts[key]), 0));
+          if (qty <= 0) return item;
+          changed = true;
+          return {
+            ...item,
+            pendingQuantity: item.pendingQuantity - qty,
+            readyForShipmentQuantity: item.readyForShipmentQuantity + qty,
+          };
+        });
+
+        if (!changed) return order;
+        return { ...order, items: nextItems, status: deriveOrderStatus(nextItems, "Hazırlanıyor") };
+      })
+    );
+
     setReadyDrafts((prev) => {
       const next = { ...prev };
-      Object.keys(next).forEach((key) => { if (key.startsWith(`${orderId}_`)) next[key] = ""; });
+      Object.keys(next).forEach((key) => {
+        if (key.startsWith(`${orderId}_`)) next[key] = "";
+      });
       return next;
     });
   };
 
   const shipSelectedItems = (orderId: string) => {
     if (!canManageShipping || !currentUser) return;
-    setOrders((prev) => prev.map((order) => {
-      if (order.id !== orderId || order.status === "İptal") return order;
-      const shipmentItems: ShipmentRecord["items"] = [];
-      const nextItems = order.items.map((item) => {
-        const key = `${orderId}_${item.id}`;
-        const qty = Math.min(item.readyForShipmentQuantity, Math.max(normalizeNumber(shipmentDrafts[key]), 0));
-        if (qty <= 0) return item;
-        shipmentItems.push({ itemId: item.id, code: item.code, name: item.name, quantity: qty });
-        return { ...item, readyForShipmentQuantity: item.readyForShipmentQuantity - qty, sentQuantity: item.sentQuantity + qty };
-      });
-      if (!shipmentItems.length) return order;
-      const shipment: ShipmentRecord = {
-        id: `SH-${Date.now().toString().slice(-6)}`,
-        createdAt: new Date().toLocaleString("tr-TR"),
-        createdBy: currentUser.username,
-        items: shipmentItems,
-      };
-      return { ...order, items: nextItems, shipments: [shipment, ...order.shipments], status: deriveOrderStatus(nextItems, order.status) };
-    }));
+
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id !== orderId || order.status === "İptal") return order;
+
+        const shipmentItems: ShipmentRecord["items"] = [];
+
+        const nextItems = order.items.map((item) => {
+          const key = `${orderId}_${item.id}`;
+          const qty = Math.min(item.readyForShipmentQuantity, Math.max(normalizeNumber(shipmentDrafts[key]), 0));
+          if (qty <= 0) return item;
+
+          shipmentItems.push({
+            itemId: item.id,
+            code: item.code,
+            name: item.name,
+            quantity: qty,
+          });
+
+          return {
+            ...item,
+            readyForShipmentQuantity: item.readyForShipmentQuantity - qty,
+            sentQuantity: item.sentQuantity + qty,
+          };
+        });
+
+        if (!shipmentItems.length) return order;
+
+        const shipment: ShipmentRecord = {
+          id: `SH-${Date.now().toString().slice(-6)}`,
+          createdAt: new Date().toLocaleString("tr-TR"),
+          createdBy: currentUser.username,
+          items: shipmentItems,
+        };
+
+        return {
+          ...order,
+          items: nextItems,
+          shipments: [shipment, ...order.shipments],
+          status: deriveOrderStatus(nextItems, order.status),
+        };
+      })
+    );
+
     setShipmentDrafts((prev) => {
       const next = { ...prev };
-      Object.keys(next).forEach((key) => { if (key.startsWith(`${orderId}_`)) next[key] = ""; });
+      Object.keys(next).forEach((key) => {
+        if (key.startsWith(`${orderId}_`)) next[key] = "";
+      });
       return next;
     });
+  };
+
+  const saveProduct = () => {
+    if (!productDraft.code.trim()) return setProductMessage("Stok Kodu Boş Olamaz.");
+    if (!productDraft.name.trim()) return setProductMessage("Ürün Adı Boş Olamaz.");
+    if (normalizeNumber(productDraft.price) <= 0) return setProductMessage("Fiyat 0'dan Büyük Olmalı.");
+
+    const normalizedCode = productDraft.code.trim().toUpperCase();
+    const existingByCode = products.find((p) => p.code.trim().toUpperCase() === normalizedCode);
+
+    const product: Product = {
+      id: editingProductId ?? existingByCode?.id ?? generateId(),
+      orderNo:
+        normalizeNumber(productDraft.orderNo) > 0
+          ? normalizeNumber(productDraft.orderNo)
+          : existingByCode?.orderNo ?? products.length + 1,
+      code: normalizedCode,
+      name: productDraft.name.trim(),
+      price: normalizeNumber(productDraft.price),
+      kdvRate: normalizeNumber(productDraft.kdvRate),
+    };
+
+    setProducts((prev) => {
+      const exists = prev.some((p) => p.code.trim().toUpperCase() === normalizedCode);
+      const updated = exists
+        ? prev.map((p) => (p.code.trim().toUpperCase() === normalizedCode || p.id === editingProductId ? { ...p, ...product } : p))
+        : [...prev, product];
+      return [...updated].sort((a, b) => a.orderNo - b.orderNo);
+    });
+
+    setEditingProductId(null);
+    setProductDraft({ orderNo: "", code: "", name: "", price: "", kdvRate: "20" });
+    setProductMessage(existingByCode ? "Ürün Güncellendi." : "Ürün Kaydedildi.");
+  };
+
+  const importProductsFromText = () => {
+    const rows = bulkProductText
+      .split(/\r?\n/)
+      .map((x) => x.trim())
+      .filter(Boolean);
+
+    if (rows.length <= 1) {
+      setProductMessage("Yüklenecek veri bulunamadı.");
+      return;
+    }
+
+    setProducts((prev) => {
+      const mapByCode = new Map(prev.map((p) => [p.code.trim().toUpperCase(), p] as const));
+
+      rows.slice(1).forEach((row) => {
+        const parts = row.split(/\t|,/).map((p) => p.trim());
+        if (parts.length < 5) return;
+
+        const [orderNoRaw, codeRaw, nameRaw, priceRaw, kdvRateRaw] = parts;
+        const code = codeRaw.toUpperCase();
+
+        if (!code || !nameRaw || normalizeNumber(priceRaw) <= 0) return;
+
+        const existing = mapByCode.get(code);
+
+        mapByCode.set(code, {
+          id: existing?.id ?? generateId(),
+          orderNo:
+            normalizeNumber(orderNoRaw) > 0
+              ? normalizeNumber(orderNoRaw)
+              : existing?.orderNo ?? mapByCode.size + 1,
+          code,
+          name: nameRaw,
+          price: normalizeNumber(priceRaw),
+          kdvRate: normalizeNumber(kdvRateRaw) || 20,
+        });
+      });
+
+      return [...mapByCode.values()].sort((a, b) => a.orderNo - b.orderNo);
+    });
+
+    setProductMessage("Toplu ürün yükleme / güncelleme tamamlandı.");
+  };
+
+  const saveCustomer = () => {
+    if (!customerManageDraft.name.trim()) return setCustomerMessage("Müşteri Adı Boş Olamaz.");
+
+    const customer: Customer = {
+      id: editingCustomerId ?? generateId(),
+      name: customerManageDraft.name.trim(),
+      company: customerManageDraft.company.trim(),
+      phone: customerManageDraft.phone.trim(),
+      address: customerManageDraft.address.trim(),
+      note: customerManageDraft.note.trim(),
+    };
+
+    setCustomers((prev) => (editingCustomerId == null ? [customer, ...prev] : prev.map((c) => (c.id === editingCustomerId ? customer : c))));
+    setEditingCustomerId(null);
+    setCustomerManageDraft({ name: "", company: "", phone: "", address: "", note: "" });
+    setCustomerMessage("Müşteri Kaydedildi.");
+  };
+
+  const saveUser = () => {
+    if (!userDraft.username.trim()) return setUserMessage("Kullanıcı Adı Boş Olamaz.");
+    if (!userDraft.password.trim()) return setUserMessage("Şifre Boş Olamaz.");
+
+    if (users.some((u) => u.username.trim().toUpperCase() === userDraft.username.trim().toUpperCase() && u.id !== editingUserId)) {
+      return setUserMessage("Bu Kullanıcı Adı Zaten Kayıtlı.");
+    }
+
+    const user: AppUser = {
+      id: editingUserId ?? generateId(),
+      username: userDraft.username.trim().toUpperCase(),
+      password: userDraft.password.trim(),
+      role: userDraft.role,
+      active: userDraft.active,
+    };
+
+    setUsers((prev) => (editingUserId == null ? [user, ...prev] : prev.map((u) => (u.id === editingUserId ? user : u))));
+    setEditingUserId(null);
+    setUserDraft({ username: "", password: "", role: "pazarlamaci", active: true });
+    setUserMessage("Kullanıcı Kaydedildi.");
   };
 
   const buildPrintableOrderHtml = (order: OrderRecord, titleText: string) => {
@@ -815,7 +958,9 @@ export default function App() {
               </tr>
             </thead>
             <tbody>
-              ${order.items.map((item) => `
+              ${order.items
+                .map(
+                  (item) => `
                 <tr>
                   <td>${item.code}</td>
                   <td>${item.name}</td>
@@ -823,7 +968,9 @@ export default function App() {
                   <td>${formatTRY(item.priceAfterDiscount)}</td>
                   <td>${formatTRY(item.priceAfterDiscount * item.quantity)}</td>
                 </tr>
-              `).join("")}
+              `
+                )
+                .join("")}
             </tbody>
           </table>
           <p><strong>Ara Toplam:</strong> ${formatTRY(totals.subTotal)}</p>
@@ -874,13 +1021,17 @@ export default function App() {
               </tr>
             </thead>
             <tbody>
-              ${shipment.items.map((item) => `
+              ${shipment.items
+                .map(
+                  (item) => `
                 <tr>
                   <td>${item.code}</td>
                   <td>${item.name}</td>
                   <td>${item.quantity}</td>
                 </tr>
-              `).join("")}
+              `
+                )
+                .join("")}
             </tbody>
           </table>
         </body>
@@ -926,104 +1077,6 @@ export default function App() {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
-  const saveProduct = () => {
-    if (!productDraft.code.trim()) return setProductMessage("Stok Kodu Boş Olamaz.");
-    if (!productDraft.name.trim()) return setProductMessage("Ürün Adı Boş Olamaz.");
-    if (normalizeNumber(productDraft.price) <= 0) return setProductMessage("Fiyat 0'dan Büyük Olmalı.");
-
-    const normalizedCode = productDraft.code.trim().toUpperCase();
-    const existingByCode = products.find((p) => p.code.trim().toUpperCase() === normalizedCode);
-
-    const product: Product = {
-      id: editingProductId ?? existingByCode?.id ?? generateId(),
-      orderNo: normalizeNumber(productDraft.orderNo) > 0 ? normalizeNumber(productDraft.orderNo) : (existingByCode?.orderNo ?? products.length + 1),
-      code: normalizedCode,
-      name: productDraft.name.trim(),
-      price: normalizeNumber(productDraft.price),
-      kdvRate: normalizeNumber(productDraft.kdvRate),
-    };
-
-    setProducts((prev) => {
-      const exists = prev.some((p) => p.code.trim().toUpperCase() === normalizedCode);
-      const updated = exists
-        ? prev.map((p) => (p.code.trim().toUpperCase() === normalizedCode || p.id === editingProductId ? { ...p, ...product } : p))
-        : [...prev, product];
-      return [...updated].sort((a, b) => a.orderNo - b.orderNo);
-    });
-
-    setEditingProductId(null);
-    setProductDraft({ orderNo: "", code: "", name: "", price: "", kdvRate: "20" });
-    setProductMessage(existingByCode ? "Ürün Güncellendi." : "Ürün Kaydedildi.");
-  };
-
-  const saveCustomer = () => {
-    if (!customerManageDraft.name.trim()) return setCustomerMessage("Müşteri Adı Boş Olamaz.");
-    const customer: Customer = {
-      id: editingCustomerId ?? generateId(),
-      name: customerManageDraft.name.trim(),
-      company: customerManageDraft.company.trim(),
-      phone: customerManageDraft.phone.trim(),
-      address: customerManageDraft.address.trim(),
-      note: customerManageDraft.note.trim(),
-    };
-    setCustomers((prev) => editingCustomerId == null ? [customer, ...prev] : prev.map((c) => (c.id === editingCustomerId ? customer : c)));
-    setEditingCustomerId(null);
-    setCustomerManageDraft({ name: "", company: "", phone: "", address: "", note: "" });
-    setCustomerMessage("Müşteri Kaydedildi.");
-  };
-
-  const saveUser = () => {
-    if (!userDraft.username.trim()) return setUserMessage("Kullanıcı Adı Boş Olamaz.");
-    if (!userDraft.password.trim()) return setUserMessage("Şifre Boş Olamaz.");
-    if (users.some((u) => u.username.trim().toUpperCase() === userDraft.username.trim().toUpperCase() && u.id !== editingUserId)) {
-      return setUserMessage("Bu Kullanıcı Adı Zaten Kayıtlı.");
-    }
-    const user: AppUser = {
-      id: editingUserId ?? generateId(),
-      username: userDraft.username.trim().toUpperCase(),
-      password: userDraft.password.trim(),
-      role: userDraft.role,
-      active: userDraft.active,
-    };
-    setUsers((prev) => editingUserId == null ? [user, ...prev] : prev.map((u) => (u.id === editingUserId ? user : u)));
-    setEditingUserId(null);
-    setUserDraft({ username: "", password: "", role: "pazarlamaci", active: true });
-    setUserMessage("Kullanıcı Kaydedildi.");
-  };
-
-  const importProductsFromText = () => {
-    const rows = bulkProductText.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
-    if (rows.length <= 1) return setProductMessage("Yüklenecek veri bulunamadı.");
-
-    setProducts((prev) => {
-      const mapByCode = new Map(prev.map((p) => [p.code.trim().toUpperCase(), p]));
-
-      rows.slice(1).forEach((row) => {
-        const parts = row.split(/\t|,/).map((p) => p.trim());
-        if (parts.length < 5) return;
-
-        const [orderNoRaw, codeRaw, nameRaw, priceRaw, kdvRateRaw] = parts;
-        const code = codeRaw.toUpperCase();
-        if (!code || !nameRaw || normalizeNumber(priceRaw) <= 0) return;
-
-        const existing = mapByCode.get(code);
-
-        mapByCode.set(code, {
-          id: existing?.id ?? generateId(),
-          orderNo: normalizeNumber(orderNoRaw) > 0 ? normalizeNumber(orderNoRaw) : existing?.orderNo ?? mapByCode.size + 1,
-          code,
-          name: nameRaw,
-          price: normalizeNumber(priceRaw),
-          kdvRate: normalizeNumber(kdvRateRaw) || 20,
-        });
-      });
-
-      return [...mapByCode.values()].sort((a, b) => a.orderNo - b.orderNo);
-    });
-
-    setProductMessage("Toplu ürün yükleme / güncelleme tamamlandı.");
-  };
-
   const renderOrderCard = (order: OrderRecord, prefix = "") => {
     const isOwner = currentUser?.id === order.createdByUserId;
     const showPrices = currentUser?.role === "admin" || currentUser?.role === "pazarlamaci";
@@ -1040,7 +1093,9 @@ export default function App() {
         >
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, color: "#0f172a" }}>{order.customer.name}</div>
-            <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>{order.id} • {order.createdAt}</div>
+            <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>
+              {order.id} • {order.createdAt}
+            </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
               <span style={{ ...getStatusStyle(order.status), borderRadius: 999, padding: "4px 10px", fontSize: 12, fontWeight: 700 }}>
                 {order.status}
@@ -1054,9 +1109,20 @@ export default function App() {
         {expanded ? (
           <div style={{ marginTop: 14 }}>
             <div style={{ background: "#f8fafc", borderRadius: 16, padding: 12, fontSize: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748b" }}>Müşteri</span><span>{order.customer.name}</span></div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span style={{ color: "#64748b" }}>Firma</span><span>{order.customer.company || "-"}</span></div>
-              {showPrices ? <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontWeight: 700 }}><span>Genel Toplam</span><span>{formatTRY(totals.grandTotal)}</span></div> : null}
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "#64748b" }}>Müşteri</span>
+                <span>{order.customer.name}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                <span style={{ color: "#64748b" }}>Firma</span>
+                <span>{order.customer.company || "-"}</span>
+              </div>
+              {showPrices ? (
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontWeight: 700 }}>
+                  <span>Genel Toplam</span>
+                  <span>{formatTRY(totals.grandTotal)}</span>
+                </div>
+              ) : null}
             </div>
 
             <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
@@ -1066,7 +1132,9 @@ export default function App() {
                   <div key={key} style={{ background: "#f8fafc", borderRadius: 16, padding: 12, fontSize: 14 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>[{item.code}] {item.name}</div>
+                        <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                          [{item.code}] {item.name}
+                        </div>
                         <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
                           Sipariş: {item.quantity} • Hazır: {item.readyForShipmentQuantity} • Gönderilen: {item.sentQuantity} • Bekleyen: {item.pendingQuantity}
                         </div>
@@ -1077,14 +1145,24 @@ export default function App() {
                     {canManageProduction && order.status !== "İptal" && item.pendingQuantity > 0 ? (
                       <div style={{ marginTop: 10 }}>
                         <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Sevkiyata Hazır Adet</div>
-                        <StepperInput value={readyDrafts[key] ?? ""} min={0} max={item.pendingQuantity} onChange={(value) => setReadyDrafts((prev) => ({ ...prev, [key]: value }))} />
+                        <StepperInput
+                          value={readyDrafts[key] ?? ""}
+                          min={0}
+                          max={item.pendingQuantity}
+                          onChange={(value) => setReadyDrafts((prev) => ({ ...prev, [key]: value }))}
+                        />
                       </div>
                     ) : null}
 
                     {canManageShipping && order.status !== "İptal" && item.readyForShipmentQuantity > 0 ? (
                       <div style={{ marginTop: 10 }}>
                         <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Gönderilecek Adet</div>
-                        <StepperInput value={shipmentDrafts[key] ?? ""} min={0} max={item.readyForShipmentQuantity} onChange={(value) => setShipmentDrafts((prev) => ({ ...prev, [key]: value }))} />
+                        <StepperInput
+                          value={shipmentDrafts[key] ?? ""}
+                          min={0}
+                          max={item.readyForShipmentQuantity}
+                          onChange={(value) => setShipmentDrafts((prev) => ({ ...prev, [key]: value }))}
+                        />
                       </div>
                     ) : null}
                   </div>
@@ -1094,38 +1172,56 @@ export default function App() {
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
               {currentUser?.role === "pazarlamaci" && isOwner && order.status === "Müşteriden Onay Bekleniyor" ? (
-                <button style={buttonStyle()} onClick={() => approveCustomer(order.id)}><Shield size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Müşteri Onayı Alındı</button>
+                <button style={buttonStyle()} onClick={() => approveCustomer(order.id)}>
+                  <Shield size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Müşteri Onayı Alındı
+                </button>
               ) : null}
 
               {currentUser?.role === "admin" && order.status === "Yönetici Onayı Bekleniyor" ? (
                 <>
-                  <button style={buttonStyle()} onClick={() => managerApprove(order.id)}><CheckCircle2 size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Yönetici Onayla</button>
-                  <button style={buttonStyle()} onClick={() => managerCancel(order.id)}><CircleSlash size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> İptal Et</button>
+                  <button style={buttonStyle()} onClick={() => managerApprove(order.id)}>
+                    <CheckCircle2 size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Yönetici Onayla
+                  </button>
+                  <button style={buttonStyle()} onClick={() => managerCancel(order.id)}>
+                    <CircleSlash size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> İptal Et
+                  </button>
                 </>
               ) : null}
 
               {currentUser?.role === "pazarlamaci" && isOwner && !["Tamamlandı", "İptal"].includes(order.status) ? (
-                <button style={buttonStyle()} onClick={() => ownerCancel(order.id)}><CircleSlash size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> İptal</button>
+                <button style={buttonStyle()} onClick={() => ownerCancel(order.id)}>
+                  <CircleSlash size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> İptal
+                </button>
               ) : null}
 
               {currentUser?.role === "pazarlamaci" && isOwner && order.status === "İptal" ? (
-                <button style={buttonStyle()} onClick={() => ownerUncancel(order.id)}><RotateCcw size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> İptali Kaldır</button>
+                <button style={buttonStyle()} onClick={() => ownerUncancel(order.id)}>
+                  <RotateCcw size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> İptali Kaldır
+                </button>
               ) : null}
 
               {canManageProduction && order.status !== "İptal" ? (
-                <button style={buttonStyle()} onClick={() => markReadySelectedItems(order.id)}><CheckCircle2 size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Sevkiyata Hazır</button>
+                <button style={buttonStyle()} onClick={() => markReadySelectedItems(order.id)}>
+                  <CheckCircle2 size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Sevkiyata Hazır
+                </button>
               ) : null}
 
               {canManageShipping && order.status !== "İptal" ? (
-                <button style={buttonStyle()} onClick={() => shipSelectedItems(order.id)}><Send size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Seçileni Gönder</button>
+                <button style={buttonStyle()} onClick={() => shipSelectedItems(order.id)}>
+                  <Send size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Seçileni Gönder
+                </button>
               ) : null}
 
               {(currentUser?.role === "admin" || (currentUser?.role === "pazarlamaci" && isOwner)) ? (
-                <button style={buttonStyle()} onClick={() => printOrder(order)}><FileDown size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Sipariş Yazdır</button>
+                <button style={buttonStyle()} onClick={() => printOrder(order)}>
+                  <FileDown size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Sipariş Yazdır
+                </button>
               ) : null}
 
               {(currentUser?.role === "admin" || (currentUser?.role === "pazarlamaci" && isOwner)) ? (
-                <button style={buttonStyle()} onClick={() => shareOrder(order)}><MessageCircle size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> WhatsApp</button>
+                <button style={buttonStyle()} onClick={() => shareOrder(order)}>
+                  <MessageCircle size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> WhatsApp
+                </button>
               ) : null}
             </div>
 
@@ -1135,14 +1231,24 @@ export default function App() {
                 <div style={{ display: "grid", gap: 8 }}>
                   {order.shipments.map((shipment) => (
                     <div key={shipment.id} style={{ background: "#f8fafc", borderRadius: 16, padding: 12 }}>
-                      <div style={{ fontWeight: 700 }}>{shipment.createdAt} • {shipment.createdBy}</div>
+                      <div style={{ fontWeight: 700 }}>
+                        {shipment.createdAt} • {shipment.createdBy}
+                      </div>
                       <div style={{ marginTop: 6, display: "grid", gap: 4 }}>
-                        {shipment.items.map((si) => <div key={`${shipment.id}_${si.itemId}`} style={{ fontSize: 12, color: "#475569" }}>[{si.code}] {si.name} • {si.quantity} Adet</div>)}
+                        {shipment.items.map((si) => (
+                          <div key={`${shipment.id}_${si.itemId}`} style={{ fontSize: 12, color: "#475569" }}>
+                            [{si.code}] {si.name} • {si.quantity} Adet
+                          </div>
+                        ))}
                       </div>
                       {currentUser?.role === "admin" || currentUser?.role === "sevkiyat" ? (
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-                          <button style={buttonStyle()} onClick={() => printShipment(order, shipment)}><FileDown size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Sevkiyat Yazdır</button>
-                          <button style={buttonStyle()} onClick={() => shareShipment(order, shipment)}><MessageCircle size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> WhatsApp</button>
+                          <button style={buttonStyle()} onClick={() => printShipment(order, shipment)}>
+                            <FileDown size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Sevkiyat Yazdır
+                          </button>
+                          <button style={buttonStyle()} onClick={() => shareShipment(order, shipment)}>
+                            <MessageCircle size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> WhatsApp
+                          </button>
                         </div>
                       ) : null}
                     </div>
@@ -1157,8 +1263,15 @@ export default function App() {
   };
 
   const sectionHeader = (title: string, key: AdminSection, icon?: React.ReactNode) => (
-    <button type="button" onClick={() => setAdminSection((prev) => (prev === key ? "none" : key))} style={{ ...cardStyle(), width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", border: "none", cursor: "pointer", textAlign: "left" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, color: "#0f172a" }}>{icon}{title}</div>
+    <button
+      type="button"
+      onClick={() => setAdminSection((prev) => (prev === key ? "none" : key))}
+      style={{ ...cardStyle(), width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", border: "none", cursor: "pointer", textAlign: "left" }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, color: "#0f172a" }}>
+        {icon}
+        {title}
+      </div>
       {adminSection === key ? <ChevronUp size={18} color="#64748b" /> : <ChevronDown size={18} color="#64748b" />}
     </button>
   );
@@ -1196,9 +1309,13 @@ export default function App() {
         <div style={{ maxWidth: 420, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <div>
             <div style={{ fontWeight: 800, fontSize: 20, color: "#0f172a" }}>Mobil Sipariş</div>
-            <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{currentUser.username} • {getRoleLabel(currentUser.role)}</div>
+            <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+              {currentUser.username} • {getRoleLabel(currentUser.role)}
+            </div>
           </div>
-          <button style={buttonStyle()} onClick={logout}><LogOut size={16} /></button>
+          <button style={buttonStyle()} onClick={logout}>
+            <LogOut size={16} />
+          </button>
         </div>
       </div>
 
@@ -1220,9 +1337,9 @@ export default function App() {
         {canCreateOrders && userScreen === "order_form" ? (
           <>
             <div style={cardStyle()}>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button style={{ ...buttonStyle(), flex: 1 }} onClick={resetOrderForm}><ArrowLeft size={16} style={{ marginRight: 6, verticalAlign: "middle" }} /> Geri</button>
-              </div>
+              <button style={{ ...buttonStyle(), width: "100%" }} onClick={resetOrderForm}>
+                <ArrowLeft size={16} style={{ marginRight: 6, verticalAlign: "middle" }} /> Geri
+              </button>
             </div>
 
             <div style={cardStyle()}>
@@ -1237,7 +1354,7 @@ export default function App() {
 
               {customerPanelOpen ? (
                 <>
-                  <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+                  <div style={{ marginTop: 12 }}>
                     <input
                       style={inputStyle()}
                       placeholder="Müşteri ara: ad, soyad, firma, telefon..."
@@ -1258,9 +1375,22 @@ export default function App() {
                             type="button"
                             onClick={() => {
                               setSelectedCustomerId(customer.id);
-                              setCustomerDraft({ name: customer.name, company: customer.company, phone: customer.phone, address: customer.address, note: customer.note });
+                              setCustomerDraft({
+                                name: customer.name,
+                                company: customer.company,
+                                phone: customer.phone,
+                                address: customer.address,
+                                note: customer.note,
+                              });
                             }}
-                            style={{ textAlign: "left", borderRadius: 14, border: selectedCustomerId === customer.id ? "1px solid #0f172a" : "1px solid #d1d5db", background: selectedCustomerId === customer.id ? "#f8fafc" : "#fff", padding: 12, cursor: "pointer" }}
+                            style={{
+                              textAlign: "left",
+                              borderRadius: 14,
+                              border: selectedCustomerId === customer.id ? "1px solid #0f172a" : "1px solid #d1d5db",
+                              background: selectedCustomerId === customer.id ? "#f8fafc" : "#fff",
+                              padding: 12,
+                              cursor: "pointer",
+                            }}
                           >
                             <div style={{ fontWeight: 700 }}>{customer.name}</div>
                             <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{customer.company}</div>
@@ -1285,9 +1415,10 @@ export default function App() {
             </div>
 
             <div style={cardStyle()}>
-              <div style={{ fontWeight: 700, marginBottom: 10 }}><Search size={16} style={{ marginRight: 6, verticalAlign: "middle" }} /> Ürün Ara</div>
+              <div style={{ fontWeight: 700, marginBottom: 10 }}>
+                <Search size={16} style={{ marginRight: 6, verticalAlign: "middle" }} /> Ürün Ara
+              </div>
               <input style={inputStyle()} placeholder="Tam stok kodunu yaz" value={search} onChange={(e) => setSearch(e.target.value)} />
-
               <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
                 {search.trim() === "" ? (
                   <div style={{ color: "#64748b", fontSize: 14 }}>Stok kodu yazılınca ürün görünür.</div>
@@ -1354,7 +1485,9 @@ export default function App() {
             </div>
 
             <div style={cardStyle()}>
-              <div style={{ fontWeight: 700, marginBottom: 10 }}><ShoppingCart size={16} style={{ marginRight: 6, verticalAlign: "middle" }} /> Sipariş Sepeti</div>
+              <div style={{ fontWeight: 700, marginBottom: 10 }}>
+                <ShoppingCart size={16} style={{ marginRight: 6, verticalAlign: "middle" }} /> Sipariş Sepeti
+              </div>
               {processedCart.length === 0 ? (
                 <div style={{ color: "#64748b", fontSize: 14 }}>Henüz ürün eklenmedi.</div>
               ) : (
@@ -1370,7 +1503,9 @@ export default function App() {
                           <div style={{ marginTop: 8, fontWeight: 700 }}>{item.name}</div>
                           <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>Net Fiyat: {formatTRY(item.priceAfterDiscount)}</div>
                         </div>
-                        <button style={buttonStyle()} onClick={() => removeFromCart(item.id)}><Trash2 size={14} /></button>
+                        <button style={buttonStyle()} onClick={() => removeFromCart(item.id)}>
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                       <div style={{ marginTop: 10 }}>
                         <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Miktar</div>
@@ -1385,11 +1520,22 @@ export default function App() {
             <div style={cardStyle()}>
               <div style={{ fontWeight: 700, marginBottom: 10 }}>Sipariş Özeti</div>
               <div style={{ background: "#f8fafc", borderRadius: 16, padding: 12, fontSize: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}><span>Ara Toplam</span><span>{formatTRY(cartTotals.subTotal)}</span></div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span>Kdv</span><span>{formatTRY(cartTotals.vatTotal)}</span></div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, paddingTop: 10, borderTop: "1px solid #e5e7eb", fontWeight: 800 }}><span>Genel Toplam</span><span>{formatTRY(cartTotals.grandTotal)}</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span>Ara Toplam</span>
+                  <span>{formatTRY(cartTotals.subTotal)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                  <span>Kdv</span>
+                  <span>{formatTRY(cartTotals.vatTotal)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, paddingTop: 10, borderTop: "1px solid #e5e7eb", fontWeight: 800 }}>
+                  <span>Genel Toplam</span>
+                  <span>{formatTRY(cartTotals.grandTotal)}</span>
+                </div>
               </div>
-              <button style={{ ...buttonStyle(true), width: "100%", marginTop: 12 }} onClick={createOrder}>Siparişi Kaydet</button>
+              <button style={{ ...buttonStyle(true), width: "100%", marginTop: 12 }} onClick={createOrder}>
+                Siparişi Kaydet
+              </button>
             </div>
           </>
         ) : null}
@@ -1450,7 +1596,14 @@ export default function App() {
                 {productMessage ? <div style={{ marginTop: 10, padding: 12, borderRadius: 14, background: "#f8fafc", fontSize: 13 }}>{productMessage}</div> : null}
 
                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                  <button style={buttonStyle()} onClick={() => { setEditingProductId(null); setProductDraft({ orderNo: "", code: "", name: "", price: "", kdvRate: "20" }); setProductMessage(""); }}>
+                  <button
+                    style={buttonStyle()}
+                    onClick={() => {
+                      setEditingProductId(null);
+                      setProductDraft({ orderNo: "", code: "", name: "", price: "", kdvRate: "20" });
+                      setProductMessage("");
+                    }}
+                  >
                     <RotateCcw size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Temizle
                   </button>
                   <button style={buttonStyle(true)} onClick={saveProduct}>
@@ -1478,14 +1631,22 @@ export default function App() {
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 700 }}>#{product.orderNo} • {product.code}</div>
                           <div style={{ marginTop: 4, fontSize: 13 }}>{product.name}</div>
-                          <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>{formatTRY(product.price)} • Kdv %{product.kdvRate}</div>
+                          <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>
+                            {formatTRY(product.price)} • Kdv %{product.kdvRate}
+                          </div>
                         </div>
                         <div style={{ display: "flex", gap: 8 }}>
                           <button
                             style={buttonStyle()}
                             onClick={() => {
                               setEditingProductId(product.id);
-                              setProductDraft({ orderNo: String(product.orderNo), code: product.code, name: product.name, price: String(product.price), kdvRate: String(product.kdvRate) });
+                              setProductDraft({
+                                orderNo: String(product.orderNo),
+                                code: product.code,
+                                name: product.name,
+                                price: String(product.price),
+                                kdvRate: String(product.kdvRate),
+                              });
                               setProductMessage("");
                             }}
                           >
@@ -1516,7 +1677,14 @@ export default function App() {
                 {customerMessage ? <div style={{ marginTop: 10, padding: 12, borderRadius: 14, background: "#f8fafc", fontSize: 13 }}>{customerMessage}</div> : null}
 
                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                  <button style={buttonStyle()} onClick={() => { setEditingCustomerId(null); setCustomerManageDraft({ name: "", company: "", phone: "", address: "", note: "" }); setCustomerMessage(""); }}>
+                  <button
+                    style={buttonStyle()}
+                    onClick={() => {
+                      setEditingCustomerId(null);
+                      setCustomerManageDraft({ name: "", company: "", phone: "", address: "", note: "" });
+                      setCustomerMessage("");
+                    }}
+                  >
                     <RotateCcw size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Temizle
                   </button>
                   <button style={buttonStyle(true)} onClick={saveCustomer}>
@@ -1540,7 +1708,13 @@ export default function App() {
                             style={buttonStyle()}
                             onClick={() => {
                               setEditingCustomerId(customer.id);
-                              setCustomerManageDraft({ name: customer.name, company: customer.company, phone: customer.phone, address: customer.address, note: customer.note });
+                              setCustomerManageDraft({
+                                name: customer.name,
+                                company: customer.company,
+                                phone: customer.phone,
+                                address: customer.address,
+                                note: customer.note,
+                              });
                               setCustomerMessage("");
                             }}
                           >
@@ -1578,7 +1752,14 @@ export default function App() {
                 {userMessage ? <div style={{ marginTop: 10, padding: 12, borderRadius: 14, background: "#f8fafc", fontSize: 13 }}>{userMessage}</div> : null}
 
                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                  <button style={buttonStyle()} onClick={() => { setEditingUserId(null); setUserDraft({ username: "", password: "", role: "pazarlamaci", active: true }); setUserMessage(""); }}>
+                  <button
+                    style={buttonStyle()}
+                    onClick={() => {
+                      setEditingUserId(null);
+                      setUserDraft({ username: "", password: "", role: "pazarlamaci", active: true });
+                      setUserMessage("");
+                    }}
+                  >
                     <RotateCcw size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Temizle
                   </button>
                   <button style={buttonStyle(true)} onClick={saveUser}>
@@ -1602,7 +1783,12 @@ export default function App() {
                             style={buttonStyle()}
                             onClick={() => {
                               setEditingUserId(user.id);
-                              setUserDraft({ username: user.username, password: user.password, role: user.role, active: user.active });
+                              setUserDraft({
+                                username: user.username,
+                                password: user.password,
+                                role: user.role,
+                                active: user.active,
+                              });
                               setUserMessage("");
                             }}
                           >
