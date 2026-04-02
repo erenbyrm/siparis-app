@@ -29,6 +29,7 @@ import {
 
 type Product = {
   id: number;
+  orderNo: number;
   code: string;
   name: string;
   price: number;
@@ -117,6 +118,7 @@ type ReadyDraftMap = Record<string, string>;
 type ExpandedOrderMap = Record<string, boolean>;
 
 type ProductDraft = {
+  orderNo: string;
   code: string;
   name: string;
   price: string;
@@ -155,11 +157,11 @@ const CURRENT_USER_KEY = "siparis_current_user_v20";
 const CUSTOMERS_KEY = "siparis_customers_v20";
 
 const initialProducts: Product[] = [
-  { id: 1, code: "SCC22", name: "2 + 2 Çift Çıkışlı Premium Alüminyum Merdiven", price: 1360, kdvRate: 20 },
-  { id: 2, code: "SCC33", name: "3 + 3 Çift Çıkışlı Premium Alüminyum Merdiven", price: 1755, kdvRate: 20 },
-  { id: 3, code: "SCC44", name: "4 + 4 Çift Çıkışlı Premium Alüminyum Merdiven", price: 2310, kdvRate: 20 },
-  { id: 4, code: "SCC55", name: "5 + 5 Çift Çıkışlı Premium Alüminyum Merdiven", price: 2880, kdvRate: 20 },
-  { id: 5, code: "SCC66", name: "6 + 6 Çift Çıkışlı Premium Alüminyum Merdiven", price: 3440, kdvRate: 20 },
+  { id: 1, orderNo: 1, code: "SCC22", name: "2 + 2 Çift Çıkışlı Premium Alüminyum Merdiven", price: 1360, kdvRate: 20 },
+  { id: 2, orderNo: 2, code: "SCC33", name: "3 + 3 Çift Çıkışlı Premium Alüminyum Merdiven", price: 1755, kdvRate: 20 },
+  { id: 3, orderNo: 3, code: "SCC44", name: "4 + 4 Çift Çıkışlı Premium Alüminyum Merdiven", price: 2310, kdvRate: 20 },
+  { id: 4, orderNo: 4, code: "SCC55", name: "5 + 5 Çift Çıkışlı Premium Alüminyum Merdiven", price: 2880, kdvRate: 20 },
+  { id: 5, orderNo: 5, code: "SCC66", name: "6 + 6 Çift Çıkışlı Premium Alüminyum Merdiven", price: 3440, kdvRate: 20 },
 ];
 
 const initialCustomers: Customer[] = [
@@ -538,10 +540,11 @@ export default function App() {
   const [userScreen, setUserScreen] = useState<UserScreen>("dashboard");
   const [adminSection, setAdminSection] = useState<AdminSection>("none");
 
-  const [productDraft, setProductDraft] = useState<ProductDraft>({ code: "", name: "", price: "", kdvRate: "20" });
+  const [productDraft, setProductDraft] = useState<ProductDraft>({ orderNo: "", code: "", name: "", price: "", kdvRate: "20" });
   const [customerManageDraft, setCustomerManageDraft] = useState<CustomerDraft>({ name: "", company: "", phone: "", address: "", note: "" });
   const [userDraft, setUserDraft] = useState<UserDraft>({ username: "", password: "", role: "pazarlamaci", active: true });
-  const [bulkProductText, setBulkProductText] = useState("Stok Kodu\tÜrün Adı\tFiyat\tKdv\nABC01\tÖrnek Ürün\t1000\t20");
+  const [bulkProductText, setBulkProductText] = useState("Sıra No	Stok Kodu	Ürün Adı	Fiyat	Kdv
+1	ABC01	Örnek Ürün	1000	20");
 
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [editingCustomerId, setEditingCustomerId] = useState<number | null>(null);
@@ -1065,24 +1068,32 @@ export default function App() {
     if (!productDraft.code.trim()) return setProductMessage("Stok Kodu Boş Olamaz.");
     if (!productDraft.name.trim()) return setProductMessage("Ürün Adı Boş Olamaz.");
     if (normalizeNumber(productDraft.price) <= 0) return setProductMessage("Fiyat 0'dan Büyük Olmalı.");
-    if (products.some((p) => p.code.trim().toLowerCase() === productDraft.code.trim().toLowerCase() && p.id !== editingProductId)) {
-      return setProductMessage("Bu Stok Kodu Zaten Kayıtlı.");
-    }
+
+    const normalizedCode = productDraft.code.trim().toUpperCase();
+    const existingByCode = products.find((p) => p.code.trim().toUpperCase() === normalizedCode);
+
     const product: Product = {
-      id: editingProductId ?? generateId(),
-      code: productDraft.code.trim().toUpperCase(),
+      id: editingProductId ?? existingByCode?.id ?? generateId(),
+      orderNo: normalizeNumber(productDraft.orderNo) > 0 ? normalizeNumber(productDraft.orderNo) : (existingByCode?.orderNo ?? products.length + 1),
+      code: normalizedCode,
       name: productDraft.name.trim(),
       price: normalizeNumber(productDraft.price),
       kdvRate: normalizeNumber(productDraft.kdvRate),
     };
+
     setProducts((prev) => {
-      const updated = editingProductId == null ? [product, ...prev] : prev.map((p) => (p.id === editingProductId ? product : p));
-      localStorage.setItem(PRODUCTS_KEY, JSON.stringify(updated));
-      return updated;
+      const exists = prev.some((p) => p.code.trim().toUpperCase() === normalizedCode);
+      const updated = exists
+        ? prev.map((p) => (p.code.trim().toUpperCase() === normalizedCode || p.id === editingProductId ? { ...p, ...product } : p))
+        : [...prev, product];
+      const sorted = [...updated].sort((a, b) => a.orderNo - b.orderNo);
+      localStorage.setItem(PRODUCTS_KEY, JSON.stringify(sorted));
+      return sorted;
     });
+
     setEditingProductId(null);
-    setProductDraft({ code: "", name: "", price: "", kdvRate: "20" });
-    setProductMessage("Ürün Kaydedildi.");
+    setProductDraft({ orderNo: "", code: "", name: "", price: "", kdvRate: "20" });
+    setProductMessage(existingByCode ? "Ürün Güncellendi." : "Ürün Kaydedildi.");
   };
 
   const saveCustomer = () => {
@@ -1129,25 +1140,37 @@ export default function App() {
   };
 
   const importProductsFromText = () => {
-    const rows = bulkProductText.split("\n").map((x) => x.trim()).filter(Boolean);
+    const rows = bulkProductText.split("
+").map((x) => x.trim()).filter(Boolean);
     if (rows.length <= 1) return setProductMessage("Yüklenecek veri bulunamadı.");
-    const imported: Product[] = [];
-    rows.slice(1).forEach((row) => {
-      const parts = row.split(/\t|,/).map((p) => p.trim());
-      if (parts.length < 4) return;
-      const [code, name, price, kdvRate] = parts;
-      if (!code || !name || normalizeNumber(price) <= 0) return;
-      imported.push({ id: generateId(), code: code.toUpperCase(), name, price: normalizeNumber(price), kdvRate: normalizeNumber(kdvRate) || 20 });
-    });
-    if (!imported.length) return setProductMessage("Geçerli ürün satırı bulunamadı.");
+
     setProducts((prev) => {
-      const existingCodes = new Set(prev.map((p) => p.code.toLowerCase()));
-      const cleaned = imported.filter((p) => !existingCodes.has(p.code.toLowerCase()));
-      const updated = [...cleaned, ...prev];
-      localStorage.setItem(PRODUCTS_KEY, JSON.stringify(updated));
-      return updated;
+      const mapByCode = new Map(prev.map((p) => [p.code.trim().toUpperCase(), p]));
+
+      rows.slice(1).forEach((row) => {
+        const parts = row.split(/	|,/).map((p) => p.trim());
+        if (parts.length < 5) return;
+        const [orderNoRaw, codeRaw, nameRaw, priceRaw, kdvRateRaw] = parts;
+        const code = codeRaw.toUpperCase();
+        if (!code || !nameRaw || normalizeNumber(priceRaw) <= 0) return;
+
+        const existing = mapByCode.get(code);
+        mapByCode.set(code, {
+          id: existing?.id ?? generateId(),
+          orderNo: normalizeNumber(orderNoRaw) > 0 ? normalizeNumber(orderNoRaw) : existing?.orderNo ?? mapByCode.size + 1,
+          code,
+          name: nameRaw,
+          price: normalizeNumber(priceRaw),
+          kdvRate: normalizeNumber(kdvRateRaw) || 20,
+        });
+      });
+
+      const sorted = [...mapByCode.values()].sort((a, b) => a.orderNo - b.orderNo);
+      localStorage.setItem(PRODUCTS_KEY, JSON.stringify(sorted));
+      return sorted;
     });
-    setProductMessage("Toplu ürün yükleme tamamlandı.");
+
+    setProductMessage("Toplu ürün yükleme / güncelleme tamamlandı.");
   };
 
   const renderOrderCard = (order: OrderRecord, prefix = "") => {
@@ -1526,6 +1549,7 @@ export default function App() {
             {adminSection === "products" ? (
               <div style={cardStyle()}>
                 <div style={{ display: "grid", gap: 10 }}>
+                  <input style={inputStyle()} type="number" min="1" placeholder="Sıra No" value={productDraft.orderNo} onChange={(e) => setProductDraft((prev) => ({ ...prev, orderNo: e.target.value }))} />
                   <input style={inputStyle()} placeholder="Stok Kodu" value={productDraft.code} onChange={(e) => setProductDraft((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))} />
                   <input style={inputStyle()} placeholder="Ürün Adı" value={productDraft.name} onChange={(e) => setProductDraft((prev) => ({ ...prev, name: e.target.value }))} />
                   <input style={inputStyle()} type="number" min="0" placeholder="Fiyat" value={productDraft.price} onChange={(e) => setProductDraft((prev) => ({ ...prev, price: e.target.value }))} />
@@ -1533,13 +1557,13 @@ export default function App() {
                 </div>
                 {productMessage ? <div style={{ marginTop: 10, padding: 12, borderRadius: 14, background: "#f8fafc", fontSize: 13 }}>{productMessage}</div> : null}
                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                  <button style={buttonStyle()} onClick={() => { setEditingProductId(null); setProductDraft({ code: "", name: "", price: "", kdvRate: "20" }); setProductMessage(""); }}><RotateCcw size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Temizle</button>
+                  <button style={buttonStyle()} onClick={() => { setEditingProductId(null); setProductDraft({ orderNo: "", code: "", name: "", price: "", kdvRate: "20" }); setProductMessage(""); }}><RotateCcw size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Temizle</button>
                   <button style={buttonStyle(true)} onClick={saveProduct}><Save size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Kaydet</button>
                 </div>
 
                 <div style={{ marginTop: 16, borderTop: "1px solid #e5e7eb", paddingTop: 16 }}>
                   <div style={{ fontWeight: 700, marginBottom: 8 }}>Toplu Ürün Yükleme</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>Biçim: Stok Kodu, Ürün Adı, Fiyat, Kdv. Satırları tab veya virgülle ayırabilirsin.</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>Biçim: Sıra No, Stok Kodu, Ürün Adı, Fiyat, Kdv. Aynı stok kodu varsa yeni kayıt açılmaz, son yüklediğin bilgiyle güncellenir.</div>
                   <textarea style={{ ...inputStyle(), minHeight: 120 }} value={bulkProductText} onChange={(e) => setBulkProductText(e.target.value)} />
                   <button style={{ ...buttonStyle(true), marginTop: 10 }} onClick={importProductsFromText}><UserPlus size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Toplu Yükle</button>
                 </div>
@@ -1550,12 +1574,12 @@ export default function App() {
                     <div key={product.id} style={{ border: "1px solid #e5e7eb", borderRadius: 16, padding: 12 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 700 }}>{product.code}</div>
+                          <div style={{ fontWeight: 700 }}>#{product.orderNo} • {product.code}</div>
                           <div style={{ marginTop: 4, fontSize: 13 }}>{product.name}</div>
                           <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>{formatTRY(product.price)} • Kdv %{product.kdvRate}</div>
                         </div>
                         <div style={{ display: "flex", gap: 8 }}>
-                          <button style={buttonStyle()} onClick={() => { setEditingProductId(product.id); setProductDraft({ code: product.code, name: product.name, price: String(product.price), kdvRate: String(product.kdvRate) }); setProductMessage(""); }}><Pencil size={14} /></button>
+                          <button style={buttonStyle()} onClick={() => { setEditingProductId(product.id); setProductDraft({ orderNo: String(product.orderNo), code: product.code, name: product.name, price: String(product.price), kdvRate: String(product.kdvRate) }); setProductMessage(""); }}><Pencil size={14} /></button>
                           <button style={buttonStyle()} onClick={() => setProducts((prev) => { const updated = prev.filter((p) => p.id !== product.id); localStorage.setItem(PRODUCTS_KEY, JSON.stringify(updated)); return updated; })}><Trash2 size={14} /></button>
                         </div>
                       </div>
