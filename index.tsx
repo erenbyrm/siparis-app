@@ -1140,11 +1140,9 @@ export default function App() {
   };
 
   const importProductsFromText = () => {
-    const rows = bulkProductText
-      .replaceAll("
-", "")
-      .split("
-")
+    const normalizedText = bulkProductText.replaceAll(String.fromCharCode(13), "");
+    const rows = normalizedText
+      .split(String.fromCharCode(10))
       .map((x) => x.trim())
       .filter(Boolean);
 
