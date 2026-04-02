@@ -543,8 +543,8 @@ export default function App() {
   const [productDraft, setProductDraft] = useState<ProductDraft>({ orderNo: "", code: "", name: "", price: "", kdvRate: "20" });
   const [customerManageDraft, setCustomerManageDraft] = useState<CustomerDraft>({ name: "", company: "", phone: "", address: "", note: "" });
   const [userDraft, setUserDraft] = useState<UserDraft>({ username: "", password: "", role: "pazarlamaci", active: true });
-  const [bulkProductText, setBulkProductText] = useState("Sıra No	Stok Kodu	Ürün Adı	Fiyat	Kdv
-1	ABC01	Örnek Ürün	1000	20");
+  const [bulkProductText, setBulkProductText] = useState(`Sıra No	Stok Kodu	Ürün Adı	Fiyat	Kdv
+1	ABC01	Örnek Ürün	1000	20`);
 
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [editingCustomerId, setEditingCustomerId] = useState<number | null>(null);
