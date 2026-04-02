@@ -589,14 +589,7 @@ export default function App() {
     const q = normalizeSearchText(search);
     if (!q) return [] as Product[];
 
-    const qParts = q.split(" ").filter(Boolean);
-
-    return [...products].filter((p) => {
-      const codeText = normalizeSearchText(p.code);
-      const nameText = normalizeSearchText(p.name);
-      const combined = `${codeText} ${nameText}`;
-      return qParts.every((part) => combined.includes(part));
-    });
+    return products.filter((p) => normalizeSearchText(p.code) === q);
   }, [products, search]);
 
   const managerProducts = useMemo(() => {
@@ -1405,9 +1398,9 @@ export default function App() {
 
             <div style={cardStyle()}>
               <div style={{ fontWeight: 700, marginBottom: 10 }}><Search size={16} style={{ marginRight: 6, verticalAlign: "middle" }} /> Ürün Ara</div>
-              <input style={inputStyle()} placeholder="Stok Kodu, ürün adı veya ölçü yaz" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <input style={inputStyle()} placeholder="Tam stok kodunu yaz" value={search} onChange={(e) => setSearch(e.target.value)} />
               <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-                {search.trim() === "" ? <div style={{ color: "#64748b", fontSize: 14 }}>Arama yapınca ürünler görünür.</div> : filteredProducts.length === 0 ? <div style={{ color: "#64748b", fontSize: 14 }}>Uygun ürün bulunamadı.</div> : filteredProducts.map((product) => (
+                {search.trim() === "" ? <div style={{ color: "#64748b", fontSize: 14 }}>Stok kodu yazılınca ürün görünür.</div> : filteredProducts.length === 0 ? <div style={{ color: "#64748b", fontSize: 14 }}>Bu stok koduna ait ürün bulunamadı.</div> : filteredProducts.map((product) => (
                   <div key={product.id} style={{ borderRadius: 16, border: "1px solid #e5e7eb", background: "#f8fafc", padding: 12 }}>
                     <div style={{ display: "flex", gap: 10 }}>
                       <div style={{ width: 48, height: 48, borderRadius: 16, background: "#e2e8f0", display: "flex", alignItems: "center", justifyContent: "center" }}><Package size={18} color="#475569" /></div>
