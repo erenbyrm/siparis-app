@@ -599,11 +599,9 @@ export default function App() {
     const q = normalizeSearchText(productSearch);
 
     const sortedProducts = [...products].sort((a, b) => {
-      const aOrder = Number(a.orderNo || 0);
-      const bOrder = Number(b.orderNo || 0);
-
-      if (aOrder !== bOrder) return aOrder - bOrder;
-      return Number(a.id || 0) - Number(b.id || 0);
+      const orderDiff = normalizeNumber(a.orderNo) - normalizeNumber(b.orderNo);
+      if (orderDiff !== 0) return orderDiff;
+      return normalizeNumber(a.id) - normalizeNumber(b.id);
     });
 
     if (!q) return sortedProducts;
@@ -613,9 +611,16 @@ export default function App() {
     return sortedProducts.filter((p) => {
       const codeText = normalizeSearchText(p.code);
       const nameText = normalizeSearchText(p.name);
+      const codeTokens = codeText.split(" ").filter(Boolean);
+      const nameTokens = nameText.split(" ").filter(Boolean);
 
-      const codeMatch = qParts.every((part) => codeText.includes(part));
-      const nameMatch = qParts.every((part) => nameText.includes(part));
+      const codeMatch = qParts.every((part) =>
+        codeText.includes(part) || codeTokens.some((token) => token.startsWith(part))
+      );
+
+      const nameMatch = qParts.every((part) =>
+        nameText.includes(part) || nameTokens.some((token) => token.startsWith(part))
+      );
 
       return codeMatch || nameMatch;
     });
