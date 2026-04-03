@@ -599,30 +599,42 @@ export default function App() {
     const q = normalizeSearchText(productSearch);
 
     const sortedProducts = [...products].sort((a, b) => {
-      const orderDiff = normalizeNumber(a.orderNo) - normalizeNumber(b.orderNo);
+      const orderDiff = Number(a.orderNo || 0) - Number(b.orderNo || 0);
       if (orderDiff !== 0) return orderDiff;
-      return normalizeNumber(a.id) - normalizeNumber(b.id);
+      return Number(a.id || 0) - Number(b.id || 0);
     });
 
     if (!q) return sortedProducts;
 
     const qParts = q.split(" ").filter(Boolean);
 
-    return sortedProducts.filter((p) => {
+    const matches = sortedProducts.filter((p) => {
       const codeText = normalizeSearchText(p.code);
       const nameText = normalizeSearchText(p.name);
-      const codeTokens = codeText.split(" ").filter(Boolean);
-      const nameTokens = nameText.split(" ").filter(Boolean);
+      return qParts.every((part) => codeText.includes(part) || nameText.includes(part));
+    });
 
-      const codeMatch = qParts.every((part) =>
-        codeText.includes(part) || codeTokens.some((token) => token.startsWith(part))
-      );
+    return matches.sort((a, b) => {
+      const aCode = normalizeSearchText(a.code);
+      const bCode = normalizeSearchText(b.code);
+      const aName = normalizeSearchText(a.name);
+      const bName = normalizeSearchText(b.name);
 
-      const nameMatch = qParts.every((part) =>
-        nameText.includes(part) || nameTokens.some((token) => token.startsWith(part))
-      );
+      const aCodeStarts = qParts.every((part) => aCode.startsWith(part));
+      const bCodeStarts = qParts.every((part) => bCode.startsWith(part));
+      if (aCodeStarts !== bCodeStarts) return aCodeStarts ? -1 : 1;
 
-      return codeMatch || nameMatch;
+      const aCodeAll = qParts.every((part) => aCode.includes(part));
+      const bCodeAll = qParts.every((part) => bCode.includes(part));
+      if (aCodeAll !== bCodeAll) return aCodeAll ? -1 : 1;
+
+      const aNameStarts = qParts.every((part) => aName.startsWith(part));
+      const bNameStarts = qParts.every((part) => bName.startsWith(part));
+      if (aNameStarts !== bNameStarts) return aNameStarts ? -1 : 1;
+
+      const orderDiff = Number(a.orderNo || 0) - Number(b.orderNo || 0);
+      if (orderDiff !== 0) return orderDiff;
+      return Number(a.id || 0) - Number(b.id || 0);
     });
   }, [products, productSearch]);
 
@@ -1155,42 +1167,109 @@ export default function App() {
   };
 
   const importProductsFromText = () => {
-    const normalizedText = bulkProductText.replaceAll(String.fromCharCode(13), "");
+    const normalizedText = bulkProductText.replaceAll(String.fromCharCode(13), "").trim();
     const rows = normalizedText
       .split(String.fromCharCode(10))
       .map((x) => x.trim())
       .filter(Boolean);
 
-    if (rows.length <= 1) return setProductMessage("Yüklenecek veri bulunamadı.");
+    if (!rows.length) return setProductMessage("Yüklenecek veri bulunamadı.");
+
+    const firstRowText = normalizeSearchText(rows[0]);
+    const hasHeader = ["sira", "stok", "urun", "fiyat", "kdv"].some((word) => firstRowText.includes(word));
+    const dataRows = hasHeader ? rows.slice(1) : rows;
+
+    if (!dataRows.length) return setProductMessage("Yüklenecek veri bulunamadı.");
+
+    let addedCount = 0;
+    let updatedCount = 0;
+    let skippedCount = 0;
+
+    const parseRow = (row: string) => {
+      let parts: string[] = [];
+
+      if (row.includes(";")) {
+        parts = row.split(";").map((p) => p.trim());
+      } else if (row.includes("	")) {
+        parts = row.split("	").map((p) => p.trim());
+      } else {
+        const rawParts = row.split(",").map((p) => p.trim());
+        if (rawParts.length < 5) return null;
+
+        const orderNoRaw = rawParts[0] ?? "";
+        const codeRaw = rawParts[1] ?? "";
+        const kdvRateRaw = rawParts[rawParts.length - 1] ?? "20";
+
+        let priceRaw = rawParts[rawParts.length - 2] ?? "0";
+        let nameParts = rawParts.slice(2, rawParts.length - 2);
+
+        const maybePriceWhole = rawParts[rawParts.length - 3];
+        const maybePriceDecimal = rawParts[rawParts.length - 2];
+        const maybeKdv = rawParts[rawParts.length - 1];
+
+        if (
+          rawParts.length >= 6 &&
+          /^\d+$/.test(maybePriceWhole || "") &&
+          /^\d+$/.test(maybePriceDecimal || "") &&
+          /^\d+$/.test(maybeKdv || "")
+        ) {
+          priceRaw = `${maybePriceWhole}.${maybePriceDecimal}`;
+          nameParts = rawParts.slice(2, rawParts.length - 3);
+          return [orderNoRaw, codeRaw, nameParts.join(","), priceRaw, maybeKdv];
+        }
+
+        parts = [orderNoRaw, codeRaw, nameParts.join(","), priceRaw, kdvRateRaw];
+      }
+
+      if (parts.length < 5) return null;
+      return parts.slice(0, 5);
+    };
 
     setProducts((prev) => {
       const mapByCode = new Map(prev.map((p) => [p.code.trim().toUpperCase(), p] as const));
 
-      rows.slice(1).forEach((row) => {
-        const parts = row.split(/	|,/).map((p) => p.trim());
-        if (parts.length < 5) return;
+      dataRows.forEach((row) => {
+        const parsed = parseRow(row);
+        if (!parsed) {
+          skippedCount += 1;
+          return;
+        }
 
-        const [orderNoRaw, codeRaw, nameRaw, priceRaw, kdvRateRaw] = parts;
-        const code = codeRaw.toUpperCase();
-        if (!code || !nameRaw || normalizeNumber(priceRaw) <= 0) return;
+        const [orderNoRaw, codeRaw, nameRaw, priceRaw, kdvRateRaw] = parsed;
+        const code = String(codeRaw || "").trim().toUpperCase();
+        const name = String(nameRaw || "").trim();
+        const price = Number(String(priceRaw || "").replace(",", "."));
+        const kdvRate = Number(String(kdvRateRaw || "").replace(",", "."));
+
+        if (!code || !name || !Number.isFinite(price) || price <= 0) {
+          skippedCount += 1;
+          return;
+        }
 
         const existing = mapByCode.get(code);
+        if (existing) updatedCount += 1;
+        else addedCount += 1;
+
         mapByCode.set(code, {
           id: existing?.id ?? generateId(),
           orderNo: normalizeNumber(orderNoRaw) > 0 ? normalizeNumber(orderNoRaw) : existing?.orderNo ?? mapByCode.size + 1,
           code,
-          name: nameRaw,
-          price: normalizeNumber(priceRaw),
-          kdvRate: normalizeNumber(kdvRateRaw) || 20,
+          name,
+          price,
+          kdvRate: Number.isFinite(kdvRate) && kdvRate > 0 ? kdvRate : 20,
         });
       });
 
-      const sorted = [...mapByCode.values()].sort((a, b) => a.orderNo - b.orderNo);
+      const sorted = [...mapByCode.values()].sort((a, b) => {
+        const orderDiff = Number(a.orderNo || 0) - Number(b.orderNo || 0);
+        if (orderDiff !== 0) return orderDiff;
+        return Number(a.id || 0) - Number(b.id || 0);
+      });
       localStorage.setItem(PRODUCTS_KEY, JSON.stringify(sorted));
       return sorted;
     });
 
-    setProductMessage("Toplu ürün yükleme / güncelleme tamamlandı.");
+    setProductMessage(`Toplu ürün yükleme tamamlandı. Eklenen: ${addedCount}, Güncellenen: ${updatedCount}, Atlanan: ${skippedCount}`);
   };
 
   const renderOrderCard = (order: OrderRecord, prefix = "") => {
