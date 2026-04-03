@@ -702,19 +702,35 @@ export default function App() {
       return {
         ...current,
         quantity: item.quantity,
-        priceAfterDiscount: getDiscountedPrice(current.price, globalDiscount.type, globalDiscount.value),
       };
     });
-  }, [cart, products, globalDiscount]);
+  }, [cart, products]);
 
   const effectiveVatRate = vatEnabled ? normalizeNumber(vatRate) : 0;
 
   const cartTotals = useMemo(() => {
-    const baseTotal = processedCart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const subTotal = processedCart.reduce((sum, item) => sum + item.priceAfterDiscount * item.quantity, 0);
-    const vatTotal = subTotal * (effectiveVatRate / 100);
-    return { baseTotal, discountTotal: baseTotal - subTotal, subTotal, vatTotal, grandTotal: subTotal + vatTotal };
-  }, [processedCart, effectiveVatRate]);
+    const araToplam = processedCart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+    let iskontoTutari = 0;
+    if (globalDiscount.type === "percent") {
+      const percent = Math.min(Math.max(normalizeNumber(globalDiscount.value), 0), 100);
+      iskontoTutari = araToplam * (percent / 100);
+    } else {
+      iskontoTutari = Math.min(Math.max(normalizeNumber(globalDiscount.value), 0), araToplam);
+    }
+
+    const iskontoSonrasiToplam = Math.max(araToplam - iskontoTutari, 0);
+    const vatTotal = iskontoSonrasiToplam * (effectiveVatRate / 100);
+    const grandTotal = iskontoSonrasiToplam + vatTotal;
+
+    return {
+      araToplam,
+      discountTotal: iskontoTutari,
+      iskontoSonrasiToplam,
+      vatTotal,
+      grandTotal,
+    };
+  }, [processedCart, effectiveVatRate, globalDiscount]);
 
   const orderNo = useMemo(() => `SIP-${Date.now().toString().slice(-6)}`, [processedCart.length]);
 
@@ -778,7 +794,15 @@ export default function App() {
       ? customers.find((c) => c.id === selectedCustomerId) ?? { id: generateId(), ...customerDraft }
       : { id: generateId(), ...customerDraft };
 
-    const items: OrderLine[] = processedCart.map((item) => ({ ...item, pendingQuantity: item.quantity, readyForShipmentQuantity: 0, sentQuantity: 0 }));
+    const discountMultiplier = cartTotals.araToplam > 0 ? cartTotals.iskontoSonrasiToplam / cartTotals.araToplam : 1;
+
+    const items: OrderLine[] = processedCart.map((item) => ({
+      ...item,
+      priceAfterDiscount: Number((item.price * discountMultiplier).toFixed(4)),
+      pendingQuantity: item.quantity,
+      readyForShipmentQuantity: 0,
+      sentQuantity: 0,
+    }));
 
     const newOrder: OrderRecord = {
       id: orderNo,
@@ -1257,7 +1281,8 @@ export default function App() {
       }
     }
 
-    setProductMessage(summaryLines.join("\n"));
+    setProductMessage(summaryLines.join("
+"));
   };
 
   const renderOrderCard = (order: OrderRecord, prefix = "") => {
@@ -1457,8 +1482,9 @@ export default function App() {
         {canCreateOrders && userScreen === "order_form" ? (
           <>
             <div style={cardStyle()}>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                 <button style={{ ...buttonStyle(), flex: 1 }} onClick={resetOrderForm}><ArrowLeft size={16} style={{ marginRight: 6, verticalAlign: "middle" }} /> Geri</button>
+                <div style={{ flex: 2, textAlign: "right", fontWeight: 800, fontSize: 18, color: "#0f172a" }}>Yeni Sipariş Oluştur</div>
               </div>
             </div>
 
@@ -1533,32 +1559,6 @@ export default function App() {
             </div>
 
             <div style={cardStyle()}>
-              <div style={{ fontWeight: 700, marginBottom: 10 }}>Fiyatlandırma</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>İskonto Tipi</div>
-                  <select value={globalDiscount.type} onChange={(e) => setGlobalDiscount((prev) => ({ ...prev, type: e.target.value as DiscountType }))} style={inputStyle()}>
-                    <option value="percent">Yüzde (%)</option>
-                    <option value="amount">Tutar (₺)</option>
-                  </select>
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Toplu İskonto</div>
-                  <input type="number" min="0" value={globalDiscount.value} onChange={(e) => setGlobalDiscount((prev) => ({ ...prev, value: e.target.value === "" ? "" : Math.max(Number(e.target.value), 0) }))} style={inputStyle()} />
-                </div>
-              </div>
-              <div style={{ marginTop: 12, border: "1px solid #d1d5db", borderRadius: 16, padding: 12 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8 }}><input type="checkbox" checked={vatEnabled} onChange={(e) => setVatEnabled(e.target.checked)} /><span>Kdv Uygula</span></label>
-                {vatEnabled ? (
-                  <div style={{ marginTop: 10 }}>
-                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Kdv %</div>
-                    <input type="number" min="0" value={vatRate} onChange={(e) => setVatRate(e.target.value === "" ? "" : Math.max(Number(e.target.value), 0))} style={inputStyle()} />
-                  </div>
-                ) : <div style={{ marginTop: 8, fontSize: 12, color: "#64748b" }}>Sipariş varsayılan olarak kdvsiz başlar.</div>}
-              </div>
-            </div>
-
-            <div style={cardStyle()}>
               <div style={{ fontWeight: 700, marginBottom: 10 }}><ShoppingCart size={16} style={{ marginRight: 6, verticalAlign: "middle" }} /> Sipariş Sepeti</div>
               {processedCart.length === 0 ? <div style={{ color: "#64748b", fontSize: 14 }}>Henüz ürün eklenmedi.</div> : (
                 <div style={{ display: "grid", gap: 10 }}>
@@ -1571,7 +1571,7 @@ export default function App() {
                             <span style={{ fontSize: 12, color: "#64748b" }}>Liste Fiyatı: {formatTRY(item.price)}</span>
                           </div>
                           <div style={{ marginTop: 8, fontWeight: 700 }}>{item.name}</div>
-                          <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>Net Fiyat: {formatTRY(item.priceAfterDiscount)}</div>
+                          <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>Satır Toplamı: {formatTRY(item.price * item.quantity)}</div>
                         </div>
                         <button style={buttonStyle()} onClick={() => removeFromCart(item.id)}><Trash2 size={14} /></button>
                       </div>
@@ -1587,8 +1587,38 @@ export default function App() {
 
             <div style={cardStyle()}>
               <div style={{ fontWeight: 700, marginBottom: 10 }}>Sipariş Özeti</div>
+
+              <div style={{ marginBottom: 12, border: "1px solid #d1d5db", borderRadius: 16, padding: 12, background: "#fff" }}>
+                <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>İskonto ve Kdv</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>İskonto Tipi</div>
+                    <select value={globalDiscount.type} onChange={(e) => setGlobalDiscount((prev) => ({ ...prev, type: e.target.value as DiscountType }))} style={inputStyle()}>
+                      <option value="percent">Yüzde (%)</option>
+                      <option value="amount">Tutar (₺)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>İskonto</div>
+                    <input type="number" min="0" value={globalDiscount.value} onChange={(e) => setGlobalDiscount((prev) => ({ ...prev, value: e.target.value === "" ? "" : Math.max(Number(e.target.value), 0) }))} style={inputStyle()} />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 12, borderTop: "1px solid #e5e7eb", paddingTop: 12 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8 }}><input type="checkbox" checked={vatEnabled} onChange={(e) => setVatEnabled(e.target.checked)} /><span>Kdv Uygula</span></label>
+                  {vatEnabled ? (
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>Kdv %</div>
+                      <input type="number" min="0" value={vatRate} onChange={(e) => setVatRate(e.target.value === "" ? "" : Math.max(Number(e.target.value), 0))} style={inputStyle()} />
+                    </div>
+                  ) : <div style={{ marginTop: 8, fontSize: 12, color: "#64748b" }}>Sipariş varsayılan olarak kdvsiz başlar.</div>}
+                </div>
+              </div>
+
               <div style={{ background: "#f8fafc", borderRadius: 16, padding: 12, fontSize: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}><span>Ara Toplam</span><span>{formatTRY(cartTotals.subTotal)}</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span>Ara Toplam</span><span>{formatTRY(cartTotals.araToplam)}</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span>İskonto</span><span>- {formatTRY(cartTotals.discountTotal)}</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span>İskonto Sonrası</span><span>{formatTRY(cartTotals.iskontoSonrasiToplam)}</span></div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}><span>Kdv</span><span>{formatTRY(cartTotals.vatTotal)}</span></div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, paddingTop: 10, borderTop: "1px solid #e5e7eb", fontWeight: 800 }}><span>Genel Toplam</span><span>{formatTRY(cartTotals.grandTotal)}</span></div>
               </div>
@@ -1759,7 +1789,7 @@ export default function App() {
               </div>
             ) : null}
           </>
-        ) : (
+        ) : canCreateOrders && userScreen === "order_form" ? null : (
           <div style={cardStyle()}>
             <div style={{ fontWeight: 700, marginBottom: 10 }}>Siparişler</div>
             <input style={{ ...inputStyle(), marginBottom: 12 }} placeholder="Sipariş ara" value={pendingSearch} onChange={(e) => setPendingSearch(e.target.value)} />
