@@ -1257,8 +1257,7 @@ export default function App() {
       }
     }
 
-    setProductMessage(summaryLines.join("
-"));
+    setProductMessage(summaryLines.join("\n"));
   };
 
   const renderOrderCard = (order: OrderRecord, prefix = "") => {
