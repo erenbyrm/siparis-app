@@ -595,47 +595,12 @@ export default function App() {
   }, [products, search]);
 
   const managerProducts = useMemo(() => {
-    const q = normalizeSearchText(productSearch);
-
-    const sortedProducts = [...products].sort((a, b) => {
+    return [...products].sort((a, b) => {
       const orderDiff = Number(a.orderNo || 0) - Number(b.orderNo || 0);
       if (orderDiff !== 0) return orderDiff;
       return Number(a.id || 0) - Number(b.id || 0);
     });
-
-    if (!q) return sortedProducts;
-
-    const qParts = q.split(" ").filter(Boolean);
-
-    const matches = sortedProducts.filter((p) => {
-      const codeText = normalizeSearchText(p.code);
-      const nameText = normalizeSearchText(p.name);
-      return qParts.every((part) => codeText.includes(part) || nameText.includes(part));
-    });
-
-    return matches.sort((a, b) => {
-      const aCode = normalizeSearchText(a.code);
-      const bCode = normalizeSearchText(b.code);
-      const aName = normalizeSearchText(a.name);
-      const bName = normalizeSearchText(b.name);
-
-      const aCodeStarts = qParts.every((part) => aCode.startsWith(part));
-      const bCodeStarts = qParts.every((part) => bCode.startsWith(part));
-      if (aCodeStarts !== bCodeStarts) return aCodeStarts ? -1 : 1;
-
-      const aCodeAll = qParts.every((part) => aCode.includes(part));
-      const bCodeAll = qParts.every((part) => bCode.includes(part));
-      if (aCodeAll !== bCodeAll) return aCodeAll ? -1 : 1;
-
-      const aNameStarts = qParts.every((part) => aName.startsWith(part));
-      const bNameStarts = qParts.every((part) => bName.startsWith(part));
-      if (aNameStarts !== bNameStarts) return aNameStarts ? -1 : 1;
-
-      const orderDiff = Number(a.orderNo || 0) - Number(b.orderNo || 0);
-      if (orderDiff !== 0) return orderDiff;
-      return Number(a.id || 0) - Number(b.id || 0);
-    });
-  }, [products, productSearch]);
+  }, [products]);
 
   const managerCustomers = useMemo(() => {
     const q = customerSearch.trim();
@@ -1166,117 +1131,106 @@ export default function App() {
   };
 
   const importProductsFromText = () => {
-    const normalizedText = bulkProductText.replaceAll(String.fromCharCode(13), "").trim();
+    const normalizedText = bulkProductText.replaceAll(String.fromCharCode(13), "");
     const rows = normalizedText
       .split(String.fromCharCode(10))
       .map((x) => x.trim())
       .filter(Boolean);
 
-    if (!rows.length) return setProductMessage("Yüklenecek veri bulunamadı.");
+    if (!rows.length) {
+      setProductMessage("Yüklenecek veri bulunamadı.");
+      return;
+    }
 
-    const firstRowText = normalizeSearchText(rows[0]);
-    const hasHeader = ["sira", "stok", "urun", "fiyat", "kdv"].some((word) => firstRowText.includes(word));
-    const dataRows = hasHeader ? rows.slice(1) : rows;
-
-    if (!dataRows.length) return setProductMessage("Yüklenecek veri bulunamadı.");
-
+    const skippedRows: string[] = [];
     let addedCount = 0;
     let updatedCount = 0;
-    let skippedCount = 0;
-    const skippedLines: string[] = [];
 
-    const addSkippedLine = (lineNumber: number, row: string, reason: string) => {
-      skippedCount += 1;
-      const shortRow = row.length > 120 ? `${row.slice(0, 120)}...` : row;
-      skippedLines.push(`Satır ${lineNumber}: ${reason} → ${shortRow}`);
-    };
-
-    const parseRow = (row: string) => {
-      let parts: string[] = [];
-
+    const parseDelimitedRow = (row: string): string[] => {
       if (row.includes(";")) {
-        parts = row.split(";").map((p) => p.trim());
-      } else if (row.includes("	")) {
-        parts = row.split("	").map((p) => p.trim());
-      } else {
-        const rawParts = row.split(",").map((p) => p.trim());
-        if (rawParts.length < 5) return null;
-
-        const orderNoRaw = rawParts[0] ?? "";
-        const codeRaw = rawParts[1] ?? "";
-        const kdvRateRaw = rawParts[rawParts.length - 1] ?? "20";
-
-        let priceRaw = rawParts[rawParts.length - 2] ?? "0";
-        let nameParts = rawParts.slice(2, rawParts.length - 2);
-
-        const maybePriceWhole = rawParts[rawParts.length - 3];
-        const maybePriceDecimal = rawParts[rawParts.length - 2];
-        const maybeKdv = rawParts[rawParts.length - 1];
-
-        if (
-          rawParts.length >= 6 &&
-          /^\d+$/.test(maybePriceWhole || "") &&
-          /^\d+$/.test(maybePriceDecimal || "") &&
-          /^\d+$/.test(maybeKdv || "")
-        ) {
-          priceRaw = `${maybePriceWhole}.${maybePriceDecimal}`;
-          nameParts = rawParts.slice(2, rawParts.length - 3);
-          return [orderNoRaw, codeRaw, nameParts.join(","), priceRaw, maybeKdv];
-        }
-
-        parts = [orderNoRaw, codeRaw, nameParts.join(","), priceRaw, kdvRateRaw];
+        return row.split(";").map((p) => p.trim());
+      }
+      if (row.includes("	")) {
+        return row.split("	").map((p) => p.trim());
       }
 
-      if (parts.length < 5) return null;
-      return parts.slice(0, 5);
+      const rawParts = row.split(",").map((p) => p.trim());
+      if (rawParts.length < 5) return [];
+
+      const orderNoRaw = rawParts[0] ?? "";
+      const codeRaw = rawParts[1] ?? "";
+      const kdvRateRaw = rawParts[rawParts.length - 1] ?? "";
+
+      if (rawParts.length >= 6 && /^\d+$/.test(rawParts[rawParts.length - 3] ?? "") && /^\d+$/.test(rawParts[rawParts.length - 2] ?? "") && /^\d+$/.test(kdvRateRaw ?? "")) {
+        const priceRaw = `${rawParts[rawParts.length - 3]}.${rawParts[rawParts.length - 2]}`;
+        const nameRaw = rawParts.slice(2, rawParts.length - 3).join(",");
+        return [orderNoRaw, codeRaw, nameRaw, priceRaw, kdvRateRaw];
+      }
+
+      const priceRaw = rawParts[rawParts.length - 2] ?? "";
+      const nameRaw = rawParts.slice(2, rawParts.length - 2).join(",");
+      return [orderNoRaw, codeRaw, nameRaw, priceRaw, kdvRateRaw];
+    };
+
+    const looksLikeHeader = (parts: string[]) => {
+      const first = normalizeSearchText(parts[0] ?? "");
+      const second = normalizeSearchText(parts[1] ?? "");
+      return first.includes("sira") || first.includes("sıra") || second.includes("stok") || second.includes("kod");
     };
 
     setProducts((prev) => {
       const mapByCode = new Map(prev.map((p) => [p.code.trim().toUpperCase(), p] as const));
 
-      dataRows.forEach((row, index) => {
-        const lineNumber = hasHeader ? index + 2 : index + 1;
-        const parsed = parseRow(row);
-
-        if (!parsed) {
-          addSkippedLine(lineNumber, row, "Kolonlar okunamadı");
+      rows.forEach((row, index) => {
+        const parts = parseDelimitedRow(row);
+        if (!parts.length) {
+          skippedRows.push(`${index + 1}. satır: kolon sayısı yetersiz`);
           return;
         }
 
-        const [orderNoRaw, codeRaw, nameRaw, priceRaw, kdvRateRaw] = parsed;
+        if (index === 0 && looksLikeHeader(parts)) {
+          return;
+        }
+
+        if (parts.length < 5) {
+          skippedRows.push(`${index + 1}. satır: eksik alan`);
+          return;
+        }
+
+        const [orderNoRaw, codeRaw, nameRaw, priceRaw, kdvRateRaw] = parts;
+        const orderNo = normalizeNumber(String(orderNoRaw).replace(",", "."));
         const code = String(codeRaw || "").trim().toUpperCase();
         const name = String(nameRaw || "").trim();
-        const price = Number(String(priceRaw || "").replace(",", "."));
-        const kdvRate = Number(String(kdvRateRaw || "").replace(",", "."));
-        const orderNo = normalizeNumber(orderNoRaw);
+        const price = normalizeNumber(String(priceRaw).replace(",", "."));
+        const kdvRate = normalizeNumber(String(kdvRateRaw).replace(",", "."));
 
         if (!code) {
-          addSkippedLine(lineNumber, row, "Stok kodu boş");
+          skippedRows.push(`${index + 1}. satır: stok kodu boş`);
           return;
         }
-
         if (!name) {
-          addSkippedLine(lineNumber, row, "Ürün adı boş");
+          skippedRows.push(`${index + 1}. satır: ürün adı boş`);
           return;
         }
-
-        if (!Number.isFinite(price) || price <= 0) {
-          addSkippedLine(lineNumber, row, "Fiyat hatalı");
+        if (price <= 0) {
+          skippedRows.push(`${index + 1}. satır: fiyat hatalı`);
           return;
         }
 
         const existing = mapByCode.get(code);
-        if (existing) updatedCount += 1;
-        else addedCount += 1;
+        const nextOrderNo = orderNo > 0 ? orderNo : existing?.orderNo ?? mapByCode.size + 1;
 
         mapByCode.set(code, {
           id: existing?.id ?? generateId(),
-          orderNo: orderNo > 0 ? orderNo : existing?.orderNo ?? mapByCode.size + 1,
+          orderNo: nextOrderNo,
           code,
           name,
           price,
-          kdvRate: Number.isFinite(kdvRate) && kdvRate > 0 ? kdvRate : 20,
+          kdvRate: kdvRate > 0 ? kdvRate : existing?.kdvRate ?? 20,
         });
+
+        if (existing) updatedCount += 1;
+        else addedCount += 1;
       });
 
       const sorted = [...mapByCode.values()].sort((a, b) => {
@@ -1292,18 +1246,19 @@ export default function App() {
       `Toplu ürün yükleme tamamlandı.`,
       `Eklenen: ${addedCount}`,
       `Güncellenen: ${updatedCount}`,
-      `Atlanan: ${skippedCount}`,
+      `Atlanan: ${skippedRows.length}`,
     ];
 
-    if (skippedLines.length > 0) {
-      summaryLines.push("", "Atlanan satırlar:");
-      skippedLines.slice(0, 20).forEach((line) => summaryLines.push(line));
-      if (skippedLines.length > 20) {
-        summaryLines.push(`... ve ${skippedLines.length - 20} satır daha`);
+    if (skippedRows.length) {
+      summaryLines.push("Atlanan satırlar:");
+      skippedRows.slice(0, 20).forEach((line) => summaryLines.push(`- ${line}`));
+      if (skippedRows.length > 20) {
+        summaryLines.push(`- ... ve ${skippedRows.length - 20} satır daha`);
       }
     }
 
-    setProductMessage(summaryLines.join("\n"));
+    setProductMessage(summaryLines.join("
+"));
   };
 
   const renderOrderCard = (order: OrderRecord, prefix = "") => {
@@ -1688,7 +1643,6 @@ export default function App() {
                   <input style={inputStyle()} type="number" min="0" placeholder="Fiyat" value={productDraft.price} onChange={(e) => setProductDraft((prev) => ({ ...prev, price: e.target.value }))} />
                   <input style={inputStyle()} type="number" min="0" placeholder="Kdv %" value={productDraft.kdvRate} onChange={(e) => setProductDraft((prev) => ({ ...prev, kdvRate: e.target.value }))} />
                 </div>
-                {productMessage ? <div style={{ marginTop: 10, padding: 12, borderRadius: 14, background: "#f8fafc", fontSize: 13 }}>{productMessage}</div> : null}
                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                   <button style={buttonStyle()} onClick={() => { setEditingProductId(null); setProductDraft({ orderNo: "", code: "", name: "", price: "", kdvRate: "20" }); setProductMessage(""); }}><RotateCcw size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Temizle</button>
                   <button style={buttonStyle(true)} onClick={saveProduct}><Save size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Kaydet</button>
@@ -1696,9 +1650,12 @@ export default function App() {
 
                 <div style={{ marginTop: 16, borderTop: "1px solid #e5e7eb", paddingTop: 16 }}>
                   <div style={{ fontWeight: 700, marginBottom: 8 }}>Toplu Ürün Yükleme</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>Biçim: Sıra No, Stok Kodu, Ürün Adı, Fiyat, Kdv. Aynı stok kodu varsa yeni kayıt açılmaz, son yüklediğin bilgiyle güncellenir.</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>Biçim: Sıra No; Stok Kodu; Ürün Adı; Fiyat; Kdv veya tab ayrımlı veri. Aynı stok kodu varsa yeni kayıt açılmaz, son yüklediğin bilgiyle güncellenir.</div>
                   <textarea style={{ ...inputStyle(), minHeight: 120 }} value={bulkProductText} onChange={(e) => setBulkProductText(e.target.value)} />
                   <button style={{ ...buttonStyle(true), marginTop: 10 }} onClick={importProductsFromText}><UserPlus size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Toplu Yükle</button>
+                  {productMessage ? (
+                    <div style={{ whiteSpace: "pre-wrap", fontSize: 12, color: "#334155", marginTop: 10, padding: 10, background: "#f8fafc", borderRadius: 12, border: "1px solid #e5e7eb" }}>{productMessage}</div>
+                  ) : null}
                 </div>
 
                 <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
