@@ -1,30 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import {
-  Package,
-  Users,
-  Truck,
-  Factory,
-  ClipboardList,
-  Search,
-  Plus,
-  Trash2,
-  CheckCircle2,
-  XCircle,
-  FileText,
-  UserCircle2,
-  LogOut,
-  RotateCcw,
-  Save,
-  Phone,
-} from "lucide-react";
 
 const STORAGE_KEYS = {
-  products: "siparis_products_v19",
-  users: "siparis_users_v19",
-  orders: "siparis_orders_v19",
-  customers: "siparis_customers_v19",
-  currentUser: "siparis_current_user_v19",
+  products: "siparis_products_v20",
+  users: "siparis_users_v20",
+  orders: "siparis_orders_v20",
+  customers: "siparis_customers_v20",
+  currentUser: "siparis_current_user_v20",
 };
 
 const ROLES = {
@@ -42,6 +23,181 @@ const ORDER_STATUSES = [
   "İptal",
 ];
 
+const styles = {
+  appBg: {
+    minHeight: "100vh",
+    background: "#f3f4f6",
+    fontFamily: "Arial, sans-serif",
+    color: "#111827",
+  },
+  container: {
+    maxWidth: 480,
+    margin: "0 auto",
+    minHeight: "100vh",
+    background: "#ffffff",
+    boxShadow: "0 0 20px rgba(0,0,0,0.08)",
+    paddingBottom: 90,
+  },
+  header: {
+    position: "sticky",
+    top: 0,
+    zIndex: 10,
+    background: "#ffffff",
+    borderBottom: "1px solid #e5e7eb",
+    padding: 16,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  page: {
+    padding: 16,
+  },
+  section: {
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 700,
+    marginBottom: 12,
+  },
+  row: {
+    display: "flex",
+    gap: 8,
+  },
+  input: {
+    width: "100%",
+    height: 42,
+    border: "1px solid #d1d5db",
+    borderRadius: 10,
+    padding: "0 12px",
+    fontSize: 14,
+    boxSizing: "border-box",
+    marginBottom: 10,
+  },
+  textarea: {
+    width: "100%",
+    minHeight: 90,
+    border: "1px solid #d1d5db",
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
+    boxSizing: "border-box",
+    resize: "vertical",
+    marginBottom: 10,
+  },
+  button: {
+    height: 42,
+    border: "none",
+    borderRadius: 10,
+    background: "#111827",
+    color: "white",
+    fontSize: 14,
+    fontWeight: 700,
+    padding: "0 14px",
+    cursor: "pointer",
+  },
+  buttonSecondary: {
+    height: 42,
+    border: "1px solid #d1d5db",
+    borderRadius: 10,
+    background: "#fff",
+    color: "#111827",
+    fontSize: 14,
+    fontWeight: 700,
+    padding: "0 14px",
+    cursor: "pointer",
+  },
+  dangerButton: {
+    height: 42,
+    border: "1px solid #fecaca",
+    borderRadius: 10,
+    background: "#fef2f2",
+    color: "#b91c1c",
+    fontSize: 14,
+    fontWeight: 700,
+    padding: "0 14px",
+    cursor: "pointer",
+  },
+  smallButton: {
+    height: 36,
+    border: "1px solid #d1d5db",
+    borderRadius: 10,
+    background: "#fff",
+    color: "#111827",
+    fontSize: 13,
+    fontWeight: 700,
+    padding: "0 12px",
+    cursor: "pointer",
+  },
+  card: {
+    border: "1px solid #e5e7eb",
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+    background: "#fff",
+  },
+  muted: {
+    color: "#6b7280",
+    fontSize: 13,
+  },
+  nav: {
+    position: "fixed",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    maxWidth: 480,
+    margin: "0 auto",
+    background: "#fff",
+    borderTop: "1px solid #e5e7eb",
+    display: "grid",
+    gap: 8,
+    padding: 10,
+  },
+  navButton: {
+    border: "1px solid #d1d5db",
+    background: "#fff",
+    color: "#111827",
+    borderRadius: 12,
+    height: 42,
+    fontWeight: 700,
+    cursor: "pointer",
+    fontSize: 13,
+  },
+  navButtonActive: {
+    border: "1px solid #111827",
+    background: "#111827",
+    color: "#fff",
+    borderRadius: 12,
+    height: 42,
+    fontWeight: 700,
+    cursor: "pointer",
+    fontSize: 13,
+  },
+  badge: {
+    display: "inline-block",
+    padding: "6px 10px",
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: 700,
+  },
+  statGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10,
+    marginBottom: 16,
+  },
+  statBox: {
+    border: "1px solid #e5e7eb",
+    borderRadius: 14,
+    padding: 12,
+    background: "#fff",
+  },
+};
+
 const money = (n) => `${Number(n || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`;
 const today = () => new Date().toISOString().slice(0, 10);
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -57,6 +213,16 @@ function load(key, fallback) {
 
 function save(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+function getBadgeStyle(value) {
+  const base = { ...styles.badge };
+  if (value === "Müşteriden Onay Bekleniyor") return { ...base, background: "#fef3c7", color: "#92400e" };
+  if (value === "Müşteri Onayı Alındı") return { ...base, background: "#dbeafe", color: "#1d4ed8" };
+  if (value === "Sevkiyata Hazır") return { ...base, background: "#ede9fe", color: "#6d28d9" };
+  if (value === "Tamamlandı") return { ...base, background: "#dcfce7", color: "#166534" };
+  if (value === "İptal") return { ...base, background: "#fee2e2", color: "#b91c1c" };
+  return base;
 }
 
 function seedProducts() {
@@ -80,94 +246,42 @@ function seedCustomers() {
 function seedUsers() {
   return [
     { id: uid(), ad: "Yönetici", kullaniciAdi: "admin", sifre: "1234", rol: "admin" },
-    { id: uid(), ad: "Pazarlama", kullaniciAdi: "pazarlama", sifre: "1234", rol: "pazarlamaci" },
+    { id: uid(), ad: "Pazarlamacı", kullaniciAdi: "pazarlama", sifre: "1234", rol: "pazarlamaci" },
     { id: uid(), ad: "Üretim", kullaniciAdi: "uretim", sifre: "1234", rol: "uretim" },
     { id: uid(), ad: "Sevkiyat", kullaniciAdi: "sevkiyat", sifre: "1234", rol: "sevkiyat" },
   ];
 }
 
 function seedOrders(products, customers, users) {
-  const p1 = products[0];
-  const p2 = products[1];
-  const p3 = products[2];
-  const customer1 = customers[0];
-  const customer2 = customers[1];
   const pazarlamaci = users.find((u) => u.rol === "pazarlamaci");
-
   return [
     {
       id: uid(),
       siparisNo: "SP-1001",
       tarih: today(),
-      customerId: customer1.id,
-      createdBy: pazarlamaci?.id,
+      customerId: customers[0].id,
+      createdBy: pazarlamaci.id,
       durum: "Müşteriden Onay Bekleniyor",
-      aciklama: "İlk görüşme siparişi",
+      aciklama: "İlk sipariş",
       kdvDahil: false,
       genelIskonto: 5,
       kalemler: [
         {
           id: uid(),
-          productId: p1.id,
-          urunAdi: p1.urunAdi,
-          stokKodu: p1.stokKodu,
+          productId: products[0].id,
+          urunAdi: products[0].urunAdi,
+          stokKodu: products[0].stokKodu,
           miktar: 10,
           hazirMiktar: 0,
           sevkMiktar: 0,
-          tamamlandi: false,
-          listeFiyati: p1.fiyat,
+          listeFiyati: products[0].fiyat,
           netFiyat: 1292,
-          kdv: p1.kdv,
-          satirIskonto: 0,
-        },
-      ],
-    },
-    {
-      id: uid(),
-      siparisNo: "SP-1002",
-      tarih: today(),
-      customerId: customer2.id,
-      createdBy: pazarlamaci?.id,
-      durum: "Müşteri Onayı Alındı",
-      aciklama: "Onay alındı, üretim bekliyor",
-      kdvDahil: true,
-      genelIskonto: 0,
-      kalemler: [
-        {
-          id: uid(),
-          productId: p2.id,
-          urunAdi: p2.urunAdi,
-          stokKodu: p2.stokKodu,
-          miktar: 7,
-          hazirMiktar: 3,
-          sevkMiktar: 1,
-          tamamlandi: false,
-          listeFiyati: p2.fiyat,
-          netFiyat: p2.fiyat,
-          kdv: p2.kdv,
-          satirIskonto: 0,
-        },
-        {
-          id: uid(),
-          productId: p3.id,
-          urunAdi: p3.urunAdi,
-          stokKodu: p3.stokKodu,
-          miktar: 4,
-          hazirMiktar: 4,
-          sevkMiktar: 2,
-          tamamlandi: false,
-          listeFiyati: p3.fiyat,
-          netFiyat: p3.fiyat,
-          kdv: p3.kdv,
+          kdv: products[0].kdv,
           satirIskonto: 0,
         },
       ],
     },
   ];
-}
-
-function cn(...classes) {
-  return classes.filter(Boolean).join(" ");
 }
 
 function App() {
@@ -211,134 +325,71 @@ function App() {
     return orders;
   }, [orders, currentUser]);
 
-  const stats = useMemo(() => {
-    const toplamSiparis = orders.length;
-    const bekleyen = orders.filter((o) => o.durum === "Müşteriden Onay Bekleniyor").length;
-    const hazir = orders.filter((o) => o.durum === "Sevkiyata Hazır").length;
-    const tamamlanan = orders.filter((o) => o.durum === "Tamamlandı").length;
-    return { toplamSiparis, bekleyen, hazir, tamamlanan };
-  }, [orders]);
+  const stats = useMemo(() => ({
+    toplamSiparis: orders.length,
+    bekleyen: orders.filter((o) => o.durum === "Müşteriden Onay Bekleniyor").length,
+    hazir: orders.filter((o) => o.durum === "Sevkiyata Hazır").length,
+    tamamlanan: orders.filter((o) => o.durum === "Tamamlandı").length,
+  }), [orders]);
 
   if (!currentUser) {
     return <LoginScreen users={users} setCurrentUser={setCurrentUser} />;
   }
 
   const roleTabs = {
-    admin: [
-      { key: "dashboard", label: "Panel", icon: ClipboardList },
-      { key: "orders", label: "Siparişler", icon: FileText },
-      { key: "customers", label: "Müşteriler", icon: Users },
-      { key: "products", label: "Ürünler", icon: Package },
-      { key: "users", label: "Kullanıcılar", icon: UserCircle2 },
-    ],
-    pazarlamaci: [
-      { key: "dashboard", label: "Panel", icon: ClipboardList },
-      { key: "orders", label: "Siparişler", icon: FileText },
-      { key: "new-order", label: "Yeni Sipariş", icon: Plus },
-    ],
-    uretim: [
-      { key: "dashboard", label: "Panel", icon: ClipboardList },
-      { key: "production", label: "Üretim", icon: Factory },
-    ],
-    sevkiyat: [
-      { key: "dashboard", label: "Panel", icon: ClipboardList },
-      { key: "shipment", label: "Sevkiyat", icon: Truck },
-    ],
+    admin: ["dashboard", "orders", "customers", "products", "users"],
+    pazarlamaci: ["dashboard", "orders", "new-order"],
+    uretim: ["dashboard", "production"],
+    sevkiyat: ["dashboard", "shipment"],
+  };
+
+  const labels = {
+    dashboard: "Panel",
+    orders: "Siparişler",
+    customers: "Müşteriler",
+    products: "Ürünler",
+    users: "Kullanıcılar",
+    "new-order": "Yeni Sipariş",
+    production: "Üretim",
+    shipment: "Sevkiyat",
   };
 
   const tabs = roleTabs[currentUser.rol] || roleTabs.admin;
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
-      <div className="max-w-md mx-auto min-h-screen bg-white border-x border-slate-200 shadow-xl">
-        <Header currentUser={currentUser} onLogout={() => setCurrentUser(null)} />
+    <div style={styles.appBg}>
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 700 }}>Sipariş Takip</div>
+            <div style={styles.muted}>{currentUser.ad} • {ROLES[currentUser.rol]}</div>
+          </div>
+          <button style={styles.buttonSecondary} onClick={() => setCurrentUser(null)}>Çıkış</button>
+        </div>
 
-        <main className="p-4 pb-28 space-y-4">
-          {activeTab === "dashboard" && (
-            <Dashboard stats={stats} visibleOrders={visibleOrders} customers={customers} />
-          )}
+        <div style={styles.page}>
+          {activeTab === "dashboard" && <Dashboard stats={stats} visibleOrders={visibleOrders} customers={customers} />}
+          {activeTab === "orders" && <OrdersScreen orders={visibleOrders} customers={customers} currentUser={currentUser} setOrders={setOrders} users={users} />}
+          {activeTab === "customers" && <CustomersScreen customers={customers} setCustomers={setCustomers} />}
+          {activeTab === "products" && <ProductsScreen products={sortedProducts} setProducts={setProducts} />}
+          {activeTab === "users" && <UsersScreen users={users} setUsers={setUsers} />}
+          {activeTab === "new-order" && <NewOrderScreen products={sortedProducts} customers={customers} setCustomers={setCustomers} setOrders={setOrders} currentUser={currentUser} />}
+          {activeTab === "production" && <ProductionScreen orders={visibleOrders} setOrders={setOrders} />}
+          {activeTab === "shipment" && <ShipmentScreen orders={visibleOrders} setOrders={setOrders} customers={customers} />}
+        </div>
 
-          {activeTab === "orders" && (
-            <OrdersScreen
-              orders={visibleOrders}
-              customers={customers}
-              currentUser={currentUser}
-              setOrders={setOrders}
-              users={users}
-            />
-          )}
-
-          {activeTab === "new-order" && (
-            <NewOrderScreen
-              products={sortedProducts}
-              customers={customers}
-              setCustomers={setCustomers}
-              setOrders={setOrders}
-              currentUser={currentUser}
-            />
-          )}
-
-          {activeTab === "customers" && (
-            <CustomersScreen customers={customers} setCustomers={setCustomers} />
-          )}
-
-          {activeTab === "products" && (
-            <ProductsScreen products={sortedProducts} setProducts={setProducts} />
-          )}
-
-          {activeTab === "users" && (
-            <UsersScreen users={users} setUsers={setUsers} />
-          )}
-
-          {activeTab === "production" && (
-            <ProductionScreen orders={visibleOrders} setOrders={setOrders} />
-          )}
-
-          {activeTab === "shipment" && (
-            <ShipmentScreen orders={visibleOrders} setOrders={setOrders} customers={customers} />
-          )}
-        </main>
-
-        <BottomNav tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} />
+        <div style={{ ...styles.nav, gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={activeTab === tab ? styles.navButtonActive : styles.navButton}
+            >
+              {labels[tab]}
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
-  );
-}
-
-function Header({ currentUser, onLogout }) {
-  return (
-    <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-3 flex items-center justify-between">
-      <div>
-        <div className="text-lg font-bold">Sipariş Takip</div>
-        <div className="text-xs text-slate-500">{currentUser.ad} • {ROLES[currentUser.rol]}</div>
-      </div>
-      <button onClick={onLogout} className="h-10 px-4 rounded-2xl border border-slate-300 text-sm font-medium flex items-center gap-2 hover:bg-slate-50">
-        <LogOut className="w-4 h-4" /> Çıkış
-      </button>
-    </div>
-  );
-}
-
-function BottomNav({ tabs, activeTab, setActiveTab }) {
-  return (
-    <div className="fixed bottom-0 left-0 right-0 mx-auto max-w-md bg-white border-t border-slate-200 px-2 py-2 grid" style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
-      {tabs.map((tab) => {
-        const Icon = tab.icon;
-        const active = activeTab === tab.key;
-        return (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              "flex flex-col items-center justify-center gap-1 py-2 rounded-2xl text-xs transition",
-              active ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
-            )}
-          >
-            <Icon className="w-4 h-4" />
-            <span>{tab.label}</span>
-          </button>
-        );
-      })}
     </div>
   );
 }
@@ -358,20 +409,18 @@ function LoginScreen({ users, setCurrentUser }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm rounded-[28px] bg-white shadow-xl border border-slate-200 p-6">
-        <div className="text-2xl font-bold mb-4">Giriş Yap</div>
-        <div className="space-y-3">
-          <TextInput placeholder="Kullanıcı Adı" value={kullaniciAdi} onChange={setKullaniciAdi} />
-          <TextInput placeholder="Şifre" type="password" value={sifre} onChange={setSifre} />
-          {hata && <div className="text-sm text-red-600">{hata}</div>}
-          <PrimaryButton onClick={handleLogin} full>Giriş</PrimaryButton>
-          <div className="text-xs text-slate-500 space-y-1">
-            <div>admin / 1234</div>
-            <div>pazarlama / 1234</div>
-            <div>uretim / 1234</div>
-            <div>sevkiyat / 1234</div>
-          </div>
+    <div style={{ ...styles.appBg, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ width: "100%", maxWidth: 380, background: "#fff", borderRadius: 18, padding: 20, boxShadow: "0 10px 30px rgba(0,0,0,0.08)" }}>
+        <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 14 }}>Giriş Yap</div>
+        <input style={styles.input} placeholder="Kullanıcı Adı" value={kullaniciAdi} onChange={(e) => setKullaniciAdi(e.target.value)} />
+        <input style={styles.input} type="password" placeholder="Şifre" value={sifre} onChange={(e) => setSifre(e.target.value)} />
+        {hata ? <div style={{ color: "#b91c1c", fontSize: 13, marginBottom: 10 }}>{hata}</div> : null}
+        <button style={{ ...styles.button, width: "100%" }} onClick={handleLogin}>Giriş</button>
+        <div style={{ marginTop: 12, ...styles.muted, lineHeight: 1.7 }}>
+          <div>admin / 1234</div>
+          <div>pazarlama / 1234</div>
+          <div>uretim / 1234</div>
+          <div>sevkiyat / 1234</div>
         </div>
       </div>
     </div>
@@ -379,73 +428,40 @@ function LoginScreen({ users, setCurrentUser }) {
 }
 
 function Dashboard({ stats, visibleOrders, customers }) {
-  const latest = [...visibleOrders].slice(-5).reverse();
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <StatCard title="Toplam Sipariş" value={stats.toplamSiparis} />
-        <StatCard title="Onay Bekleyen" value={stats.bekleyen} />
-        <StatCard title="Sevkiyata Hazır" value={stats.hazir} />
-        <StatCard title="Tamamlanan" value={stats.tamamlanan} />
+    <div>
+      <div style={styles.statGrid}>
+        <div style={styles.statBox}><div style={styles.muted}>Toplam Sipariş</div><div style={{ fontSize: 24, fontWeight: 700 }}>{stats.toplamSiparis}</div></div>
+        <div style={styles.statBox}><div style={styles.muted}>Onay Bekleyen</div><div style={{ fontSize: 24, fontWeight: 700 }}>{stats.bekleyen}</div></div>
+        <div style={styles.statBox}><div style={styles.muted}>Sevkiyata Hazır</div><div style={{ fontSize: 24, fontWeight: 700 }}>{stats.hazir}</div></div>
+        <div style={styles.statBox}><div style={styles.muted}>Tamamlanan</div><div style={{ fontSize: 24, fontWeight: 700 }}>{stats.tamamlanan}</div></div>
       </div>
-      <SectionCard title="Son Hareketler">
-        <div className="space-y-3">
-          {latest.length === 0 && <Empty text="Gösterilecek sipariş yok" />}
-          {latest.map((o) => (
-            <OrderMiniCard key={o.id} order={o} customer={customers.find((c) => c.id === o.customerId)} />
-          ))}
-        </div>
-      </SectionCard>
-    </div>
-  );
-}
 
-function StatCard({ title, value }) {
-  return (
-    <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="text-sm text-slate-500">{title}</div>
-      <div className="text-2xl font-bold mt-1">{value}</div>
-    </div>
-  );
-}
-
-function SectionCard({ title, children }) {
-  return (
-    <div className="rounded-[24px] border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div className="px-4 py-4 border-b border-slate-100 font-semibold">{title}</div>
-      <div className="p-4">{children}</div>
-    </div>
-  );
-}
-
-function OrderMiniCard({ order, customer }) {
-  return (
-    <div className="border border-slate-200 rounded-2xl p-3">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <div className="font-semibold">{order.siparisNo}</div>
-          <div className="text-sm text-slate-500">{customer?.unvan || "Müşteri yok"}</div>
-        </div>
-        <StatusBadge value={order.durum} />
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>Son Siparişler</div>
+        {visibleOrders.length === 0 ? <div style={styles.muted}>Gösterilecek sipariş yok</div> : visibleOrders.slice().reverse().slice(0, 5).map((o) => {
+          const customer = customers.find((c) => c.id === o.customerId);
+          return (
+            <div key={o.id} style={styles.card}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                <div>
+                  <div style={{ fontWeight: 700 }}>{o.siparisNo}</div>
+                  <div style={styles.muted}>{customer?.unvan || "Müşteri yok"}</div>
+                </div>
+                <span style={getBadgeStyle(o.durum)}>{o.durum}</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
-}
-
-function StatusBadge({ value }) {
-  const classMap = {
-    "Müşteriden Onay Bekleniyor": "bg-amber-100 text-amber-700",
-    "Müşteri Onayı Alındı": "bg-blue-100 text-blue-700",
-    "Sevkiyata Hazır": "bg-purple-100 text-purple-700",
-    "Tamamlandı": "bg-green-100 text-green-700",
-    "İptal": "bg-red-100 text-red-700",
-  };
-  return <span className={cn("px-3 py-1 rounded-xl text-xs font-semibold", classMap[value])}>{value}</span>;
 }
 
 function CustomersScreen({ customers, setCustomers }) {
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({ unvan: "", yetkili: "", telefon: "", not: "" });
+
   const filtered = customers.filter((c) => [c.unvan, c.yetkili, c.telefon].join(" ").toLowerCase().includes(search.toLowerCase()));
 
   const addCustomer = () => {
@@ -454,42 +470,36 @@ function CustomersScreen({ customers, setCustomers }) {
     setForm({ unvan: "", yetkili: "", telefon: "", not: "" });
   };
 
-  const removeCustomer = (id) => setCustomers(customers.filter((c) => c.id !== id));
-
   return (
-    <div className="space-y-4">
-      <SearchInput value={search} onChange={setSearch} placeholder="Müşteri ara" />
-      <SectionCard title="Yeni Müşteri">
-        <div className="space-y-3">
-          <TextInput placeholder="Ünvan" value={form.unvan} onChange={(v) => setForm({ ...form, unvan: v })} />
-          <TextInput placeholder="Yetkili" value={form.yetkili} onChange={(v) => setForm({ ...form, yetkili: v })} />
-          <TextInput placeholder="Telefon" value={form.telefon} onChange={(v) => setForm({ ...form, telefon: v })} />
-          <TextAreaInput placeholder="Not" value={form.not} onChange={(v) => setForm({ ...form, not: v })} />
-          <PrimaryButton onClick={addCustomer} full><Plus className="w-4 h-4" /> Ekle</PrimaryButton>
-        </div>
-      </SectionCard>
+    <div>
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>Yeni Müşteri</div>
+        <input style={styles.input} placeholder="Müşteri ara" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input style={styles.input} placeholder="Ünvan" value={form.unvan} onChange={(e) => setForm({ ...form, unvan: e.target.value })} />
+        <input style={styles.input} placeholder="Yetkili" value={form.yetkili} onChange={(e) => setForm({ ...form, yetkili: e.target.value })} />
+        <input style={styles.input} placeholder="Telefon" value={form.telefon} onChange={(e) => setForm({ ...form, telefon: e.target.value })} />
+        <textarea style={styles.textarea} placeholder="Not" value={form.not} onChange={(e) => setForm({ ...form, not: e.target.value })} />
+        <button style={{ ...styles.button, width: "100%" }} onClick={addCustomer}>Müşteri Ekle</button>
+      </div>
+
       {filtered.map((c) => (
-        <div key={c.id} className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm flex justify-between gap-3">
-          <div>
-            <div className="font-semibold">{c.unvan}</div>
-            <div className="text-sm text-slate-500">{c.yetkili}</div>
-            <div className="text-sm text-slate-500 flex items-center gap-1"><Phone className="w-4 h-4" /> {c.telefon}</div>
-            {c.not ? <div className="text-xs text-slate-500 mt-2">{c.not}</div> : null}
-          </div>
-          <IconButton onClick={() => removeCustomer(c.id)}><Trash2 className="w-4 h-4" /></IconButton>
+        <div key={c.id} style={styles.card}>
+          <div style={{ fontWeight: 700 }}>{c.unvan}</div>
+          <div style={styles.muted}>{c.yetkili}</div>
+          <div style={styles.muted}>{c.telefon}</div>
+          {c.not ? <div style={{ ...styles.muted, marginTop: 6 }}>{c.not}</div> : null}
         </div>
       ))}
-      {!filtered.length && <Empty text="Müşteri bulunamadı" />}
     </div>
   );
 }
 
 function ProductsScreen({ products, setProducts }) {
-  const nextAutoNo = products.length ? Math.max(...products.map((p) => Number(p.siraNo || 0))) + 1 : 1;
   const [search, setSearch] = useState("");
-  const [form, setForm] = useState({ siraNo: nextAutoNo, stokKodu: "", urunAdi: "", fiyat: "", kdv: 20 });
+  const nextNo = products.length ? Math.max(...products.map((p) => Number(p.siraNo || 0))) + 1 : 1;
+  const [form, setForm] = useState({ siraNo: nextNo, stokKodu: "", urunAdi: "", fiyat: "", kdv: 20 });
 
-  const filtered = products.filter((p) => [p.stokKodu, p.urunAdi, String(p.siraNo)].join(" ").toLowerCase().includes(search.toLowerCase()));
+  const filtered = products.filter((p) => [String(p.siraNo), p.stokKodu, p.urunAdi].join(" ").toLowerCase().includes(search.toLowerCase()));
 
   const addProduct = () => {
     if (!form.urunAdi.trim() || !form.stokKodu.trim()) return;
@@ -502,37 +512,30 @@ function ProductsScreen({ products, setProducts }) {
       kdv: Number(form.kdv || 0),
     };
     setProducts([...products, newProduct]);
-    const newNext = Math.max(...[...products, newProduct].map((p) => Number(p.siraNo || 0))) + 1;
-    setForm({ siraNo: newNext, stokKodu: "", urunAdi: "", fiyat: "", kdv: 20 });
+    setForm({ siraNo: Number(form.siraNo) + 1, stokKodu: "", urunAdi: "", fiyat: "", kdv: 20 });
   };
 
-  const removeProduct = (id) => setProducts(products.filter((p) => p.id !== id));
-
   return (
-    <div className="space-y-4">
-      <SearchInput value={search} onChange={setSearch} placeholder="Ürün ara" />
-      <SectionCard title="Yeni Ürün">
-        <div className="space-y-3">
-          <TextInput placeholder="Sıra No" type="number" value={form.siraNo} onChange={(v) => setForm({ ...form, siraNo: v })} />
-          <TextInput placeholder="Stok Kodu" value={form.stokKodu} onChange={(v) => setForm({ ...form, stokKodu: v })} />
-          <TextInput placeholder="Ürün Adı" value={form.urunAdi} onChange={(v) => setForm({ ...form, urunAdi: v })} />
-          <TextInput placeholder="Liste Fiyatı" type="number" value={form.fiyat} onChange={(v) => setForm({ ...form, fiyat: v })} />
-          <TextInput placeholder="KDV %" type="number" value={form.kdv} onChange={(v) => setForm({ ...form, kdv: v })} />
-          <PrimaryButton onClick={addProduct} full><Plus className="w-4 h-4" /> Ekle</PrimaryButton>
-        </div>
-      </SectionCard>
+    <div>
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>Yeni Ürün</div>
+        <input style={styles.input} placeholder="Ürün ara" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input style={styles.input} type="number" placeholder="Sıra No" value={form.siraNo} onChange={(e) => setForm({ ...form, siraNo: e.target.value })} />
+        <input style={styles.input} placeholder="Stok Kodu" value={form.stokKodu} onChange={(e) => setForm({ ...form, stokKodu: e.target.value })} />
+        <input style={styles.input} placeholder="Ürün Adı" value={form.urunAdi} onChange={(e) => setForm({ ...form, urunAdi: e.target.value })} />
+        <input style={styles.input} type="number" placeholder="Liste Fiyatı" value={form.fiyat} onChange={(e) => setForm({ ...form, fiyat: e.target.value })} />
+        <input style={styles.input} type="number" placeholder="KDV %" value={form.kdv} onChange={(e) => setForm({ ...form, kdv: e.target.value })} />
+        <button style={{ ...styles.button, width: "100%" }} onClick={addProduct}>Ürün Ekle</button>
+      </div>
+
       {filtered.map((p) => (
-        <div key={p.id} className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm flex justify-between gap-3">
-          <div>
-            <div className="font-semibold">{p.siraNo}. {p.urunAdi}</div>
-            <div className="text-sm text-slate-500">{p.stokKodu}</div>
-            <div className="text-sm text-slate-500">Liste Fiyatı: {money(p.fiyat)}</div>
-            <div className="text-sm text-slate-500">KDV: %{p.kdv}</div>
-          </div>
-          <IconButton onClick={() => removeProduct(p.id)}><Trash2 className="w-4 h-4" /></IconButton>
+        <div key={p.id} style={styles.card}>
+          <div style={{ fontWeight: 700 }}>{p.siraNo}. {p.urunAdi}</div>
+          <div style={styles.muted}>{p.stokKodu}</div>
+          <div style={styles.muted}>Liste Fiyatı: {money(p.fiyat)}</div>
+          <div style={styles.muted}>KDV: %{p.kdv}</div>
         </div>
       ))}
-      {!filtered.length && <Empty text="Ürün bulunamadı" />}
     </div>
   );
 }
@@ -546,32 +549,27 @@ function UsersScreen({ users, setUsers }) {
     setForm({ ad: "", kullaniciAdi: "", sifre: "", rol: "pazarlamaci" });
   };
 
-  const removeUser = (id) => setUsers(users.filter((u) => u.id !== id));
-
   return (
-    <div className="space-y-4">
-      <SectionCard title="Yeni Kullanıcı">
-        <div className="space-y-3">
-          <TextInput placeholder="Ad Soyad" value={form.ad} onChange={(v) => setForm({ ...form, ad: v })} />
-          <TextInput placeholder="Kullanıcı Adı" value={form.kullaniciAdi} onChange={(v) => setForm({ ...form, kullaniciAdi: v })} />
-          <TextInput placeholder="Şifre" value={form.sifre} onChange={(v) => setForm({ ...form, sifre: v })} />
-          <SelectInput value={form.rol} onChange={(v) => setForm({ ...form, rol: v })} options={[
-            { value: "admin", label: "Yönetici" },
-            { value: "pazarlamaci", label: "Pazarlamacı" },
-            { value: "uretim", label: "Üretim" },
-            { value: "sevkiyat", label: "Sevkiyat" },
-          ]} />
-          <PrimaryButton onClick={addUser} full><Plus className="w-4 h-4" /> Ekle</PrimaryButton>
-        </div>
-      </SectionCard>
+    <div>
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>Yeni Kullanıcı</div>
+        <input style={styles.input} placeholder="Ad Soyad" value={form.ad} onChange={(e) => setForm({ ...form, ad: e.target.value })} />
+        <input style={styles.input} placeholder="Kullanıcı Adı" value={form.kullaniciAdi} onChange={(e) => setForm({ ...form, kullaniciAdi: e.target.value })} />
+        <input style={styles.input} placeholder="Şifre" value={form.sifre} onChange={(e) => setForm({ ...form, sifre: e.target.value })} />
+        <select style={styles.input} value={form.rol} onChange={(e) => setForm({ ...form, rol: e.target.value })}>
+          <option value="admin">Yönetici</option>
+          <option value="pazarlamaci">Pazarlamacı</option>
+          <option value="uretim">Üretim</option>
+          <option value="sevkiyat">Sevkiyat</option>
+        </select>
+        <button style={{ ...styles.button, width: "100%" }} onClick={addUser}>Kullanıcı Ekle</button>
+      </div>
+
       {users.map((u) => (
-        <div key={u.id} className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm flex justify-between gap-3">
-          <div>
-            <div className="font-semibold">{u.ad}</div>
-            <div className="text-sm text-slate-500">{u.kullaniciAdi}</div>
-            <div className="text-sm text-slate-500">{ROLES[u.rol]}</div>
-          </div>
-          <IconButton onClick={() => removeUser(u.id)}><Trash2 className="w-4 h-4" /></IconButton>
+        <div key={u.id} style={styles.card}>
+          <div style={{ fontWeight: 700 }}>{u.ad}</div>
+          <div style={styles.muted}>{u.kullaniciAdi}</div>
+          <div style={styles.muted}>{ROLES[u.rol]}</div>
         </div>
       ))}
     </div>
@@ -588,7 +586,9 @@ function NewOrderScreen({ products, customers, setCustomers, setOrders, currentU
   const [kdvDahil, setKdvDahil] = useState(false);
   const [aciklama, setAciklama] = useState("");
 
-  const filteredProducts = products.filter((p) => productSearch.trim() && [p.stokKodu, p.urunAdi].join(" ").toLowerCase().includes(productSearch.toLowerCase()));
+  const filteredProducts = productSearch.trim()
+    ? products.filter((p) => [p.stokKodu, p.urunAdi].join(" ").toLowerCase().includes(productSearch.toLowerCase()))
+    : [];
 
   const addItem = (product) => {
     if (selectedItems.find((i) => i.productId === product.id)) return;
@@ -602,7 +602,6 @@ function NewOrderScreen({ products, customers, setCustomers, setOrders, currentU
         miktar: 1,
         hazirMiktar: 0,
         sevkMiktar: 0,
-        tamamlandi: false,
         listeFiyati: Number(product.fiyat || 0),
         netFiyat: Number(product.fiyat || 0),
         kdv: Number(product.kdv || 0),
@@ -615,42 +614,27 @@ function NewOrderScreen({ products, customers, setCustomers, setOrders, currentU
     setSelectedItems(selectedItems.map((i) => i.id === id ? { ...i, [field]: Number.isFinite(Number(value)) ? Number(value) : value } : i));
   };
 
-  const removeItem = (id) => setSelectedItems(selectedItems.filter((i) => i.id !== id));
-
-  const totals = useMemo(() => {
-    const araToplam = selectedItems.reduce((sum, i) => sum + Number(i.miktar || 0) * Number(i.netFiyat || 0) * (1 - Number(i.satirIskonto || 0) / 100), 0);
-    const genelIndirimli = araToplam * (1 - Number(genelIskonto || 0) / 100);
-    const kdvToplam = kdvDahil ? selectedItems.reduce((sum, i) => {
-      const satir = Number(i.miktar || 0) * Number(i.netFiyat || 0) * (1 - Number(i.satirIskonto || 0) / 100);
-      return sum + satir * (Number(i.kdv || 0) / 100);
-    }, 0) * (1 - Number(genelIskonto || 0) / 100) : 0;
-    return { araToplam, genelIndirimli, kdvToplam, genelToplam: genelIndirimli + kdvToplam };
-  }, [selectedItems, genelIskonto, kdvDahil]);
-
   const createOrder = () => {
     if (!selectedItems.length) return;
     let finalCustomerId = customerId;
     if (customerMode === "new") {
       if (!newCustomer.unvan.trim()) return;
-      const created = { id: uid(), ...newCustomer };
-      setCustomers((prev) => [created, ...prev]);
-      finalCustomerId = created.id;
+      const c = { id: uid(), ...newCustomer };
+      setCustomers((prev) => [c, ...prev]);
+      finalCustomerId = c.id;
     }
-    setOrders((prev) => [
-      {
-        id: uid(),
-        siparisNo: `SP-${1000 + prev.length + 1}`,
-        tarih: today(),
-        customerId: finalCustomerId,
-        createdBy: currentUser.id,
-        durum: "Müşteriden Onay Bekleniyor",
-        aciklama,
-        kdvDahil,
-        genelIskonto: Number(genelIskonto || 0),
-        kalemler: selectedItems,
-      },
-      ...prev,
-    ]);
+    setOrders((prev) => [{
+      id: uid(),
+      siparisNo: `SP-${1000 + prev.length + 1}`,
+      tarih: today(),
+      customerId: finalCustomerId,
+      createdBy: currentUser.id,
+      durum: "Müşteriden Onay Bekleniyor",
+      aciklama,
+      kdvDahil,
+      genelIskonto: Number(genelIskonto || 0),
+      kalemler: selectedItems,
+    }, ...prev]);
     setSelectedItems([]);
     setAciklama("");
     setGenelIskonto(0);
@@ -658,80 +642,81 @@ function NewOrderScreen({ products, customers, setCustomers, setOrders, currentU
     setProductSearch("");
   };
 
+  const totals = useMemo(() => {
+    const araToplam = selectedItems.reduce((sum, i) => sum + Number(i.miktar || 0) * Number(i.netFiyat || 0) * (1 - Number(i.satirIskonto || 0) / 100), 0);
+    const indirimli = araToplam * (1 - Number(genelIskonto || 0) / 100);
+    const kdvToplam = kdvDahil
+      ? selectedItems.reduce((sum, i) => sum + (Number(i.miktar || 0) * Number(i.netFiyat || 0) * (1 - Number(i.satirIskonto || 0) / 100) * (Number(i.kdv || 0) / 100)), 0) * (1 - Number(genelIskonto || 0) / 100)
+      : 0;
+    return { araToplam, indirimli, kdvToplam, genelToplam: indirimli + kdvToplam };
+  }, [selectedItems, genelIskonto, kdvDahil]);
+
   return (
-    <div className="space-y-4">
-      <SectionCard title="Müşteri">
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            <button className={cn("h-11 rounded-2xl border text-sm font-medium", customerMode === "select" ? "bg-slate-900 text-white border-slate-900" : "border-slate-300 bg-white") } onClick={() => setCustomerMode("select")}>Var Olan</button>
-            <button className={cn("h-11 rounded-2xl border text-sm font-medium", customerMode === "new" ? "bg-slate-900 text-white border-slate-900" : "border-slate-300 bg-white") } onClick={() => setCustomerMode("new")}>Yeni Müşteri</button>
-          </div>
-          {customerMode === "select" ? (
-            <SelectInput value={customerId} onChange={setCustomerId} options={customers.map((c) => ({ value: c.id, label: c.unvan }))} placeholder="Müşteri seç" />
-          ) : (
-            <div className="space-y-3">
-              <TextInput placeholder="Ünvan" value={newCustomer.unvan} onChange={(v) => setNewCustomer({ ...newCustomer, unvan: v })} />
-              <TextInput placeholder="Yetkili" value={newCustomer.yetkili} onChange={(v) => setNewCustomer({ ...newCustomer, yetkili: v })} />
-              <TextInput placeholder="Telefon" value={newCustomer.telefon} onChange={(v) => setNewCustomer({ ...newCustomer, telefon: v })} />
-            </div>
-          )}
+    <div>
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>Müşteri</div>
+        <div style={{ ...styles.row, marginBottom: 10 }}>
+          <button style={customerMode === "select" ? styles.button : styles.buttonSecondary} onClick={() => setCustomerMode("select")}>Var Olan</button>
+          <button style={customerMode === "new" ? styles.button : styles.buttonSecondary} onClick={() => setCustomerMode("new")}>Yeni Müşteri</button>
         </div>
-      </SectionCard>
+        {customerMode === "select" ? (
+          <select style={styles.input} value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
+            {customers.map((c) => <option key={c.id} value={c.id}>{c.unvan}</option>)}
+          </select>
+        ) : (
+          <>
+            <input style={styles.input} placeholder="Ünvan" value={newCustomer.unvan} onChange={(e) => setNewCustomer({ ...newCustomer, unvan: e.target.value })} />
+            <input style={styles.input} placeholder="Yetkili" value={newCustomer.yetkili} onChange={(e) => setNewCustomer({ ...newCustomer, yetkili: e.target.value })} />
+            <input style={styles.input} placeholder="Telefon" value={newCustomer.telefon} onChange={(e) => setNewCustomer({ ...newCustomer, telefon: e.target.value })} />
+          </>
+        )}
+      </div>
 
-      <SectionCard title="Ürün Ekle">
-        <div className="space-y-3">
-          <SearchInput value={productSearch} onChange={setProductSearch} placeholder="Ürün aratmadan sonuç göstermez" />
-          {!!productSearch.trim() && (
-            <div className="space-y-2">
-              {filteredProducts.map((p) => (
-                <button key={p.id} onClick={() => addItem(p)} className="w-full text-left border border-slate-200 rounded-2xl p-3 hover:bg-slate-50">
-                  <div className="font-semibold">{p.siraNo}. {p.urunAdi}</div>
-                  <div className="text-sm text-slate-500">{p.stokKodu} • {money(p.fiyat)}</div>
-                </button>
-              ))}
-              {!filteredProducts.length && <Empty text="Ürün bulunamadı" />}
-            </div>
-          )}
-        </div>
-      </SectionCard>
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>Ürün Ekle</div>
+        <input style={styles.input} placeholder="Ürün ara" value={productSearch} onChange={(e) => setProductSearch(e.target.value)} />
+        {filteredProducts.map((p) => (
+          <div key={p.id} style={styles.card}>
+            <div style={{ fontWeight: 700 }}>{p.siraNo}. {p.urunAdi}</div>
+            <div style={styles.muted}>{p.stokKodu} • {money(p.fiyat)}</div>
+            <button style={{ ...styles.smallButton, marginTop: 8 }} onClick={() => addItem(p)}>Ekle</button>
+          </div>
+        ))}
+      </div>
 
-      <SectionCard title="Seçilen Kalemler">
-        <div className="space-y-3">
-          {selectedItems.length === 0 && <Empty text="Henüz ürün eklenmedi" />}
-          {selectedItems.map((i) => (
-            <div key={i.id} className="border border-slate-200 rounded-2xl p-3 space-y-2">
-              <div className="flex justify-between gap-2">
-                <div>
-                  <div className="font-semibold">{i.urunAdi}</div>
-                  <div className="text-sm text-slate-500">{i.stokKodu}</div>
-                </div>
-                <IconButton onClick={() => removeItem(i.id)}><Trash2 className="w-4 h-4" /></IconButton>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <TextInput type="number" placeholder="Miktar" value={i.miktar} onChange={(v) => updateItem(i.id, "miktar", v)} />
-                <TextInput type="number" placeholder="Net Fiyat" value={i.netFiyat} onChange={(v) => updateItem(i.id, "netFiyat", v)} />
-                <TextInput type="number" placeholder="Satır İskonto %" value={i.satirIskonto} onChange={(v) => updateItem(i.id, "satirIskonto", v)} />
-                {kdvDahil && <TextInput type="number" placeholder="KDV %" value={i.kdv} onChange={(v) => updateItem(i.id, "kdv", v)} />}
-              </div>
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>Seçilen Kalemler</div>
+        {selectedItems.length === 0 ? <div style={styles.muted}>Henüz ürün eklenmedi</div> : selectedItems.map((i) => (
+          <div key={i.id} style={styles.card}>
+            <div style={{ fontWeight: 700 }}>{i.urunAdi}</div>
+            <div style={styles.muted}>{i.stokKodu}</div>
+            <div style={{ ...styles.row, marginTop: 8 }}>
+              <input style={styles.input} type="number" placeholder="Miktar" value={i.miktar} onChange={(e) => updateItem(i.id, "miktar", e.target.value)} />
+              <input style={styles.input} type="number" placeholder="Net Fiyat" value={i.netFiyat} onChange={(e) => updateItem(i.id, "netFiyat", e.target.value)} />
             </div>
-          ))}
-          <div className="grid grid-cols-2 gap-2 items-center">
-            <TextInput type="number" placeholder="Toplu İskonto %" value={genelIskonto} onChange={setGenelIskonto} />
-            <label className="flex items-center gap-2 border border-slate-300 rounded-2xl px-3 h-11 text-sm">
-              <input type="checkbox" checked={kdvDahil} onChange={(e) => setKdvDahil(e.target.checked)} />
-              <span>KDV Dahil</span>
-            </label>
+            <div style={styles.row}>
+              <input style={styles.input} type="number" placeholder="Satır İskonto %" value={i.satirIskonto} onChange={(e) => updateItem(i.id, "satirIskonto", e.target.value)} />
+              {kdvDahil ? <input style={styles.input} type="number" placeholder="KDV %" value={i.kdv} onChange={(e) => updateItem(i.id, "kdv", e.target.value)} /> : null}
+            </div>
           </div>
-          <TextAreaInput placeholder="Açıklama" value={aciklama} onChange={setAciklama} />
-          <div className="border border-slate-200 rounded-2xl p-3 text-sm space-y-1 bg-slate-50">
-            <div className="flex justify-between"><span>Ara Toplam</span><span>{money(totals.araToplam)}</span></div>
-            <div className="flex justify-between"><span>İskonto Sonrası</span><span>{money(totals.genelIndirimli)}</span></div>
-            <div className="flex justify-between"><span>KDV</span><span>{money(totals.kdvToplam)}</span></div>
-            <div className="flex justify-between font-bold text-base"><span>Genel Toplam</span><span>{money(totals.genelToplam)}</span></div>
-          </div>
-          <PrimaryButton onClick={createOrder} full><Save className="w-4 h-4" /> Siparişi Kaydet</PrimaryButton>
+        ))}
+
+        <input style={styles.input} type="number" placeholder="Toplu İskonto %" value={genelIskonto} onChange={(e) => setGenelIskonto(e.target.value)} />
+        <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, fontSize: 14 }}>
+          <input type="checkbox" checked={kdvDahil} onChange={(e) => setKdvDahil(e.target.checked)} />
+          KDV Dahil
+        </label>
+        <textarea style={styles.textarea} placeholder="Açıklama" value={aciklama} onChange={(e) => setAciklama(e.target.value)} />
+
+        <div style={{ ...styles.card, background: "#f9fafb" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span>Ara Toplam</span><strong>{money(totals.araToplam)}</strong></div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span>İskonto Sonrası</span><strong>{money(totals.indirimli)}</strong></div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span>KDV</span><strong>{money(totals.kdvToplam)}</strong></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Genel Toplam</span><strong>{money(totals.genelToplam)}</strong></div>
         </div>
-      </SectionCard>
+
+        <button style={{ ...styles.button, width: "100%" }} onClick={createOrder}>Siparişi Kaydet</button>
+      </div>
     </div>
   );
 }
@@ -742,20 +727,16 @@ function OrdersScreen({ orders, customers, currentUser, setOrders, users }) {
 
   const filtered = orders.filter((o) => {
     const customer = customers.find((c) => c.id === o.customerId);
-    const textOk = [o.siparisNo, customer?.unvan, o.durum].join(" ").toLowerCase().includes(search.toLowerCase());
+    const text = [o.siparisNo, customer?.unvan, o.durum].join(" ").toLowerCase();
+    const textOk = text.includes(search.toLowerCase());
     const filterOk = filter === "all" ? true : o.durum === filter;
-    if (currentUser.rol === "admin") return textOk && filterOk;
-    if (currentUser.rol === "pazarlamaci") return o.createdBy === currentUser.id && textOk && filterOk;
     return textOk && filterOk;
   });
 
   const totalAmount = (order) => {
     const subtotal = order.kalemler.reduce((sum, i) => sum + Number(i.miktar || 0) * Number(i.netFiyat || 0) * (1 - Number(i.satirIskonto || 0) / 100), 0);
     const discounted = subtotal * (1 - Number(order.genelIskonto || 0) / 100);
-    const vat = order.kdvDahil ? order.kalemler.reduce((sum, i) => {
-      const satir = Number(i.miktar || 0) * Number(i.netFiyat || 0) * (1 - Number(i.satirIskonto || 0) / 100);
-      return sum + satir * (Number(i.kdv || 0) / 100);
-    }, 0) * (1 - Number(order.genelIskonto || 0) / 100) : 0;
+    const vat = order.kdvDahil ? order.kalemler.reduce((sum, i) => sum + (Number(i.miktar || 0) * Number(i.netFiyat || 0) * (1 - Number(i.satirIskonto || 0) / 100) * (Number(i.kdv || 0) / 100)), 0) * (1 - Number(order.genelIskonto || 0) / 100) : 0;
     return discounted + vat;
   };
 
@@ -768,62 +749,49 @@ function OrdersScreen({ orders, customers, currentUser, setOrders, users }) {
   };
 
   return (
-    <div className="space-y-4">
-      <SearchInput value={search} onChange={setSearch} placeholder="Sipariş ara" />
-      <SelectInput value={filter} onChange={setFilter} options={[{ value: "all", label: "Tümü" }, ...ORDER_STATUSES.map((s) => ({ value: s, label: s }))]} />
+    <div>
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>Siparişler</div>
+        <input style={styles.input} placeholder="Sipariş ara" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <select style={styles.input} value={filter} onChange={(e) => setFilter(e.target.value)}>
+          <option value="all">Tümü</option>
+          {ORDER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
+
       {filtered.map((o) => {
         const customer = customers.find((c) => c.id === o.customerId);
         const created = users.find((u) => u.id === o.createdBy);
-        const isCancelled = o.durum === "İptal";
-        const canSeeCancelled = currentUser.rol === "admin" || o.createdBy === currentUser.id;
-        if (isCancelled && !canSeeCancelled) return null;
         return (
-          <div key={o.id} className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-            <div className="flex justify-between gap-2 items-start">
+          <div key={o.id} style={styles.section}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 12 }}>
               <div>
-                <div className="font-bold">{o.siparisNo}</div>
-                <div className="text-sm text-slate-500">{customer?.unvan || "Müşteri yok"}</div>
-                <div className="text-xs text-slate-400">{o.tarih} • {created?.ad || ""}</div>
+                <div style={{ fontWeight: 700 }}>{o.siparisNo}</div>
+                <div style={styles.muted}>{customer?.unvan || "Müşteri yok"}</div>
+                <div style={styles.muted}>{o.tarih} • {created?.ad || ""}</div>
               </div>
-              <StatusBadge value={o.durum} />
+              <span style={getBadgeStyle(o.durum)}>{o.durum}</span>
             </div>
-            <div className="space-y-2">
-              {o.kalemler.map((i) => (
-                <div key={i.id} className="border border-slate-200 rounded-2xl p-3">
-                  <div className="font-medium">{i.urunAdi}</div>
-                  <div className="text-sm text-slate-500">{i.stokKodu}</div>
-                  <div className="grid grid-cols-3 gap-2 text-sm mt-2">
-                    <div>Miktar: {i.miktar}</div>
-                    <div>Hazır: {i.hazirMiktar}</div>
-                    <div>Sevk: {i.sevkMiktar}</div>
-                  </div>
-                  {(currentUser.rol === "admin" || currentUser.rol === "pazarlamaci") && (
-                    <div className="text-sm mt-2">Net Fiyat: {money(i.netFiyat)}</div>
-                  )}
-                </div>
-              ))}
-            </div>
-            {(currentUser.rol === "admin" || currentUser.rol === "pazarlamaci") && (
-              <div className="border border-slate-200 rounded-2xl p-3 bg-slate-50 font-semibold">Toplam: {money(totalAmount(o))}</div>
-            )}
-            <div className="grid grid-cols-2 gap-2">
-              {currentUser.rol === "admin" && o.durum !== "İptal" && (
-                <>
-                  <button className="h-11 rounded-2xl border border-slate-300 text-sm font-medium hover:bg-slate-50" onClick={() => updateStatus(o.id, "Müşteri Onayı Alındı")}>Onay Alındı</button>
-                  <button className="h-11 rounded-2xl border border-slate-300 text-sm font-medium hover:bg-slate-50 flex items-center justify-center gap-2" onClick={() => updateStatus(o.id, "İptal")}><XCircle className="w-4 h-4" /> İptal</button>
-                </>
-              )}
-              {currentUser.rol === "pazarlamaci" && o.createdBy === currentUser.id && o.durum !== "İptal" && (
-                <button className="h-11 rounded-2xl border border-slate-300 text-sm font-medium hover:bg-slate-50 col-span-2 flex items-center justify-center gap-2" onClick={() => updateStatus(o.id, "İptal")}><XCircle className="w-4 h-4" /> Siparişi İptal Et</button>
-              )}
-              {o.durum === "İptal" && (currentUser.rol === "admin" || o.createdBy === currentUser.id) && (
-                <PrimaryButton onClick={() => revertCancelled(o.id)} full><RotateCcw className="w-4 h-4" /> İptali Geri Al</PrimaryButton>
-              )}
+
+            {o.kalemler.map((i) => (
+              <div key={i.id} style={styles.card}>
+                <div style={{ fontWeight: 700 }}>{i.urunAdi}</div>
+                <div style={styles.muted}>{i.stokKodu}</div>
+                <div style={{ ...styles.muted, marginTop: 6 }}>Miktar: {i.miktar} • Hazır: {i.hazirMiktar} • Sevk: {i.sevkMiktar}</div>
+                {(currentUser.rol === "admin" || currentUser.rol === "pazarlamaci") ? <div style={{ ...styles.muted, marginTop: 6 }}>Net Fiyat: {money(i.netFiyat)}</div> : null}
+              </div>
+            ))}
+
+            {(currentUser.rol === "admin" || currentUser.rol === "pazarlamaci") ? <div style={{ ...styles.card, background: "#f9fafb", fontWeight: 700 }}>Toplam: {money(totalAmount(o))}</div> : null}
+
+            <div style={styles.row}>
+              {currentUser.rol === "admin" && o.durum !== "İptal" ? <button style={styles.buttonSecondary} onClick={() => updateStatus(o.id, "Müşteri Onayı Alındı")}>Onay Alındı</button> : null}
+              {o.durum !== "İptal" ? <button style={styles.dangerButton} onClick={() => updateStatus(o.id, "İptal")}>İptal</button> : null}
+              {o.durum === "İptal" ? <button style={styles.button} onClick={() => revertCancelled(o.id)}>İptali Geri Al</button> : null}
             </div>
           </div>
         );
       })}
-      {!filtered.length && <Empty text="Sipariş bulunamadı" />}
     </div>
   );
 }
@@ -835,44 +803,40 @@ function ProductionScreen({ orders, setOrders }) {
   const markReady = (orderId, itemId, qty) => {
     setOrders((prev) => prev.map((o) => {
       if (o.id !== orderId) return o;
-      const kalemler = o.kalemler.map((i) => {
-        if (i.id !== itemId) return i;
-        const newHazir = Math.min(Number(i.miktar), Number(i.hazirMiktar || 0) + Number(qty || 0));
-        return { ...i, hazirMiktar: newHazir };
-      });
+      const kalemler = o.kalemler.map((i) => i.id !== itemId ? i : { ...i, hazirMiktar: Math.min(Number(i.miktar), Number(i.hazirMiktar || 0) + Number(qty || 0)) });
       const hepsiHazir = kalemler.every((i) => Number(i.hazirMiktar || 0) >= Number(i.miktar || 0));
       return { ...o, kalemler, durum: hepsiHazir ? "Sevkiyata Hazır" : o.durum };
     }));
   };
 
   return (
-    <div className="space-y-4">
-      <SearchInput value={search} onChange={setSearch} placeholder="Üretim siparişi ara" />
+    <div>
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>Üretim</div>
+        <input style={styles.input} placeholder="Üretim ara" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
       {filtered.map((o) => (
-        <div key={o.id} className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-          <div className="flex justify-between items-center">
-            <div className="font-bold">{o.siparisNo}</div>
-            <StatusBadge value={o.durum} />
+        <div key={o.id} style={styles.section}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+            <strong>{o.siparisNo}</strong>
+            <span style={getBadgeStyle(o.durum)}>{o.durum}</span>
           </div>
-          {o.kalemler.map((i) => (
-            <ProductionItemRow key={i.id} item={i} onReady={(qty) => markReady(o.id, i.id, qty)} />
-          ))}
+          {o.kalemler.map((i) => <ProductionRow key={i.id} item={i} onReady={(qty) => markReady(o.id, i.id, qty)} />)}
         </div>
       ))}
-      {!filtered.length && <Empty text="Üretim bekleyen iş yok" />}
     </div>
   );
 }
 
-function ProductionItemRow({ item, onReady }) {
+function ProductionRow({ item, onReady }) {
   const [qty, setQty] = useState(1);
   return (
-    <div className="border border-slate-200 rounded-2xl p-3 space-y-2">
-      <div className="font-medium">{item.urunAdi}</div>
-      <div className="text-sm text-slate-500">Toplam: {item.miktar} • Hazır: {item.hazirMiktar}</div>
-      <div className="flex gap-2">
-        <TextInput type="number" value={qty} onChange={setQty} />
-        <PrimaryButton onClick={() => onReady(qty)}><CheckCircle2 className="w-4 h-4" /> Hazır Yap</PrimaryButton>
+    <div style={styles.card}>
+      <div style={{ fontWeight: 700 }}>{item.urunAdi}</div>
+      <div style={styles.muted}>Toplam: {item.miktar} • Hazır: {item.hazirMiktar}</div>
+      <div style={styles.row}>
+        <input style={styles.input} type="number" value={qty} onChange={(e) => setQty(e.target.value)} />
+        <button style={styles.button} onClick={() => onReady(qty)}>Hazır Yap</button>
       </div>
     </div>
   );
@@ -889,7 +853,7 @@ function ShipmentScreen({ orders, setOrders, customers }) {
         if (i.id !== itemId) return i;
         const maxShippable = Math.min(Number(i.hazirMiktar || 0), Number(i.miktar || 0));
         const newSevk = Math.min(maxShippable, Number(i.sevkMiktar || 0) + Number(qty || 0));
-        return { ...i, sevkMiktar: newSevk, tamamlandi: newSevk >= Number(i.miktar || 0) };
+        return { ...i, sevkMiktar: newSevk };
       });
       const hepsiTamam = kalemler.every((i) => Number(i.sevkMiktar || 0) >= Number(i.miktar || 0));
       return { ...o, kalemler, durum: hepsiTamam ? "Tamamlandı" : "Sevkiyata Hazır" };
@@ -897,123 +861,42 @@ function ShipmentScreen({ orders, setOrders, customers }) {
   };
 
   return (
-    <div className="space-y-4">
-      <SearchInput value={search} onChange={setSearch} placeholder="Sevkiyat ara" />
+    <div>
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>Sevkiyat</div>
+        <input style={styles.input} placeholder="Sevkiyat ara" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
       {filtered.map((o) => {
         const customer = customers.find((c) => c.id === o.customerId);
         return (
-          <div key={o.id} className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-            <div className="flex justify-between items-center">
+          <div key={o.id} style={styles.section}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
               <div>
-                <div className="font-bold">{o.siparisNo}</div>
-                <div className="text-sm text-slate-500">{customer?.unvan}</div>
+                <strong>{o.siparisNo}</strong>
+                <div style={styles.muted}>{customer?.unvan}</div>
               </div>
-              <StatusBadge value={o.durum} />
+              <span style={getBadgeStyle(o.durum)}>{o.durum}</span>
             </div>
-            {o.kalemler.map((i) => (
-              <ShipmentItemRow key={i.id} item={i} onShip={(qty) => shipItem(o.id, i.id, qty)} />
-            ))}
-            <button className="w-full h-11 rounded-2xl border border-slate-300 text-sm font-medium hover:bg-slate-50 flex items-center justify-center gap-2">
-              <Truck className="w-4 h-4" /> Sevkiyat Fişi Oluştur
-            </button>
+            {o.kalemler.map((i) => <ShipmentRow key={i.id} item={i} onShip={(qty) => shipItem(o.id, i.id, qty)} />)}
           </div>
         );
       })}
-      {!filtered.length && <Empty text="Sevkiyat bekleyen iş yok" />}
     </div>
   );
 }
 
-function ShipmentItemRow({ item, onShip }) {
+function ShipmentRow({ item, onShip }) {
   const [qty, setQty] = useState(1);
   return (
-    <div className="border border-slate-200 rounded-2xl p-3 space-y-2">
-      <div className="font-medium">{item.urunAdi}</div>
-      <div className="text-sm text-slate-500">Toplam: {item.miktar} • Hazır: {item.hazirMiktar} • Sevk: {item.sevkMiktar}</div>
-      <div className="flex gap-2">
-        <TextInput type="number" value={qty} onChange={setQty} />
-        <PrimaryButton onClick={() => onShip(qty)}><Truck className="w-4 h-4" /> Sevk Et</PrimaryButton>
+    <div style={styles.card}>
+      <div style={{ fontWeight: 700 }}>{item.urunAdi}</div>
+      <div style={styles.muted}>Toplam: {item.miktar} • Hazır: {item.hazirMiktar} • Sevk: {item.sevkMiktar}</div>
+      <div style={styles.row}>
+        <input style={styles.input} type="number" value={qty} onChange={(e) => setQty(e.target.value)} />
+        <button style={styles.button} onClick={() => onShip(qty)}>Sevk Et</button>
       </div>
     </div>
   );
-}
-
-function TextInput({ value, onChange, placeholder, type = "text" }) {
-  return (
-    <input
-      type={type}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className="w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm outline-none focus:ring-2 focus:ring-slate-300"
-    />
-  );
-}
-
-function TextAreaInput({ value, onChange, placeholder }) {
-  return (
-    <textarea
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className="w-full min-h-[96px] rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-300 resize-none"
-    />
-  );
-}
-
-function SelectInput({ value, onChange, options, placeholder = "Seçiniz" }) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm outline-none focus:ring-2 focus:ring-slate-300 bg-white"
-    >
-      {!value && <option value="">{placeholder}</option>}
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>{option.label}</option>
-      ))}
-    </select>
-  );
-}
-
-function SearchInput({ value, onChange, placeholder }) {
-  return (
-    <div className="relative">
-      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full h-11 rounded-2xl border border-slate-300 pl-9 pr-4 text-sm outline-none focus:ring-2 focus:ring-slate-300"
-      />
-    </div>
-  );
-}
-
-function PrimaryButton({ children, onClick, full = false }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "h-11 rounded-2xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 flex items-center justify-center gap-2 px-4",
-        full && "w-full"
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function IconButton({ children, onClick }) {
-  return (
-    <button onClick={onClick} className="h-10 w-10 rounded-2xl border border-slate-300 flex items-center justify-center hover:bg-slate-50">
-      {children}
-    </button>
-  );
-}
-
-function Empty({ text }) {
-  return <div className="text-sm text-slate-500 text-center py-6">{text}</div>;
 }
 
 export default App;
