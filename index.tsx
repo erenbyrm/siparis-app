@@ -608,14 +608,14 @@ export default function App() {
 
     if (!q) return sortedProducts;
 
-    const queryParts = q.split(" ").filter(Boolean);
+    const qParts = q.split(" ").filter(Boolean);
 
     return sortedProducts.filter((p) => {
       const codeText = normalizeSearchText(p.code);
       const nameText = normalizeSearchText(p.name);
 
-      const codeMatch = queryParts.every((part) => codeText.includes(part));
-      const nameMatch = queryParts.every((part) => nameText.includes(part));
+      const codeMatch = qParts.every((part) => codeText.includes(part));
+      const nameMatch = qParts.every((part) => nameText.includes(part));
 
       return codeMatch || nameMatch;
     });
