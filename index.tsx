@@ -597,21 +597,27 @@ export default function App() {
 
   const managerProducts = useMemo(() => {
     const q = normalizeSearchText(productSearch);
+
     const sortedProducts = [...products].sort((a, b) => {
-      const orderDiff = Number(a.orderNo || 0) - Number(b.orderNo || 0);
-      if (orderDiff !== 0) return orderDiff;
+      const aOrder = Number(a.orderNo || 0);
+      const bOrder = Number(b.orderNo || 0);
+
+      if (aOrder !== bOrder) return aOrder - bOrder;
       return Number(a.id || 0) - Number(b.id || 0);
     });
 
     if (!q) return sortedProducts;
 
-    const qParts = q.split(" ").filter(Boolean);
+    const queryParts = q.split(" ").filter(Boolean);
 
     return sortedProducts.filter((p) => {
       const codeText = normalizeSearchText(p.code);
       const nameText = normalizeSearchText(p.name);
-      const combined = `${codeText} ${nameText}`;
-      return qParts.every((part) => combined.includes(part));
+
+      const codeMatch = queryParts.every((part) => codeText.includes(part));
+      const nameMatch = queryParts.every((part) => nameText.includes(part));
+
+      return codeMatch || nameMatch;
     });
   }, [products, productSearch]);
 
