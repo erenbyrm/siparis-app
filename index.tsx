@@ -550,7 +550,6 @@ export default function App() {
   const [editingCustomerId, setEditingCustomerId] = useState<number | null>(null);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
 
-  const [productSearch, setProductSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
 
@@ -1184,6 +1183,13 @@ export default function App() {
     let addedCount = 0;
     let updatedCount = 0;
     let skippedCount = 0;
+    const skippedLines: string[] = [];
+
+    const addSkippedLine = (lineNumber: number, row: string, reason: string) => {
+      skippedCount += 1;
+      const shortRow = row.length > 120 ? `${row.slice(0, 120)}...` : row;
+      skippedLines.push(`Satır ${lineNumber}: ${reason} → ${shortRow}`);
+    };
 
     const parseRow = (row: string) => {
       let parts: string[] = [];
@@ -1228,10 +1234,12 @@ export default function App() {
     setProducts((prev) => {
       const mapByCode = new Map(prev.map((p) => [p.code.trim().toUpperCase(), p] as const));
 
-      dataRows.forEach((row) => {
+      dataRows.forEach((row, index) => {
+        const lineNumber = hasHeader ? index + 2 : index + 1;
         const parsed = parseRow(row);
+
         if (!parsed) {
-          skippedCount += 1;
+          addSkippedLine(lineNumber, row, "Kolonlar okunamadı");
           return;
         }
 
@@ -1240,9 +1248,20 @@ export default function App() {
         const name = String(nameRaw || "").trim();
         const price = Number(String(priceRaw || "").replace(",", "."));
         const kdvRate = Number(String(kdvRateRaw || "").replace(",", "."));
+        const orderNo = normalizeNumber(orderNoRaw);
 
-        if (!code || !name || !Number.isFinite(price) || price <= 0) {
-          skippedCount += 1;
+        if (!code) {
+          addSkippedLine(lineNumber, row, "Stok kodu boş");
+          return;
+        }
+
+        if (!name) {
+          addSkippedLine(lineNumber, row, "Ürün adı boş");
+          return;
+        }
+
+        if (!Number.isFinite(price) || price <= 0) {
+          addSkippedLine(lineNumber, row, "Fiyat hatalı");
           return;
         }
 
@@ -1252,7 +1271,7 @@ export default function App() {
 
         mapByCode.set(code, {
           id: existing?.id ?? generateId(),
-          orderNo: normalizeNumber(orderNoRaw) > 0 ? normalizeNumber(orderNoRaw) : existing?.orderNo ?? mapByCode.size + 1,
+          orderNo: orderNo > 0 ? orderNo : existing?.orderNo ?? mapByCode.size + 1,
           code,
           name,
           price,
@@ -1269,7 +1288,22 @@ export default function App() {
       return sorted;
     });
 
-    setProductMessage(`Toplu ürün yükleme tamamlandı. Eklenen: ${addedCount}, Güncellenen: ${updatedCount}, Atlanan: ${skippedCount}`);
+    const summaryLines = [
+      `Toplu ürün yükleme tamamlandı.`,
+      `Eklenen: ${addedCount}`,
+      `Güncellenen: ${updatedCount}`,
+      `Atlanan: ${skippedCount}`,
+    ];
+
+    if (skippedLines.length > 0) {
+      summaryLines.push("", "Atlanan satırlar:");
+      skippedLines.slice(0, 20).forEach((line) => summaryLines.push(line));
+      if (skippedLines.length > 20) {
+        summaryLines.push(`... ve ${skippedLines.length - 20} satır daha`);
+      }
+    }
+
+    setProductMessage(summaryLines.join("\n"));
   };
 
   const renderOrderCard = (order: OrderRecord, prefix = "") => {
@@ -1667,7 +1701,6 @@ export default function App() {
                   <button style={{ ...buttonStyle(true), marginTop: 10 }} onClick={importProductsFromText}><UserPlus size={14} style={{ marginRight: 6, verticalAlign: "middle" }} /> Toplu Yükle</button>
                 </div>
 
-                <input style={{ ...inputStyle(), marginTop: 14 }} placeholder="Ürün ara: kod, isim, ölçü..." value={productSearch} onChange={(e) => setProductSearch(e.target.value)} />
                 <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
                   {managerProducts.map((product) => (
                     <div key={product.id} style={{ border: "1px solid #e5e7eb", borderRadius: 16, padding: 12 }}>
