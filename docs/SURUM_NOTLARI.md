@@ -1,3 +1,7 @@
+# 0.3.0 — ürün iskontosu ve ortak hat planlaması
+
+7 Ekim 2026. 67 test geçti. Yeni kullanım kuralları ve sınırlar: [Üretim ve iskonto](URETIM_VE_ISKONTO.md).
+
 # 0.2.0 — geliştirme ve doğrulama kaydı
 
 7 Ekim 2026. Temel alınan eski sürüm: `0a4bfd6467c36ea66f043b62223ce371140f2e0c`.

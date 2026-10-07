@@ -7,7 +7,7 @@ import {authorizeIdentity} from '../server/identity';
 import {printHtml,ordersCSV,dateKey} from '../src/outputs';
 const admin='demo-admin',sales='demo-sales',production='demo-production',shipping='demo-shipping';
 function created(){return execute(createDemo(),sales,{type:'order.create',customerId:'demo-c1',items:[{id:'demo-p1',quantity:2}],discount:{type:'percent',value:10},vatMode:'product'});}
-function approved(){let s=created();s=execute(s,sales,{type:'order.customerApprove',id:s.orders[0].id});return execute(s,admin,{type:'order.approve',id:s.orders[0].id});}
+function approved(){let s=created();s=execute(s,sales,{type:'order.customerApprove',id:s.orders[0].id});return execute(s,admin,{type:'order.approve',id:s.orders[0].id,deliveryDate:'2099-12-31',acceptPlanRisk:true});}
 function ready(){const s=approved();return execute(s,production,{type:'order.ready',id:s.orders[0].id,items:[{id:'demo-p1',quantity:2}]});}
 test('partial shipping stays open and the final shipment closes it',()=>{
  let s=ready();s=execute(s,shipping,{type:'order.ship',id:s.orders[0].id,items:[{id:'demo-p1',quantity:1}]});
@@ -17,7 +17,7 @@ test('partial shipping stays open and the final shipment closes it',()=>{
 });
 for(const quantity of [0,-1,0.5,3,Infinity,NaN])test(`reject invalid shipment quantity ${quantity} without changing source`,()=>{const s=ready(),before=JSON.stringify(s);assert.throws(()=>execute(s,shipping,{type:'order.ship',id:s.orders[0].id,items:[{id:'demo-p1',quantity}]}));assert.equal(JSON.stringify(s),before);});
 test('production cannot start before both approvals',()=>{const s=created();assert.throws(()=>execute(s,production,{type:'order.ready',id:s.orders[0].id,items:[{id:'demo-p1',quantity:1}]}));});
-test('sales cannot forge manager approval',()=>{let s=created();s=execute(s,sales,{type:'order.customerApprove',id:s.orders[0].id});assert.throws(()=>execute(s,sales,{type:'order.approve',id:s.orders[0].id}),/yetkiniz/);});
+test('sales cannot forge manager approval',()=>{let s=created();s=execute(s,sales,{type:'order.customerApprove',id:s.orders[0].id});assert.throws(()=>execute(s,sales,{type:'order.approve',id:s.orders[0].id,deliveryDate:'2099-12-31',acceptPlanRisk:true}),/yetkiniz/);});
 test('different salesperson cannot approve or view another order',()=>{const s=created();s.users.push({...s.users[1],id:'other',email:'other@example.test'});assert.throws(()=>execute(s,'other',{type:'order.customerApprove',id:s.orders[0].id}),/kendi/);assert.equal(stateForUser(s,s.users[4]).orders.length,0);});
 test('inactive user cannot act',()=>{const s=created();s.users[0].active=false;assert.throws(()=>execute(s,admin,{type:'product.archive',id:'demo-p1'}),/pasif/);});
 test('cannot cancel a partially shipped order',()=>{let s=ready();s=execute(s,shipping,{type:'order.ship',id:s.orders[0].id,items:[{id:'demo-p1',quantity:1}]});assert.throws(()=>execute(s,admin,{type:'order.cancel',id:s.orders[0].id,reason:'Test'}),/Gönderilmiş/);});

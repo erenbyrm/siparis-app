@@ -1,4 +1,4 @@
-# Mobil Sipariş 0.2.0
+# Mobil Sipariş 0.3.0
 
 Satış teklifi → müşteri onayı → yönetici onayı → üretim → kısmi/tam sevkiyat.
 
@@ -48,3 +48,5 @@ Tarayıcı → Vercel `/api/workspace` → doğrulanmış Supabase kullanıcıs�
 Küçük ekip başlangıç mimarisidir: çalışma alanı tek JSON kaydıdır, yazmalar kilitlenerek sıralanır, açık ekran 15 saniyede bir yenilenir. Büyük veri/ekip için tabloların ayrılması, sunucu sayfalaması ve yük testi gerekir. Çevrimdışı merkezi kayıt yoktur. Çalışma alanı 2 MB sınırını aşarsa yeni yazma reddedilir; mevcut veri korunur.
 
 JSON aktarımı boş çalışma alanına ürün, müşteri ve siparişleri taşır. Kullanıcı yetkileri ve eski işlem geçmişi geri yüklenmez; siparişler seçilen aktif kişiye bağlanır. Tam felaket kurtarma için Supabase veritabanı yedeği ve ayrı bir geri yükleme denemesi gerekir. JSON dosyası orijinal geçmişi arşiv amaçlı içerir; güvenli saklayın.
+
+Ürün bazında iskonto, takvimli teslim onayı ve ortak hat doluluğu: [kullanım rehberi](docs/URETIM_VE_ISKONTO.md).
