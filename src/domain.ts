@@ -35,7 +35,8 @@ export const emptyState=():State=>({schemaVersion:2,revision:0,products:[],custo
 function fail(message:string):never{throw new DomainError(message);}
 function allowed(user:AppUser,accepted:Role[]){if(!user.active||!accepted.includes(user.role))throw new DomainError('Bu işlem için yetkiniz yok.',403);}
 export function assertOrder(order:Order){
- totals(order);
+ const base=order.items.reduce((sum,line)=>sum+Math.round(line.price*100)*line.quantity,0);
+ if(!Number.isSafeInteger(base)||base>1_000_000_000_000)fail('Sipariş tutarı desteklenen 10 milyar TL sınırını aşıyor.');
  const ids=new Set<string>();
  for(const line of order.items){
   if(ids.has(line.id))fail('Siparişte yinelenen ürün var.');ids.add(line.id);
@@ -61,7 +62,6 @@ export function deriveStatus(items:Order['items']):Status{
 export function totals(order:Pick<Order,'items'|'discount'|'vatMode'>){
  const bases=order.items.map(i=>Math.round(i.price*100)*i.quantity);
  const base=bases.reduce((a,b)=>a+b,0);
- if(!Number.isSafeInteger(base)||base>1_000_000_000_000)fail('Sipariş tutarı desteklenen 10 milyar TL sınırını aşıyor.');
  const raw=order.discount.type==='percent'?Math.round(base*order.discount.value/100):Math.round(order.discount.value*100);
  const discount=Math.min(base,Math.max(0,raw));
  // Cumulative allocation gives the last line the remainder, preserving every cent.
