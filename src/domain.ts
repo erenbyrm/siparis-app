@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import {companySchema} from './company';
 import {buildProductionPlan,productionConfigOf,isWorkingDay,todayInTurkey,type ProductionPlan} from './production';
 z.config(z.locales.tr());
 
@@ -23,7 +24,7 @@ const productionRecordSchema=z.object({id,createdAt:z.iso.datetime(),createdBy:t
 export const orderSchema = z.object({id,number:text,createdAt:z.iso.datetime(),createdBy:text,createdByUserId:id,customer:customerSchema,items:z.array(lineSchema).min(1).max(500),discount:discountSchema,vatMode:z.enum(['product','none']),status:z.enum(statuses),shipments:z.array(shipmentSchema).max(10000),deliveryDate:z.iso.date().optional(),productionRecords:z.array(productionRecordSchema).max(10000).optional(),customerApprovedAt:z.iso.datetime().optional(),managerApprovedAt:z.iso.datetime().optional(),cancelledAt:z.iso.datetime().optional(),cancelReason:z.string().max(1000).optional()});
 export const auditSchema=z.object({id,at:z.iso.datetime(),actorId:id,actorName:text,action:text,targetId:id,detail:z.string().max(2000)});
 export const productionConfigSchema=z.object({resources:z.array(z.object({id,name:text})).min(1).max(20),workDays:z.array(z.number().int().min(1).max(7)).min(1).max(7),transportDays:z.number().int().min(1).max(30),closedDates:z.array(z.iso.date()).max(100)}).refine(c=>new Set(c.resources.map(r=>r.id)).size===c.resources.length&&new Set(c.workDays).size===c.workDays.length,'Üretim birimi veya çalışma günü yinelenemez.');
-export const stateSchema = z.object({schemaVersion:z.literal(2),revision:z.number().int().min(0),products:z.array(productSchema).max(10000),customers:z.array(customerSchema).max(20000),users:z.array(userSchema).max(1000),orders:z.array(orderSchema).max(50000),audit:z.array(auditSchema).max(100000),productionConfig:productionConfigSchema.optional()});
+export const stateSchema = z.object({schemaVersion:z.literal(2),revision:z.number().int().min(0),products:z.array(productSchema).max(10000),customers:z.array(customerSchema).max(20000),users:z.array(userSchema).max(1000),orders:z.array(orderSchema).max(50000),audit:z.array(auditSchema).max(100000),productionConfig:productionConfigSchema.optional(),company:companySchema.optional()});
 export type Product=z.infer<typeof productSchema>;
 export type Customer=z.infer<typeof customerSchema>;
 export type AppUser=z.infer<typeof userSchema>;
@@ -99,6 +100,7 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('customer.save'),customer:customerInput}),
  z.object({type:z.literal('customer.archive'),id}),
  z.object({type:z.literal('user.save'),user:userInput}),
+ z.object({type:z.literal('company.save'),company:companySchema}),
  z.object({type:z.literal('production.configure'),config:productionConfigSchema}),
  z.object({type:z.literal('order.create'),customerId:id.optional(),customer:customerInput.omit({id:true}).optional(),items:z.array(z.object({id,quantity:integer,lineDiscount:discountSchema.optional()})).min(1).max(500),discount:discountSchema,vatMode:z.enum(['product','none'])}),
  z.object({type:z.literal('order.customerApprove'),id}),
@@ -117,6 +119,7 @@ export function execute(state:State,actorId:string,input:unknown,now=new Date().
  if(!actor)throw new DomainError('Kullanıcı pasif veya oturum geçersiz.',403);
  let target='system',detail='';
  switch(command.type){
+ case 'company.save':allowed(actor,['admin']);s.company=command.company;detail='Şirket bilgileri güncellendi: '+command.company.name;break;
  case 'product.save':{
   allowed(actor,['admin']);const p=command.product;const existing=p.id?s.products.find(x=>x.id===p.id):undefined;
   if(p.id&&!existing)fail('Ürün bulunamadı.');
@@ -167,7 +170,7 @@ export function execute(state:State,actorId:string,input:unknown,now=new Date().
  case 'backup.import':{
   allowed(actor,['admin']);const data=validateState(command.data);const owner=s.users.find(u=>u.id===command.ownerId&&u.active&&['admin','pazarlamaci'].includes(u.role));if(!owner)fail('Aktarım için aktif satış kullanıcısı seçin.');
   if(s.products.length||s.customers.length||s.orders.length)fail('Yedek yalnızca boş sisteme aktarılır. Mevcut kayıtların üzerine yazılmaz.');
-  s.productionConfig=productionConfigOf(data);s.products=data.products;s.customers=data.customers;s.orders=data.orders.map(o=>({...o,createdByUserId:owner.id,createdBy:owner.name}));
+  s.company=data.company;s.productionConfig=productionConfigOf(data);s.products=data.products;s.customers=data.customers;s.orders=data.orders.map(o=>({...o,createdByUserId:owner.id,createdBy:owner.name}));
   // Imported accounts never grant access, and imported audit actors cannot impersonate current users.
   detail=`${data.orders.length} sipariş, ${data.products.length} ürün, ${data.customers.length} müşteri. Sahibi: ${owner.name}`;break;
  }

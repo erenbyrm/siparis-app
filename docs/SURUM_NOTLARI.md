@@ -1,3 +1,7 @@
+# 0.4.0 — şirket kimliği ve kişiye özel karşılama
+
+8 Ekim 2026. Yönetici şirket bilgileri, logo/fotoğraf yükleme, tüm rollerde ad soyad ile karşılama, markalı çıktılar ve yedek uyumluluğu. 73 test geçti. [Kullanım ve inceleme raporu](SIRKET_VE_INCELEME.md).
+
 # 0.3.0 — ürün iskontosu ve ortak hat planlaması
 
 7 Ekim 2026. 67 test geçti. Yeni kullanım kuralları ve sınırlar: [Üretim ve iskonto](URETIM_VE_ISKONTO.md).
