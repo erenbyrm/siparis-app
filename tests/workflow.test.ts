@@ -8,12 +8,12 @@ import {printHtml,ordersCSV,dateKey} from '../src/outputs';
 const admin='demo-admin',sales='demo-sales',production='demo-production',shipping='demo-shipping';
 function created(){return execute(createDemo(),sales,{type:'order.create',customerId:'demo-c1',items:[{id:'demo-p1',quantity:2}],discount:{type:'percent',value:10},vatMode:'product'});}
 function approved(){let s=created();s=execute(s,sales,{type:'order.customerApprove',id:s.orders[0].id});return execute(s,admin,{type:'order.approve',id:s.orders[0].id,deliveryDate:'2099-12-31',acceptPlanRisk:true});}
-function ready(){const s=approved();return execute(s,production,{type:'order.ready',id:s.orders[0].id,items:[{id:'demo-p1',quantity:2}]});}
+function ready(){let s=approved();s=execute(s,production,{type:'order.ready',id:s.orders[0].id,items:[{id:'demo-p1',quantity:2}]});return execute(s,shipping,{type:'order.receive',id:s.orders[0].id,items:[{id:'demo-p1',quantity:2}]});}
 test('partial shipping stays open and the final shipment closes it',()=>{
  let s=ready();s=execute(s,shipping,{type:'order.ship',id:s.orders[0].id,items:[{id:'demo-p1',quantity:1}]});
  assert.equal(s.orders[0].status,'Sevkiyata Hazır');assert.equal(s.orders[0].items[0].readyForShipmentQuantity,1);
  s=execute(s,shipping,{type:'order.ship',id:s.orders[0].id,items:[{id:'demo-p1',quantity:1}]});
- assert.equal(s.orders[0].status,'Tamamlandı');assert.equal(s.orders[0].shipments.length,2);assert.equal(s.audit.length,6);validateState(s);
+ assert.equal(s.orders[0].status,'Tamamlandı');assert.equal(s.orders[0].shipments.length,2);assert.equal(s.audit.length,7);validateState(s);
 });
 for(const quantity of [0,-1,0.5,3,Infinity,NaN])test(`reject invalid shipment quantity ${quantity} without changing source`,()=>{const s=ready(),before=JSON.stringify(s);assert.throws(()=>execute(s,shipping,{type:'order.ship',id:s.orders[0].id,items:[{id:'demo-p1',quantity}]}));assert.equal(JSON.stringify(s),before);});
 test('production cannot start before both approvals',()=>{const s=created();assert.throws(()=>execute(s,production,{type:'order.ready',id:s.orders[0].id,items:[{id:'demo-p1',quantity:1}]}));});
@@ -51,5 +51,5 @@ test('legacy migration corrects status and quantities without reading old passwo
  const p={id:1,orderNo:1,code:'ABC',name:'Ürün',price:100,kdvRate:20};
  const values:Record<string,unknown>={siparis_products_v20:[p],siparis_orders_v20:[{id:'SIP-1',createdAt:'06.10.2026 12:00:00',createdBy:'Eski',customer:{id:1,name:'Müşteri'},items:[{...p,quantity:2,pendingQuantity:0,readyForShipmentQuantity:1,sentQuantity:0}],status:'Tamamlandı',vatRate:20,shipments:[]}]};
  const storage={getItem:(key:string)=>{assert.ok(!key.includes('users'));return key in values?JSON.stringify(values[key]):null;}};
- const result=readLegacy(storage);assert.equal(result.data.orders[0].status,'Sevkiyata Hazır');assert.equal(result.data.orders[0].items[0].pendingQuantity,1);assert.equal(result.data.users.length,0);assert.equal(result.warnings.length,3);
+ const result=readLegacy(storage);assert.equal(result.data.orders[0].status,'Hazırlanıyor');assert.equal(result.data.orders[0].items[0].pendingQuantity,1);assert.equal(result.data.users.length,0);assert.equal(result.warnings.length,4);assert.equal(result.data.orders[0].items[0].awaitingReceiptQuantity,1);
 });

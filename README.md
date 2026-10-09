@@ -1,8 +1,10 @@
-# Mobil Sipariş 0.4.0
+# Mobil Sipariş 0.5.0
 
 Satış teklifi → müşteri onayı → yönetici onayı → üretim → kısmi/tam sevkiyat.
 
 **Durum:** Yerel deneme ve otomatik kontroller tamamlandı. Supabase hesabı/veritabanı henüz kurulmadı. Gerçek ekip kullanımı için [kurulum rehberini](docs/KURULUM.md) uygulayın; canlı kabul testleri geçmeden eski sürümün yerine almayın.
+
+Depo ve stok, yönetici onaylı sayım ve üretim kabulü: [kullanım rehberi](docs/DEPO_VE_SAYIM.md).
 
 ## Hazır olanlar
 

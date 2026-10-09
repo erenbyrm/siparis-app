@@ -1,3 +1,7 @@
+# 0.5.0 — tek depo, sayım ve stok ayırma
+
+9 Ekim 2026. Depocu sayımı, yönetici onaylı fark düzeltme, sayarak üretim kabulü, stoktan sipariş karşılama ve stok üretimi. 87 test geçti. [Kullanım rehberi](DEPO_VE_SAYIM.md).
+
 # 0.4.0 — şirket kimliği ve kişiye özel karşılama
 
 8 Ekim 2026. Yönetici şirket bilgileri, logo/fotoğraf yükleme, tüm rollerde ad soyad ile karşılama, markalı çıktılar ve yedek uyumluluğu. 73 test geçti. [Kullanım ve inceleme raporu](SIRKET_VE_INCELEME.md).

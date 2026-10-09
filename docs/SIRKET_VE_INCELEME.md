@@ -1,6 +1,6 @@
 # Şirket kimliği ve uygulama incelemesi
 
-8 Ekim 2026 · Sürüm 0.4.0
+9 Ekim 2026 · Sürüm 0.5.0
 
 ## Eklenen kullanım
 
@@ -24,17 +24,17 @@ Giriş ekranında bu tarayıcıda en son kaydedilen şirket adı ve logo hatırl
 | Fiyat/iskonto | Satır %/TL, ardından genel iskonto, ürün bazında KDV, kuruş hesabı | Bayi fiyat listesi ve iskonto üst sınırları iş kuralı gerektirir |
 | Üretim | Tek ortak hat, ürün kapasitesi, günlük doluluk, teslim riski var | Diğer ürünlerin günlük adetleri; duruş/arıza ve malzeme bekleme için ayrı kayıtlar |
 | Sevkiyat | Gönderilen adet ve geçmiş kaydı var | Kargo/araç, takip no, teslim alan ve gerçek teslim teyidi; sevk edildi ile müşteriye teslim edildi ayrı durumlara dönüşmeli |
-| Stok | Sipariş içindeki bekleyen/hazır/sevk miktarları izlenir | Depo stokları, hammadde, reçete ve stok rezervasyonu henüz yok |
+| Stok | Tek depo, stok ayırma, sayarak üretim kabulü, yönetici onaylı sayım var | Hammadde, reçete, barkod ve iade henüz yok |
 | Finans | Sipariş toplamları ve CSV var | Ödeme/tahsilat, cari bakiye, vade ve iade henüz yok; sipariş toplamı tahsilat değildir |
 | Raporlama | Durum, tarih, arama ve toplamlar var | Satıcı/ürün/ay bazında satış, gecikme ve üretim performansı raporları |
 | Bildirim | Ekranda kayıt/uyarı mesajı var | Onay bekleyen ve geciken işler için uygulama içi bildirim; dış mesaj gönderimi ayrıca yapılandırılmalı |
 | Yedek | Dosya yedeği ve boş sisteme kontrollü aktarım var | Otomatik günlük yedek ve geri yükleme tatbikatı merkezi kurulumdan sonra |
 | Veri hacmi | Küçük ekip için tek çalışma alanı, 2 MB kayıt sınırı var | Kayıtlar büyümeden sipariş/ürün/görselleri ayrı veritabanı tabloları ve depolamaya ayırmak |
 
-Önerilen sıra: şirket bilgileri ve ürün kapasitelerini doldurmak; sevkiyat/teslim teyidini iyileştirmek; satış/üretim raporlarını eklemek; ardından iş ihtiyacına göre stok ve tahsilat modülleri. Supabase kurulumu kullanıcının isteğiyle sonraya bırakılmıştır.
+Önerilen sıra: şirket bilgileri ve ürün kapasitelerini doldurmak; sevkiyat/teslim teyidini iyileştirmek; satış/üretim raporlarını eklemek; ardından iş ihtiyacına göre hammadde ve tahsilat modülleri. Supabase kurulumu kullanıcının isteğiyle sonraya bırakılmıştır.
 
 ## Kontrol kapsamı ve sınırlar
 
-73 otomatik test ile yetkiler, şirket kaydı, yedek, çıktı güvenliği, iskonto, kapasite ve iş akışları kontrol edildi. Tür kontrolü ve üretim derlemesi geçti. Yerel tarayıcıda örnek PNG yükleme/küçültme, şirket adı ve logo kaydı, dört rolün karşılaması incelendi.
+87 otomatik test ile yetkiler, şirket kaydı, yedek, çıktı güvenliği, iskonto, kapasite ve iş akışları kontrol edildi. Tür kontrolü ve üretim derlemesi geçti. Yerel tarayıcıda örnek PNG yükleme/küçültme, şirket adı ve logo kaydı, dört rolün karşılaması incelendi.
 
 Merkezi Supabase bağlantısı henüz kurulmadığı için çok cihazlı gerçek ekip kullanımı ve gerçek hesap e-postaları doğrulanmış değildir. Deneme kayıtları tarayıcıya özeldir. Mevcut canlı sürüm korunur; bu geliştirmeler önizleme dalında hazırlanır. Kaynak kod ZIP dosyası tarayıcıdaki müşteri/sipariş kayıtlarının yedeği değildir.

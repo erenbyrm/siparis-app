@@ -60,5 +60,7 @@ export function readLegacy(storage:Pick<Storage,'getItem'>):{data:State,warnings
   return {id:'legacy-order-'+String(o.id),number:String(o.id),createdAt:legacyDate(o.createdAt),createdBy:String(o.createdBy??'Eski kullanıcı'),createdByUserId:'legacy-owner',customer:customer(o.customer as Record<string,unknown>),items:items.map(i=>({...i,kdvRate:Number(o.vatRate??0)})),discount:o.globalDiscount??{type:'percent',value:0},vatMode:Number(o.vatRate)>0?'product':'none',status:finalStatus as Status,shipments,...(o.customerApprovedAt?{customerApprovedAt:legacyDate(o.customerApprovedAt)}:{}),...(o.managerApprovedAt?{managerApprovedAt:legacyDate(o.managerApprovedAt)}:{}),...(o.cancelledAt?{cancelledAt:legacyDate(o.cancelledAt)}:{})} as Order;
  });
  warnings.unshift('Eski şifreler ve hesap yetkileri aktarılmaz. Siparişler seçtiğiniz aktif kullanıcıya bağlanır.');
+ delete s.inventory;
+ warnings.push('Eski hazır miktarlar depocu sayımına aktarılır; ilk fiziksel stok ayrıca sayılarak girilmelidir.');
  return {data:validateState(s),warnings};
 }

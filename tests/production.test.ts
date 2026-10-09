@@ -35,7 +35,7 @@ test('unknown capacity produces warning and cannot silently approve',()=>{
 test('today actual production consumes capacity even after cancellation',()=>{
  let s=approve(waiting());s=execute(s,'demo-production',{type:'order.ready',id:s.orders[0].id,items:[{id:'demo-p1',quantity:75}]},now);
  let p=buildProductionPlan(s,'2026-10-09');assert.equal(p.allocations.reduce((n,a)=>n+a.load,0),1);assert.equal(p.allocations.filter(a=>a.completed)[0].quantity,75);
- s=execute(s,'demo-admin',{type:'order.cancel',id:s.orders[0].id,reason:'Test'},now);s.products[0].dailyCapacity=300;
+ s=execute(s,'demo-shipping',{type:'order.receive',id:s.orders[0].id,items:[{id:'demo-p1',quantity:75}]},now);s=execute(s,'demo-admin',{type:'order.cancel',id:s.orders[0].id,reason:'Test'},now);s.products[0].dailyCapacity=300;
  p=buildProductionPlan(s,'2026-10-09');assert.equal(p.allocations.length,1);assert.equal(p.allocations[0].load,0.5);assert.equal(buildProductionPlan(s,'2026-10-12').allocations.length,0);
 });
 test('a new urgent order must acknowledge delaying an existing promise',()=>{
@@ -50,7 +50,7 @@ test('draft orders reserve nothing, holidays skipped, horizon bounded',()=>{
 test('ready quantities reserve no future production; delivered quantities reserve none',()=>{
  let s=approve(waiting());s=execute(s,'demo-production',{type:'order.ready',id:s.orders[0].id,items:[{id:'demo-p1',quantity:150}]},now);
  assert.equal(buildProductionPlan(s,'2026-10-12').allocations.length,0);
- s=execute(s,'demo-shipping',{type:'order.ship',id:s.orders[0].id,items:[{id:'demo-p1',quantity:150}]},now);
+ s=execute(s,'demo-shipping',{type:'order.receive',id:s.orders[0].id,items:[{id:'demo-p1',quantity:150}]},now);s=execute(s,'demo-shipping',{type:'order.ship',id:s.orders[0].id,items:[{id:'demo-p1',quantity:150}]},now);
  assert.equal(buildProductionPlan(s,'2026-10-09').orders.length,0);assert.equal(buildProductionPlan(s,'2026-10-09').allocations[0].load,1);
 });
 test('only administrators reschedule open orders',()=>{

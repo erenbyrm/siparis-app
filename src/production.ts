@@ -1,4 +1,5 @@
 import type {State,Order} from './domain';
+import {ensureInventory,reserveStock} from './inventory';
 
 export type ProductionConfig={resources:{id:string,name:string}[],workDays:number[],transportDays:number,closedDates:string[]};
 export type ProductionAllocation={orderId:string,orderNumber:string,lineId:string,code:string,name:string,resourceId:string,date:string,quantity:number,dailyCapacity:number,load:number,productionDeadline:string,late:boolean,completed:boolean};
@@ -17,11 +18,13 @@ export function productionDeadline(deliveryDate:string,config:ProductionConfig){
 // Different products on the same resource consume quantity / product daily capacity.
 // Remaining quantities only: goods already ready/shipped never reserve future time.
 export function buildProductionPlan(state:State,today=todayInTurkey(),candidate?:Order):ProductionPlan{
+ state=structuredClone(state);ensureInventory(state);
+ if(candidate){candidate=structuredClone(candidate);if(candidate.status==='Yönetici Onayı Bekleniyor')reserveStock(state,candidate);}
  const config=productionConfigOf(state);
  const plan:ProductionPlan={today,configured:true,allocations:[],issues:[],orders:[],dates:[]};
  const orders=state.orders.filter(o=>['Yönetici Onayladı','Hazırlanıyor','Sevkiyata Hazır'].includes(o.status)&&o.id!==candidate?.id);
  if(candidate)orders.push(candidate);
- const jobs=orders.filter(o=>o.items.some(i=>i.pendingQuantity>0||i.readyForShipmentQuantity>0)).sort((a,b)=>(a.deliveryDate??'9999').localeCompare(b.deliveryDate??'9999')||a.createdAt.localeCompare(b.createdAt)||a.id.localeCompare(b.id));
+ const jobs=orders.filter(o=>o.items.some(i=>i.pendingQuantity>0||i.readyForShipmentQuantity>0||(i.awaitingReceiptQuantity??0)>0)).sort((a,b)=>(a.deliveryDate??'9999').localeCompare(b.deliveryDate??'9999')||a.createdAt.localeCompare(b.createdAt)||a.id.localeCompare(b.id));
  for(let n=0;n<120;n++)plan.dates.push(addCalendarDays(today,n));
  const used=new Map<string,number>();
  // Actual work already completed today still consumes today's capacity, even if
@@ -35,10 +38,16 @@ export function buildProductionPlan(state:State,today=todayInTurkey(),candidate?
    plan.allocations.push({orderId:order.id,orderNumber:order.number,lineId:line.id,code:line.code,name:line.name,resourceId:row.resourceId,date:today,quantity:row.quantity,dailyCapacity:row.dailyCapacity,load,productionDeadline:today,late:false,completed:true});
   }
  }
+ for(const batch of state.inventory?.batches??[]){
+  if(todayInTurkey(batch.createdAt)!==today)continue;const p=state.products.find(p=>p.id===batch.productId);if(!p)continue;
+  if(!batch.dailyCapacity||!batch.resourceId){plan.issues.push({orderId:batch.id,orderNumber:'Stok üretimi',code:p.code,quantity:batch.quantity,reason:'Stok üretimi kapasite bilgisi eksik.'});continue;}
+  const load=batch.quantity/batch.dailyCapacity,key=batch.resourceId+'|'+today;used.set(key,(used.get(key)??0)+load);plan.allocations.push({orderId:batch.id,orderNumber:'Stok üretimi',lineId:p.id,code:p.code,name:p.name,resourceId:batch.resourceId,date:today,quantity:batch.quantity,dailyCapacity:batch.dailyCapacity,load,productionDeadline:today,late:false,completed:true});
+ }
  for(const order of jobs){
   const result:ProductionResult={orderId:order.id,orderNumber:order.number,deliveryDate:order.deliveryDate,late:false,incomplete:false};plan.orders.push(result);
   let finish:string|undefined=order.items.some(i=>i.readyForShipmentQuantity>0)?today:undefined;
   const issue=(code:string,quantity:number,reason:string)=>{plan.issues.push({orderId:order.id,orderNumber:order.number,code,quantity,reason});result.incomplete=true;};
+  for(const i of order.items)if(i.awaitingReceiptQuantity)issue(i.code,i.awaitingReceiptQuantity,'Üretildi; depocunun sayarak teslim alması bekleniyor.');
   for(const line of order.items){
    if(!line.pendingQuantity)continue;
    if(!config){issue(line.code,line.pendingQuantity,'Çalışma takvimi ve üretim birimleri tanımlı değil.');continue;}

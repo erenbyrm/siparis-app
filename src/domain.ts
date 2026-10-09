@@ -1,11 +1,12 @@
 import { z } from 'zod';
+import {inventorySchema,ensureInventory,stockRows,reserveStock,stockMovement,assertInventory,openOrder,type StockRow} from './inventory';
 import {companySchema} from './company';
 import {buildProductionPlan,productionConfigOf,isWorkingDay,todayInTurkey,type ProductionPlan} from './production';
 z.config(z.locales.tr());
 
 export const roles = ['admin', 'pazarlamaci', 'uretim', 'sevkiyat'] as const;
 export type Role = typeof roles[number];
-export const roleNames: Record<Role, string> = {admin:'Yönetici',pazarlamaci:'Pazarlamacı',uretim:'Üretim',sevkiyat:'Sevkiyat'};
+export const roleNames: Record<Role, string> = {admin:'Yönetici',pazarlamaci:'Pazarlamacı',uretim:'Üretim',sevkiyat:'Depo ve Sevkiyat'};
 export const statuses = ['Müşteriden Onay Bekleniyor','Yönetici Onayı Bekleniyor','Yönetici Onayladı','Hazırlanıyor','Sevkiyata Hazır','Tamamlandı','İptal'] as const;
 export type Status = typeof statuses[number];
 const id = z.string().min(1).max(100);
@@ -18,24 +19,24 @@ export const productSchema = z.object({id,orderNo:integer,code:text,name:text,pr
 export const customerSchema = z.object({id,name:text,company:optionalText,phone:optionalText,address:optionalText,note:optionalText,active:z.boolean().default(true)});
 export const userSchema = z.object({id,name:text,email:z.email().max(254),role:z.enum(roles),active:z.boolean()});
 export const discountSchema = z.object({type:z.enum(['percent','amount']),value:money}).refine(v=>v.type!=='percent'||v.value<=100,'İskonto %100 üzerinde olamaz.');
-const lineSchema = productSchema.extend({quantity:integer,pendingQuantity:quantity,readyForShipmentQuantity:quantity,sentQuantity:quantity,lineDiscount:discountSchema.optional()});
+const lineSchema = productSchema.extend({quantity:integer,pendingQuantity:quantity,awaitingReceiptQuantity:quantity.optional(),readyForShipmentQuantity:quantity,sentQuantity:quantity,lineDiscount:discountSchema.optional()});
 const shipmentSchema = z.object({id,createdAt:z.iso.datetime(),createdBy:text,items:z.array(z.object({itemId:id,code:text,name:text,quantity:integer})).min(1).max(500)});
 const productionRecordSchema=z.object({id,createdAt:z.iso.datetime(),createdBy:text,items:z.array(z.object({itemId:id,quantity:integer,dailyCapacity:integer.optional(),resourceId:id.optional()})).min(1).max(500)});
 export const orderSchema = z.object({id,number:text,createdAt:z.iso.datetime(),createdBy:text,createdByUserId:id,customer:customerSchema,items:z.array(lineSchema).min(1).max(500),discount:discountSchema,vatMode:z.enum(['product','none']),status:z.enum(statuses),shipments:z.array(shipmentSchema).max(10000),deliveryDate:z.iso.date().optional(),productionRecords:z.array(productionRecordSchema).max(10000).optional(),customerApprovedAt:z.iso.datetime().optional(),managerApprovedAt:z.iso.datetime().optional(),cancelledAt:z.iso.datetime().optional(),cancelReason:z.string().max(1000).optional()});
 export const auditSchema=z.object({id,at:z.iso.datetime(),actorId:id,actorName:text,action:text,targetId:id,detail:z.string().max(2000)});
 export const productionConfigSchema=z.object({resources:z.array(z.object({id,name:text})).min(1).max(20),workDays:z.array(z.number().int().min(1).max(7)).min(1).max(7),transportDays:z.number().int().min(1).max(30),closedDates:z.array(z.iso.date()).max(100)}).refine(c=>new Set(c.resources.map(r=>r.id)).size===c.resources.length&&new Set(c.workDays).size===c.workDays.length,'Üretim birimi veya çalışma günü yinelenemez.');
-export const stateSchema = z.object({schemaVersion:z.literal(2),revision:z.number().int().min(0),products:z.array(productSchema).max(10000),customers:z.array(customerSchema).max(20000),users:z.array(userSchema).max(1000),orders:z.array(orderSchema).max(50000),audit:z.array(auditSchema).max(100000),productionConfig:productionConfigSchema.optional(),company:companySchema.optional()});
+export const stateSchema = z.object({schemaVersion:z.literal(2),revision:z.number().int().min(0),products:z.array(productSchema).max(10000),customers:z.array(customerSchema).max(20000),users:z.array(userSchema).max(1000),orders:z.array(orderSchema).max(50000),audit:z.array(auditSchema).max(100000),productionConfig:productionConfigSchema.optional(),company:companySchema.optional(),inventory:inventorySchema.optional()});
 export type Product=z.infer<typeof productSchema>;
 export type Customer=z.infer<typeof customerSchema>;
 export type AppUser=z.infer<typeof userSchema>;
 export type Order=z.infer<typeof orderSchema>;
-export type State=z.infer<typeof stateSchema>&{productionPlan?:ProductionPlan};
+export type State=z.infer<typeof stateSchema>&{productionPlan?:ProductionPlan,stockSummary?:StockRow[]};
 export type Discount=z.infer<typeof discountSchema>;
 export class DomainError extends Error {constructor(message:string,public status=400){super(message);}}
 export const normalize=(value:string)=>value.toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i').trim();
 export const searchMatch=(query:string,...values:string[])=>normalize(query).split(/\s+/).every(q=>normalize(values.join(' ')).includes(q));
 export const newId=()=>crypto.randomUUID();
-export const emptyState=():State=>({schemaVersion:2,revision:0,products:[],customers:[],users:[],orders:[],audit:[]});
+export const emptyState=():State=>({schemaVersion:2,revision:0,products:[],customers:[],users:[],orders:[],audit:[],inventory:{movements:[],batches:[],adjustments:[]}});
 function fail(message:string):never{throw new DomainError(message);}
 function allowed(user:AppUser,accepted:Role[]){if(!user.active||!accepted.includes(user.role))throw new DomainError('Bu işlem için yetkiniz yok.',403);}
 export function assertOrder(order:Order){
@@ -44,7 +45,7 @@ export function assertOrder(order:Order){
  const ids=new Set<string>();
  for(const line of order.items){
   if(ids.has(line.id))fail('Siparişte yinelenen ürün var.');ids.add(line.id);
-  if(line.pendingQuantity+line.readyForShipmentQuantity+line.sentQuantity!==line.quantity)fail('Bekleyen, hazır ve gönderilen miktarların toplamı sipariş miktarına eşit olmalı.');
+  if(line.pendingQuantity+(line.awaitingReceiptQuantity??0)+line.readyForShipmentQuantity+line.sentQuantity!==line.quantity)fail('Bekleyen, hazır ve gönderilen miktarların toplamı sipariş miktarına eşit olmalı.');
   if(line.lineDiscount?.type==='amount'&&Math.round(line.lineDiscount.value*100)>Math.round(line.price*100)*line.quantity)fail(line.code+': ürün iskontosu satır tutarını aşamaz.');
  }
  for(const record of order.productionRecords??[])for(const line of record.items)if(!ids.has(line.itemId))fail('Üretim kaydında siparişe ait olmayan ürün var.');
@@ -61,7 +62,7 @@ export function validateState(value:unknown):State{
  if(new Set(s.orders.map(o=>o.number)).size!==s.orders.length)fail('Yinelenen sipariş numarası var.');
  const config=productionConfigOf(s);
  if(s.products.some(p=>(p.dailyCapacity&&!p.productionResourceId)||(p.productionResourceId&&!config.resources.some(r=>r.id===p.productionResourceId))))fail('Ürünün üretim birimi geçersiz.');
- s.orders.forEach(assertOrder);return s;
+ ensureInventory(s);s.orders.forEach(assertOrder);assertInventory(s);return s;
 }
 export function deriveStatus(items:Order['items']):Status{
  if(items.length&&items.every(i=>i.sentQuantity===i.quantity))return 'Tamamlandı';
@@ -110,6 +111,13 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('order.reopen'),id}),
  z.object({type:z.literal('order.ready'),id,items:quantities}),
  z.object({type:z.literal('order.ship'),id,items:quantities}),
+ z.object({type:z.literal('order.receive'),id,items:quantities}),
+ z.object({type:z.literal('order.allocate'),id}),
+ z.object({type:z.literal('order.release'),id,items:quantities,reason:text}),
+ z.object({type:z.literal('stock.produce'),productId:id,quantity:integer}),
+ z.object({type:z.literal('stock.receive'),id,quantity:integer}),
+ z.object({type:z.literal('stock.count'),items:z.array(z.object({productId:id,countedQuantity:quantity,expectedOnHand:quantity})).min(1).max(500),reason:text}),
+ z.object({type:z.literal('stock.review'),id,approve:z.boolean()}),
  z.object({type:z.literal('backup.import'),data:z.unknown(),ownerId:id})
 ]);
 export type Command=z.infer<typeof commandSchema>;
@@ -117,8 +125,27 @@ export function execute(state:State,actorId:string,input:unknown,now=new Date().
  const parsed=commandSchema.safeParse(input);if(!parsed.success)throw new DomainError(parsed.error.issues[0]?.message??'Geçersiz işlem.');
  const command=parsed.data,s=structuredClone(state),actor=s.users.find(u=>u.id===actorId&&u.active);
  if(!actor)throw new DomainError('Kullanıcı pasif veya oturum geçersiz.',403);
+ ensureInventory(s);
  let target='system',detail='';
  switch(command.type){
+ case 'stock.produce':{
+  allowed(actor,['admin','uretim']);const p=s.products.find(p=>p.id===command.productId&&p.active);if(!p)fail('Aktif ürün bulunamadı.');
+  const batch={id:newId(),productId:p.id,quantity:command.quantity,receivedQuantity:0,createdAt:now,createdBy:actor.name,...(p.dailyCapacity?{dailyCapacity:p.dailyCapacity}:{}),...(p.productionResourceId?{resourceId:p.productionResourceId}:{})};s.inventory!.batches.push(batch);target=batch.id;detail=p.code+': '+command.quantity+' adet depo teslimi bekliyor.';break;
+ }
+ case 'stock.receive':{
+  allowed(actor,['admin','sevkiyat']);const b=s.inventory!.batches.find(b=>b.id===command.id);if(!b)fail('Üretim kaydı bulunamadı.');if(command.quantity>b.quantity-b.receivedQuantity)fail('Teslim alınacak adet kalan miktarı aşamaz.');b.receivedQuantity+=command.quantity;stockMovement(s,b.productId,command.quantity,'stockReceipt',b.id,now,actor.name);target=b.id;detail=command.quantity+' adet sayılarak teslim alındı.';break;
+ }
+ case 'stock.count':{
+  allowed(actor,['admin','sevkiyat']);if(new Set(command.items.map(i=>i.productId)).size!==command.items.length)fail('Sayımda yinelenen ürün var.');
+  const rows=stockRows(s);for(const i of command.items){const row=rows.find(r=>r.id===i.productId);if(!row)fail('Ürün bulunamadı.');if(row.onHand!==i.expectedOnHand)fail(row.code+': stok değişti; yenileyip tekrar sayın.');if(s.inventory!.adjustments.some(a=>a.productId===i.productId&&a.status==='pending'))fail(row.code+': onay bekleyen sayım var.');
+   s.inventory!.adjustments.push({id:newId(),...i,reason:command.reason,requestedBy:actor.name,createdAt:now,status:'pending'});
+  }detail=command.items.length+' ürünün sayımı yönetici onayına gönderildi.';break;
+ }
+ case 'stock.review':{
+  allowed(actor,['admin']);const a=s.inventory!.adjustments.find(a=>a.id===command.id&&a.status==='pending');if(!a)fail('Bekleyen sayım bulunamadı.');
+  if(command.approve){const row=stockRows(s).find(p=>p.id===a.productId)!;if(row.onHand!==a.expectedOnHand)fail('Sayım sonrasında stok değişti. Sayımı reddedip yeniden sayın.');if(a.countedQuantity<row.reserved)fail('Sayım sonucu siparişlere ayrılan miktardan az. Önce ilgili siparişin stok ayırmasını iptal ederek düzenleyin.');stockMovement(s,a.productId,a.countedQuantity-a.expectedOnHand,'adjustment',a.id,now,actor.name,a.reason);}
+  a.status=command.approve?'approved':'rejected';a.reviewedBy=actor.name;a.reviewedAt=now;target=a.id;detail=command.approve?'Sayım onaylandı ve stok güncellendi.':'Sayım reddedildi; stok değişmedi.';break;
+ }
  case 'company.save':allowed(actor,['admin']);s.company=command.company;detail='Şirket bilgileri güncellendi: '+command.company.name;break;
  case 'product.save':{
   allowed(actor,['admin']);const p=command.product;const existing=p.id?s.products.find(x=>x.id===p.id):undefined;
@@ -170,7 +197,7 @@ export function execute(state:State,actorId:string,input:unknown,now=new Date().
  case 'backup.import':{
   allowed(actor,['admin']);const data=validateState(command.data);const owner=s.users.find(u=>u.id===command.ownerId&&u.active&&['admin','pazarlamaci'].includes(u.role));if(!owner)fail('Aktarım için aktif satış kullanıcısı seçin.');
   if(s.products.length||s.customers.length||s.orders.length)fail('Yedek yalnızca boş sisteme aktarılır. Mevcut kayıtların üzerine yazılmaz.');
-  s.company=data.company;s.productionConfig=productionConfigOf(data);s.products=data.products;s.customers=data.customers;s.orders=data.orders.map(o=>({...o,createdByUserId:owner.id,createdBy:owner.name}));
+  s.inventory=data.inventory;s.company=data.company;s.productionConfig=productionConfigOf(data);s.products=data.products;s.customers=data.customers;s.orders=data.orders.map(o=>({...o,createdByUserId:owner.id,createdBy:owner.name}));
   // Imported accounts never grant access, and imported audit actors cannot impersonate current users.
   detail=`${data.orders.length} sipariş, ${data.products.length} ürün, ${data.customers.length} müşteri. Sahibi: ${owner.name}`;break;
  }
@@ -186,23 +213,34 @@ export function execute(state:State,actorId:string,input:unknown,now=new Date().
    if(command.deliveryDate<todayInTurkey(now))fail('Teslim tarihi geçmişte olamaz.');
    if(!isWorkingDay(command.deliveryDate,productionConfigOf(s)))fail('Teslim tarihi çalışma günü olmalı.');
    const oldDate=order.deliveryDate;order.deliveryDate=command.deliveryDate;
+   if(command.type==='order.approve'){order.status='Yönetici Onayladı';order.managerApprovedAt=now;reserveStock(s,order);}
    const plan=buildProductionPlan(s,todayInTurkey(now),order),result=plan.orders.find(o=>o.orderId===order.id);
    if((result?.incomplete||plan.orders.some(o=>o.late)||plan.issues.length>0)&&!command.acceptPlanRisk)fail('Seçilen tarih kapasiteye göre riskli veya kapasite bilgisi eksik. Plan uyarısını kontrol edip açık onay verin.');
-   if(command.type==='order.approve'){order.status='Yönetici Onayladı';order.managerApprovedAt=now;}
+   if(command.type==='order.approve'&&order.items.some(i=>i.readyForShipmentQuantity>0))order.status=deriveStatus(order.items);
    detail=`Müşteriye teslim: ${oldDate??'belirtilmemiş'} → ${command.deliveryDate}${command.acceptPlanRisk?' · Kapasite riski kabul edildi.':''}`;
+  }else if(command.type==='order.release'){
+   allowed(actor,['admin']);if(!openOrder(order))fail('Açık sipariş gerekli.');if(new Set(command.items.map(i=>i.id)).size!==command.items.length)fail('Yinelenen ürün.');
+   for(const row of command.items){const line=order.items.find(i=>i.id===row.id);if(!line||row.quantity>line.readyForShipmentQuantity)fail('Ayrılan miktardan fazlası serbest bırakılamaz.');line.readyForShipmentQuantity-=row.quantity;line.pendingQuantity+=row.quantity;}
+   order.status=deriveStatus(order.items);detail='Stok ayırma kaldırıldı; üretim ihtiyacı yeniden açıldı. '+command.reason;
+  }else if(command.type==='order.allocate'){
+   allowed(actor,['admin','sevkiyat']);if(!openOrder(order)||!order.managerApprovedAt)fail('Stok ayırmak için yönetici onayı gerekli.');const count=reserveStock(s,order);if(!count)fail('Ayrılabilir stok veya üretim ihtiyacı yok.');order.status=deriveStatus(order.items);detail=count+' adet depodan siparişe ayrıldı.';
+  }else if(command.type==='order.receive'){
+   allowed(actor,['admin','sevkiyat']);if(!openOrder(order)||!order.managerApprovedAt)fail('Açık ve onaylı sipariş gerekli.');if(new Set(command.items.map(i=>i.id)).size!==command.items.length)fail('Yinelenen ürün.');
+   for(const row of command.items){const line=order.items.find(i=>i.id===row.id);if(!line||row.quantity>(line.awaitingReceiptQuantity??0))fail('Teslim alınan miktar depo kabulü bekleyeni aşamaz.');line.awaitingReceiptQuantity=(line.awaitingReceiptQuantity??0)-row.quantity;line.readyForShipmentQuantity+=row.quantity;stockMovement(s,line.id,row.quantity,'receipt',order.id,now,actor.name);}
+   order.status=deriveStatus(order.items);detail='Üretimden sayılarak teslim alındı ve siparişe ayrıldı.';
   }else if(command.type==='order.cancel'){
    allowed(actor,['admin','pazarlamaci']);if(actor.role!=='admin'&&(!owns||!['Müşteriden Onay Bekleniyor','Yönetici Onayı Bekleniyor'].includes(order.status)))fail('Üretime geçen siparişi yalnızca yönetici iptal edebilir.');
-   if(['İptal','Tamamlandı'].includes(order.status)||order.items.some(i=>i.sentQuantity>0))fail('Gönderilmiş veya kapanmış sipariş iptal edilemez.');order.status='İptal';order.cancelledAt=now;order.cancelReason=command.reason;detail=command.reason;
+   if(['İptal','Tamamlandı'].includes(order.status)||order.items.some(i=>i.sentQuantity>0))fail('Gönderilmiş veya kapanmış sipariş iptal edilemez.');if(order.items.some(i=>(i.awaitingReceiptQuantity??0)>0))fail('Önce üretimden çıkan ürünleri depoya sayarak teslim alın.');for(const i of order.items){i.pendingQuantity+=i.readyForShipmentQuantity;i.readyForShipmentQuantity=0;}order.status='İptal';order.cancelledAt=now;order.cancelReason=command.reason;detail=command.reason;
   }else if(command.type==='order.reopen'){
    allowed(actor,['admin']);if(order.status!=='İptal'||order.items.some(i=>i.sentQuantity>0))fail('Bu sipariş yeniden açılamaz.');
-   order.items=order.items.map(i=>({...i,pendingQuantity:i.quantity,readyForShipmentQuantity:0,sentQuantity:0}));order.status='Müşteriden Onay Bekleniyor';delete order.customerApprovedAt;delete order.managerApprovedAt;delete order.cancelledAt;delete order.cancelReason;delete order.deliveryDate;detail='Önceki onaylar, teslim tarihi ve hazır miktarlar sıfırlandı.';
+   order.items=order.items.map(i=>({...i,pendingQuantity:i.quantity,awaitingReceiptQuantity:0,readyForShipmentQuantity:0,sentQuantity:0}));order.status='Müşteriden Onay Bekleniyor';delete order.customerApprovedAt;delete order.managerApprovedAt;delete order.cancelledAt;delete order.cancelReason;delete order.deliveryDate;detail='Önceki onaylar, teslim tarihi ve hazır miktarlar sıfırlandı.';
   }else{
    const production=command.type==='order.ready';allowed(actor,production?['admin','uretim']:['admin','sevkiyat']);
    if(!['Yönetici Onayladı','Hazırlanıyor','Sevkiyata Hazır'].includes(order.status)||!order.managerApprovedAt)fail('İşlem için yönetici onayı ve açık sipariş gerekli.');
    if(new Set(command.items.map(i=>i.id)).size!==command.items.length)fail('Yinelenen ürün satırı.');
    const shipped:Order['shipments'][number]['items']=[];
    for(const row of command.items){const line=order.items.find(i=>i.id===row.id);if(!line)fail('Ürün siparişte bulunamadı.');const available=production?line.pendingQuantity:line.readyForShipmentQuantity;if(row.quantity>available)fail(`${line.code}: en fazla ${available} adet işlem yapılabilir.`);
-    if(production){line.pendingQuantity-=row.quantity;line.readyForShipmentQuantity+=row.quantity;}else{line.readyForShipmentQuantity-=row.quantity;line.sentQuantity+=row.quantity;shipped.push({itemId:line.id,code:line.code,name:line.name,quantity:row.quantity});}}
+    if(production){line.pendingQuantity-=row.quantity;line.awaitingReceiptQuantity=(line.awaitingReceiptQuantity??0)+row.quantity;}else{line.readyForShipmentQuantity-=row.quantity;line.sentQuantity+=row.quantity;stockMovement(s,line.id,-row.quantity,'shipment',order.id,now,actor.name);shipped.push({itemId:line.id,code:line.code,name:line.name,quantity:row.quantity});}}
    if(!production)order.shipments.push({id:newId(),createdAt:now,createdBy:actor.name,items:shipped});
    else (order.productionRecords??=[]).push({id:newId(),createdAt:now,createdBy:actor.name,items:command.items.map(i=>{const p=s.products.find(p=>p.id===i.id);return {itemId:i.id,quantity:i.quantity,...(p?.dailyCapacity?{dailyCapacity:p.dailyCapacity}:{}),...(p?.productionResourceId?{resourceId:p.productionResourceId}:{})};})});
    order.status=deriveStatus(order.items);detail=command.items.map(i=>`${i.quantity} adet`).join(', ');
@@ -210,14 +248,16 @@ export function execute(state:State,actorId:string,input:unknown,now=new Date().
   assertOrder(order);
  }
  }
+ try{assertInventory(s);}catch(e){fail(e instanceof Error?e.message:'Depo kaydı geçersiz.');}
  s.revision++;s.audit.push({id:newId(),at:now,actorId:actor.id,actorName:actor.name,action:command.type,targetId:target,detail});
  if(new TextEncoder().encode(JSON.stringify(s)).byteLength>2_000_000)fail('Çalışma alanı 2 MB kapasite sınırına ulaştı. Mevcut veriler korundu; yeni kayıt için yönetici kapasite düzenlemesi yapmalı.');
  return s;
 }
 export function stateForUser(state:State,user:AppUser):State{
  if(!user.active)throw new DomainError('Hesap pasif.',403);
- const s=structuredClone(state);
+ const s=structuredClone(state);ensureInventory(s);s.stockSummary=stockRows(s);
  if(user.role==='admin')return s;
+ if(user.role==='pazarlamaci')delete s.inventory;else if(user.role==='uretim'&&s.inventory)s.inventory={...s.inventory,movements:[],adjustments:[]};
  s.users=[user];
  if(user.role==='pazarlamaci')s.orders=s.orders.filter(o=>o.createdByUserId===user.id);
  else s.orders=s.orders.filter(o=>['Yönetici Onayladı','Hazırlanıyor','Sevkiyata Hazır','Tamamlandı'].includes(o.status));
