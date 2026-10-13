@@ -24,7 +24,9 @@ export function buildProductionPlan(state:State,today=todayInTurkey(),candidate?
  const plan:ProductionPlan={today,configured:true,allocations:[],issues:[],orders:[],dates:[]};
  const orders=state.orders.filter(o=>['Yönetici Onayladı','Hazırlanıyor','Sevkiyata Hazır'].includes(o.status)&&o.id!==candidate?.id);
  if(candidate)orders.push(candidate);
- const jobs=orders.filter(o=>o.items.some(i=>i.pendingQuantity>0||i.readyForShipmentQuantity>0||(i.awaitingReceiptQuantity??0)>0)).sort((a,b)=>(a.deliveryDate??'9999').localeCompare(b.deliveryDate??'9999')||a.createdAt.localeCompare(b.createdAt)||a.id.localeCompare(b.id));
+ const stockIds=new Set<string>();for(const r of state.stockRequests??[]){if(!['Onaylandı','Üretimde'].includes(r.status))continue;stockIds.add(r.id);orders.push({id:r.id,number:r.number,createdAt:r.createdAt,createdBy:r.createdBy,createdByUserId:r.createdByUserId,customer:{id:'stock',name:'Depo stoğu',company:'',phone:'',address:'',note:'',active:true},discount:{type:'amount',value:0},vatMode:'none',status:'Hazırlanıyor',deliveryDate:r.neededDate,shipments:[],items:r.items.map(i=>({...i,orderNo:1,price:0,kdvRate:0,active:true,pendingQuantity:i.quantity-i.producedQuantity,readyForShipmentQuantity:0,sentQuantity:0,awaitingReceiptQuantity:(state.inventory?.batches??[]).filter(b=>b.requestId===r.id&&b.productId===i.id).reduce((n,b)=>n+b.quantity-b.receivedQuantity,0)}))});}
+ const deadlineOf=(o:Order)=>stockIds.has(o.id)?o.deliveryDate!:productionDeadline(o.deliveryDate!,config);
+ const jobs=orders.filter(o=>o.items.some(i=>i.pendingQuantity>0||i.readyForShipmentQuantity>0||(i.awaitingReceiptQuantity??0)>0)).sort((a,b)=>(a.deliveryDate?deadlineOf(a):'9999').localeCompare(b.deliveryDate?deadlineOf(b):'9999')||a.createdAt.localeCompare(b.createdAt)||a.id.localeCompare(b.id));
  for(let n=0;n<120;n++)plan.dates.push(addCalendarDays(today,n));
  const used=new Map<string,number>();
  // Actual work already completed today still consumes today's capacity, even if
@@ -40,7 +42,7 @@ export function buildProductionPlan(state:State,today=todayInTurkey(),candidate?
  }
  for(const batch of state.inventory?.batches??[]){
   if(todayInTurkey(batch.createdAt)!==today)continue;const p=state.products.find(p=>p.id===batch.productId);if(!p)continue;
-  if(!batch.dailyCapacity||!batch.resourceId){plan.issues.push({orderId:batch.id,orderNumber:'Stok üretimi',code:p.code,quantity:batch.quantity,reason:'Stok üretimi kapasite bilgisi eksik.'});continue;}
+  if(!batch.dailyCapacity||!batch.resourceId){plan.issues.push({orderId:batch.id,orderNumber:batch.requestId?state.stockRequests?.find(r=>r.id===batch.requestId)?.number??'Stok üretimi':batch.number??'Stok üretimi',code:p.code,quantity:batch.quantity,reason:'Stok üretimi kapasite bilgisi eksik.'});continue;}
   const load=batch.quantity/batch.dailyCapacity,key=batch.resourceId+'|'+today;used.set(key,(used.get(key)??0)+load);plan.allocations.push({orderId:batch.id,orderNumber:'Stok üretimi',lineId:p.id,code:p.code,name:p.name,resourceId:batch.resourceId,date:today,quantity:batch.quantity,dailyCapacity:batch.dailyCapacity,load,productionDeadline:today,late:false,completed:true});
  }
  for(const order of jobs){
@@ -54,7 +56,7 @@ export function buildProductionPlan(state:State,today=todayInTurkey(),candidate?
    if(!order.deliveryDate){issue(line.code,line.pendingQuantity,'Müşteriye teslim tarihi belirtilmemiş.');continue;}
    const product=state.products.find(p=>p.id===line.id),rate=product?.dailyCapacity,resource=product?.productionResourceId;
    if(!rate||!resource||!config.resources.some(r=>r.id===resource)){issue(line.code,line.pendingQuantity,'Ürünün günlük kapasitesi veya üretim birimi eksik.');continue;}
-   const deadline=productionDeadline(order.deliveryDate,config);let remaining=line.pendingQuantity;
+   const deadline=deadlineOf(order);let remaining=line.pendingQuantity;
    for(const day of plan.dates){
     if(!isWorkingDay(day,config))continue;
     const key=resource+'|'+day,current=used.get(key)??0;
@@ -65,7 +67,7 @@ export function buildProductionPlan(state:State,today=todayInTurkey(),candidate?
    }
    if(remaining)issue(line.code,remaining,'120 günlük planlama ufkuna sığmayan miktar.');
   }
-  if(finish&&config)result.expectedDeliveryDate=addWorkingDays(finish,config.transportDays,config);
+  if(finish&&config)result.expectedDeliveryDate=stockIds.has(order.id)?finish:addWorkingDays(finish,config.transportDays,config);
   result.late=!!(order.deliveryDate&&result.expectedDeliveryDate&&result.expectedDeliveryDate>order.deliveryDate);
  }
  return plan;

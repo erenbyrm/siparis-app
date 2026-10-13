@@ -29,13 +29,13 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
    if(previous.rowCount){if(previous.rows[0].actor_id!==actor.id)throw new DomainError('İstek kimliği başka kullanıcıya ait.',409);}
    else{
     if(payload.revision!==state.revision)throw new DomainError('Başka bir kullanıcı kayıtları güncelledi. Liste yenilendi; işleminizi kontrol edip tekrar deneyin.',409);
-    state=execute(state,actor.id,payload.command);
+    state=execute(state,actor.id,payload.command,new Date().toISOString(),payload.requestId);
     await client.query('INSERT INTO siparis_private.requests (id,actor_id) VALUES ($1,$2)',[payload.requestId,actor.id]);
    }
   }
   if(state.revision!==revisionBefore)await client.query('UPDATE siparis_private.workspace SET data=$1,updated_at=now() WHERE id=true',[JSON.stringify(state)]);
   actor=state.users.find(u=>u.id===actor.id)!;
-  await client.query('COMMIT');return res.status(200).json({state:stateForUser(state,actor),user:actor});
+  await client.query('COMMIT');return res.status(200).json({state:stateForUser(state,actor),user:actor,...(payload?{documentId:state.documentBook?.records.find(d=>d.requestId===payload.requestId)?.id}: {})});
  }catch(error){
   if(client)await client.query('ROLLBACK').catch(()=>{});
   if(error instanceof DomainError)return res.status(error.status).json({error:error.message});

@@ -2,9 +2,9 @@ import {z} from 'zod';
 import type {State,Order} from './domain';
 const id=z.string().min(1).max(100),qty=z.number().int().min(0).max(1_000_000),positive=qty.min(1);
 export const inventorySchema=z.object({
- movements:z.array(z.object({id,productId:id,quantity:z.number().int().min(-1_000_000).max(1_000_000),kind:z.enum(['receipt','stockReceipt','shipment','adjustment']),reference:id,at:z.iso.datetime(),actor:z.string().max(200),reason:z.string().max(500)})).max(30000),
- batches:z.array(z.object({id,productId:id,quantity:positive,receivedQuantity:qty,createdAt:z.iso.datetime(),createdBy:z.string().max(200),dailyCapacity:positive.optional(),resourceId:id.optional()})).max(10000),
- adjustments:z.array(z.object({id,productId:id,countedQuantity:qty,expectedOnHand:qty,reason:z.string().min(1).max(500),requestedBy:z.string().max(200),createdAt:z.iso.datetime(),status:z.enum(['pending','approved','rejected']),reviewedBy:z.string().max(200).optional(),reviewedAt:z.iso.datetime().optional()})).max(10000)
+ movements:z.array(z.object({id,number:z.string().max(120).optional(),productId:id,quantity:z.number().int().min(-1_000_000).max(1_000_000),kind:z.enum(['receipt','stockReceipt','shipment','adjustment']),reference:id,at:z.iso.datetime(),actor:z.string().max(200),reason:z.string().max(500)})).max(30000),
+ batches:z.array(z.object({id,requestId:z.string().optional(),number:z.string().max(120).optional(),productId:id,quantity:positive,receivedQuantity:qty,createdAt:z.iso.datetime(),createdBy:z.string().max(200),dailyCapacity:positive.optional(),resourceId:id.optional()})).max(10000),
+ adjustments:z.array(z.object({id,number:z.string().max(120).optional(),reviewNumber:z.string().max(120).optional(),productId:id,countedQuantity:qty,expectedOnHand:qty,reason:z.string().min(1).max(500),requestedBy:z.string().max(200),createdAt:z.iso.datetime(),status:z.enum(['pending','approved','rejected']),reviewedBy:z.string().max(200).optional(),reviewedAt:z.iso.datetime().optional()})).max(10000)
 });
 export type StockRow={id:string,code:string,name:string,onHand:number,reserved:number,available:number,awaiting:number,active:boolean};
 export const openOrder=(o:Order)=>['Yönetici Onayladı','Hazırlanıyor','Sevkiyata Hazır'].includes(o.status);
@@ -35,5 +35,8 @@ export function assertInventory(s:State){
  const ids=new Set(stockRows(s).map(p=>p.id));
  for(const m of [...s.inventory.movements,...s.inventory.batches,...s.inventory.adjustments])if(!ids.has(m.productId))throw new Error('Depo kaydının ürünü bulunamadı.');
  for(const p of stockRows(s))if(p.onHand<0||p.onHand>1_000_000||p.reserved>p.onHand)throw new Error(p.code+': depo stoğu negatif, sınır üstünde veya ayrılan miktardan az olamaz.');
+ if(new Set((s.stockRequests??[]).map(r=>r.id)).size!==(s.stockRequests??[]).length||new Set((s.stockRequests??[]).map(r=>r.number)).size!==(s.stockRequests??[]).length)throw new Error('Yinelenen stok talebi.');
+ for(const b of s.inventory.batches)if(b.requestId&&!s.stockRequests?.some(r=>r.id===b.requestId&&r.items.some(i=>i.id===b.productId)))throw new Error('Üretimin stok talebi bulunamadı.');
+ for(const r of s.stockRequests??[]){if(new Set(r.items.map(i=>i.id)).size!==r.items.length)throw new Error('Talepte yinelenen ürün.');for(const i of r.items)if(i.producedQuantity>i.quantity||i.producedQuantity!==s.inventory.batches.filter(b=>b.requestId===r.id&&b.productId===i.id).reduce((n,b)=>n+b.quantity,0))throw new Error('Stok talebi üretim miktarı tutarsız.');}
  for(const b of s.inventory.batches)if(b.receivedQuantity>b.quantity)throw new Error('Teslim alınan miktar üretim miktarını aşamaz.');
 }

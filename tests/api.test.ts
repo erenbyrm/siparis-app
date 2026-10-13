@@ -30,7 +30,7 @@ function fixture(t:test.TestContext){
   let status=200;let result:unknown;const headers:Record<string,string>={};
   const response={setHeader(k:string,v:string){headers[k]=v;},status(n:number){status=n;return this;},json(v:unknown){result=v;return this;}};
   await handler({method,headers:{...(token?{authorization:'Bearer fixture-token'}:{}),'content-type':'application/json'},body} as VercelRequest,response as unknown as VercelResponse);
-  return {status,result:result as {state:State,error?:string},headers};
+  return {status,result:result as {state:State,error?:string,documentId?:string},headers};
  }};
 }
 const command={type:'product.archive',id:'demo-p1'};
@@ -41,3 +41,5 @@ test('API repeated request is applied exactly once despite old revision',async t
 test('API request ID is bound to its original actor',async t=>{const f=fixture(t);const body={requestId:crypto.randomUUID(),revision:0,command};await f.call(body);f.setEmail('sales@example.test');assert.equal((await f.call(body)).status,409);assert.equal(f.state.revision,1);});
 test('API enforces authorization server-side',async t=>{const f=fixture(t);f.setEmail('sales@example.test');assert.equal((await f.call({requestId:crypto.randomUUID(),revision:0,command})).status,403);assert.equal(f.state.audit.length,0);});
 test('API rolls back both record and receipt on failed persistence',async t=>{const f=fixture(t);f.failWrite();const r=await f.call({requestId:crypto.randomUUID(),revision:0,command});assert.equal(r.status,500);assert.equal(f.state.revision,0);assert.equal(f.state.products[0].active,true);});
+
+test('retry returns the original document after another operation and creates no duplicate number',async t=>{const f=fixture(t);const first={requestId:crypto.randomUUID(),revision:0,command};const a=await f.call(first);await f.call({requestId:crypto.randomUUID(),revision:1,command:{type:'product.archive',id:'demo-p2'}});const retry=await f.call(first);assert.equal(retry.result.documentId,a.result.documentId);assert.equal(f.state.documentBook!.records.length,2);assert.deepEqual(f.state.documentBook!.records.map(d=>d.number),['URN-2026-000001','URN-2026-000002']);});

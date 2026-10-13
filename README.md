@@ -1,4 +1,4 @@
-# Mobil Sipariş 0.5.0
+# Mobil Sipariş 0.6.0
 
 Satış teklifi → müşteri onayı → yönetici onayı → üretim → kısmi/tam sevkiyat.
 
@@ -52,3 +52,6 @@ Küçük ekip başlangıç mimarisidir: çalışma alanı tek JSON kaydıdır, y
 JSON aktarımı boş çalışma alanına ürün, müşteri ve siparişleri taşır. Kullanıcı yetkileri ve eski işlem geçmişi geri yüklenmez; siparişler seçilen aktif kişiye bağlanır. Tam felaket kurtarma için Supabase veritabanı yedeği ve ayrı bir geri yükleme denemesi gerekir. JSON dosyası orijinal geçmişi arşiv amaçlı içerir; güvenli saklayın.
 
 Ürün bazında iskonto, takvimli teslim onayı ve ortak hat doluluğu: [kullanım rehberi](docs/URETIM_VE_ISKONTO.md).
+
+Numaralı PDF, stok üretim talepleri ve Excel yükleme: [0.6.0 deneme rehberi](docs/BELGELER_STOK_TALEPLERI_EXCEL.md).
+

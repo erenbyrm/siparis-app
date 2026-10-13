@@ -1,0 +1,3 @@
+import {z} from 'zod';
+export const stockRequestSchema=z.object({id:z.string().min(1),number:z.string().min(1),createdAt:z.iso.datetime(),createdBy:z.string(),createdByUserId:z.string(),neededDate:z.iso.date(),reason:z.string().min(1).max(200),status:z.enum(['Onay bekliyor','Onaylandı','Üretimde','Tamamlandı','İptal']),items:z.array(z.object({id:z.string(),code:z.string(),name:z.string(),quantity:z.number().int().min(1).max(1000000),producedQuantity:z.number().int().min(0).max(1000000)})).min(1).max(500),approvedAt:z.iso.datetime().optional(),approvedBy:z.string().optional(),cancelReason:z.string().optional()});
+export type StockRequest=z.infer<typeof stockRequestSchema>;

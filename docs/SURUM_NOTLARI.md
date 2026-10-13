@@ -1,3 +1,7 @@
+# 0.6.0 — numaralı PDF, stok talepleri ve Excel
+
+13 Ekim 2026. Kategori/yıl bazında sıra numarası, işlem anına ait PDF kayıtları, cihaz destekli paylaşım, yönetici onaylı stok üretim talepleri ve .xlsx ürün yükleme. 103 test geçti. [Deneme ve Excel rehberi](BELGELER_STOK_TALEPLERI_EXCEL.md).
+
 # 0.5.0 — tek depo, sayım ve stok ayırma
 
 9 Ekim 2026. Depocu sayımı, yönetici onaylı fark düzeltme, sayarak üretim kabulü, stoktan sipariş karşılama ve stok üretimi. 87 test geçti. [Kullanım rehberi](DEPO_VE_SAYIM.md).

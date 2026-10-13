@@ -32,6 +32,6 @@ Depocu sayım, depo kabulü ve sevkiyat yapar; sayım sonucunu yalnızca yöneti
 
 87 otomatik test, tür kontrolü ve üretim derlemesi geçti. Yerel tarayıcıda depocunun sayım gönderimi → yönetici onayı → stok ayırma → 10 adet üretim bildirimi → 6 adet kabul → 5 adet sevkiyat denendi: başlangıç 100 stok sonunda 101 fiziksel, 101 ayrılmış ve 4 kabul bekleyen oldu. Telefon genişliğinde sayfa taşması görülmedi; geniş tablolar kendi içinde yatay kaydırılır.
 
-Henüz hammadde/reçete, raf/lot/seri, barkod, iade, üretim firesi ve teslim eksikliği kapatma akışı yok. Stok için gelecekteki üretim iş emri henüz planlanmaz; burada tamamlanmış stok üretimi bildirilir. “Tamamlandı” tüm ürünlerin sevk edildiğini ifade eder; müşterinin gerçek teslim teyidi ayrı bir sonraki geliştirmedir.
+Henüz hammadde/reçete, raf/lot/seri, barkod, iade, üretim firesi ve teslim eksikliği kapatma akışı yok. Stok için planlı üretim talepleri v0.6.0 ile eklendi: depocu talep eder, yönetici onaylar, ortak hat planına dahil edilir; üretimden sonra depocu sayarak kabul eder. “Tamamlandı” tüm ürünlerin sevk edildiğini ifade eder; müşterinin gerçek teslim teyidi ayrı bir sonraki geliştirmedir.
 
 Supabase kurulumu kullanıcının isteğiyle ertelendi. Deneme verileri yalnızca ilgili tarayıcıdadır; gerçek çok cihazlı ekip çalışması henüz devrede değildir. Tek çalışma alanının 2 MB kayıt sınırı vardır. Kaynak kod ZIP dosyası işletme verisi yedeği değildir; gerçek kayıtlar Yedekleme ekranından ayrıca indirilir.
