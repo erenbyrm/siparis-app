@@ -1,4 +1,4 @@
-# Mobil Sipariş 0.6.0
+# Mobil Sipariş 0.6.1
 
 Satış teklifi → müşteri onayı → yönetici onayı → üretim → kısmi/tam sevkiyat.
 

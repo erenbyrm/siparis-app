@@ -1,3 +1,7 @@
+# 0.6.1 — telefon görünümü
+
+14 Ekim 2026. Role göre alt menü, erişilebilir tüm işlemler penceresi, büyük dokunma alanları ve telefon için sipariş kartları eklendi. 360/390 piksel telefon ve 820 piksel tablet genişliğinde kontrol edildi; sayfa taşması görülmedi. 103 test ve üretim derlemesi geçti. Gerçek iPhone/Android cihaz kabul testi, merkezi Supabase kurulumu ve ana ekrana kurulabilen PWA paketi henüz tamamlanmadı.
+
 # 0.6.0 — numaralı PDF, stok talepleri ve Excel
 
 13 Ekim 2026. Kategori/yıl bazında sıra numarası, işlem anına ait PDF kayıtları, cihaz destekli paylaşım, yönetici onaylı stok üretim talepleri ve .xlsx ürün yükleme. 103 test geçti. [Deneme ve Excel rehberi](BELGELER_STOK_TALEPLERI_EXCEL.md).
