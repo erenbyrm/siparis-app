@@ -1,4 +1,4 @@
-# Mobil Sipariş 0.6.1
+# Mobil Sipariş 0.7.0
 
 Satış teklifi → müşteri onayı → yönetici onayı → üretim → kısmi/tam sevkiyat.
 
@@ -55,3 +55,5 @@ JSON aktarımı boş çalışma alanına ürün, müşteri ve siparişleri taş�
 
 Numaralı PDF, stok üretim talepleri ve Excel yükleme: [0.6.0 deneme rehberi](docs/BELGELER_STOK_TALEPLERI_EXCEL.md).
 
+
+Telefona kurulum: [rehber](docs/TELEFONA_KURULUM.md).

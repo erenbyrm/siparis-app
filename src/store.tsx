@@ -49,6 +49,7 @@ export function StoreProvider({children}:{children:React.ReactNode}){
  const logout=async()=>{setLastDocumentId(null);if(pending.current)return;generation.current++;appliedRevision.current=-1;setMode('signed-out');modeRef.current='signed-out';setState(null);setUser(null);uncertain.current=null;setError('');setNotice('');if(auth)await auth.auth.signOut();};
  const run=async(command:Command)=>{
   if(pending.current||!state||!user)return false;
+  if(mode==='cloud'&&!navigator.onLine){setError('İnternet bağlantısı yok. İşlem gönderilmedi. Bağlantı gelince verileri yenileyip tekrar deneyin.');return false;}
   if(!connected){setError('Bağlantı doğrulanmadan değişiklik kaydedilemez. Önce Yenile düğmesini kullanın.');return false;}
   pending.current=true;setBusy(true);setError('');setNotice('');
   try{
