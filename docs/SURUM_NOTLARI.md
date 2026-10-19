@@ -1,3 +1,7 @@
+# 0.9.1 — Ayarlar görünüm düzeltmesi
+
+19 Ekim 2026. Önceki yayına taşınmayan güncel styles.css eklendi. Ayarlar kendi stil dosyasıyla, dört başlık altında eşit kartlara ayrıldı; ikon, başlık ve açıklama hizaları telefon/bilgisayar için düzenlendi. Yayın kaynakları artık CSS dosyalarını da içerir.
+
 # 0.9.0 — birleşik ayarlar, toplu onay ve veri kapasitesi
 
 19 Ekim 2026. Tek Ayarlar menüsü, açık/karanlık/sistem görünümü, logoya göre renk, sade mobil filtreler ve dikey yönetim listeleri. Merkezi yönetici onayları, kayıt altında belge işlemleri; Son belge kaldırıldı. Giriş yükleme yarışları, kayıt bazında özel depolama geçişi ve bütünlük kontrollü yedek araçları. [Kullanım ve geçiş rehberi](AYARLAR_MOBIL_VE_VERI.md). Supabase geçişi ve gerçek cihaz kabulü yönetici adımı bekler.
