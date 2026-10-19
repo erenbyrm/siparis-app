@@ -1,5 +1,5 @@
-import type {State,Order} from './domain';
-import {ensureInventory,reserveStock} from './inventory';
+import type {State,Order} from './domain.js';
+import {ensureInventory,reserveStock} from './inventory.js';
 
 export type ProductionConfig={resources:{id:string,name:string}[],workDays:number[],transportDays:number,closedDates:string[]};
 export type ProductionAllocation={orderId:string,orderNumber:string,lineId:string,code:string,name:string,resourceId:string,date:string,quantity:number,dailyCapacity:number,load:number,productionDeadline:string,late:boolean,completed:boolean};
@@ -24,7 +24,7 @@ export function buildProductionPlan(state:State,today=todayInTurkey(),candidate?
  const plan:ProductionPlan={today,configured:true,allocations:[],issues:[],orders:[],dates:[]};
  const orders=state.orders.filter(o=>['Yönetici Onayladı','Hazırlanıyor','Sevkiyata Hazır'].includes(o.status)&&o.id!==candidate?.id);
  if(candidate)orders.push(candidate);
- const stockIds=new Set<string>();for(const r of state.stockRequests??[]){if(!['Onaylandı','Üretimde'].includes(r.status))continue;stockIds.add(r.id);orders.push({id:r.id,number:r.number,createdAt:r.createdAt,createdBy:r.createdBy,createdByUserId:r.createdByUserId,customer:{id:'stock',name:'Depo stoğu',company:'',phone:'',address:'',note:'',active:true},discount:{type:'amount',value:0},vatMode:'none',status:'Hazırlanıyor',deliveryDate:r.neededDate,shipments:[],items:r.items.map(i=>({...i,orderNo:1,price:0,kdvRate:0,active:true,pendingQuantity:i.quantity-i.producedQuantity,readyForShipmentQuantity:0,sentQuantity:0,awaitingReceiptQuantity:(state.inventory?.batches??[]).filter(b=>b.requestId===r.id&&b.productId===i.id).reduce((n,b)=>n+b.quantity-b.receivedQuantity,0)}))});}
+ const stockIds=new Set<string>();for(const r of state.stockRequests??[]){if(!['Onaylandı','Üretimde'].includes(r.status))continue;stockIds.add(r.id);orders.push({id:r.id,number:r.number,createdAt:r.createdAt,createdBy:r.createdBy,createdByUserId:r.createdByUserId,customer:{id:'stock',name:'Depo stoğu',company:'',phone:'',address:'',note:'',active:true},discount:{type:'amount',value:0},vatMode:'none',status:'Hazırlanıyor',deliveryDate:r.neededDate,shipments:[],items:r.items.map(i=>({...i,orderNo:1,price:0,kdvRate:0,active:true,pendingQuantity:i.quantity-i.producedQuantity,readyForShipmentQuantity:0,sentQuantity:0,awaitingReceiptQuantity:(state.inventory?.batches??[]).filter(b=>b.requestId===r.id&&b.productId===i.id).reduce((n,b)=>n+b.quantity-b.receivedQuantity-(b.rejectedQuantity??0),0)}))});}
  const deadlineOf=(o:Order)=>stockIds.has(o.id)?o.deliveryDate!:productionDeadline(o.deliveryDate!,config);
  const jobs=orders.filter(o=>o.items.some(i=>i.pendingQuantity>0||i.readyForShipmentQuantity>0||(i.awaitingReceiptQuantity??0)>0)).sort((a,b)=>(a.deliveryDate?deadlineOf(a):'9999').localeCompare(b.deliveryDate?deadlineOf(b):'9999')||a.createdAt.localeCompare(b.createdAt)||a.id.localeCompare(b.id));
  for(let n=0;n<120;n++)plan.dates.push(addCalendarDays(today,n));

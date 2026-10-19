@@ -1,4 +1,4 @@
-# Mobil Sipariş 0.7.0
+# Mobil Sipariş 0.8.0
 
 Satış teklifi → müşteri onayı → yönetici onayı → üretim → kısmi/tam sevkiyat.
 
@@ -57,3 +57,5 @@ Numaralı PDF, stok üretim talepleri ve Excel yükleme: [0.6.0 deneme rehberi](
 
 
 Telefona kurulum: [rehber](docs/TELEFONA_KURULUM.md).
+
+Mobil ürün kartları ve eksik kabul: [rehber](docs/MOBIL_VE_EKSIK_KABUL.md).

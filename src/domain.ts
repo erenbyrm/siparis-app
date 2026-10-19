@@ -1,9 +1,9 @@
-import {stockRequestSchema} from './stockRequests';
-import {documentBookSchema,ensureDocuments,allocateNumber,issueDocument,visibleDocuments,assertDocuments} from './documents';
+import {stockRequestSchema} from './stockRequests.js';
+import {documentBookSchema,ensureDocuments,allocateNumber,issueDocument,visibleDocuments,assertDocuments} from './documents.js';
 import { z } from 'zod';
-import {inventorySchema,ensureInventory,stockRows,reserveStock,stockMovement,assertInventory,openOrder,type StockRow} from './inventory';
-import {companySchema} from './company';
-import {buildProductionPlan,productionConfigOf,isWorkingDay,todayInTurkey,type ProductionPlan} from './production';
+import {inventorySchema,ensureInventory,stockRows,reserveStock,stockMovement,assertInventory,openOrder,type StockRow} from './inventory.js';
+import {companySchema} from './company.js';
+import {buildProductionPlan,productionConfigOf,isWorkingDay,todayInTurkey,type ProductionPlan} from './production.js';
 z.config(z.locales.tr());
 
 export const roles = ['admin', 'pazarlamaci', 'uretim', 'sevkiyat'] as const;
@@ -120,6 +120,8 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('stock.receive'),id,quantity:integer}),
  z.object({type:z.literal('stock.count'),items:z.array(z.object({productId:id,countedQuantity:quantity,expectedOnHand:quantity})).min(1).max(500),reason:text}),
  z.object({type:z.literal('stock.review'),id,approve:z.boolean()}),
+ z.object({type:z.literal('receipt.discrepancy'),source:z.enum(['order','batch']),referenceId:id,productId:id,quantity:integer,expectedAwaiting:quantity,reason:text}),
+ z.object({type:z.literal('receipt.review'),id,approve:z.boolean()}),
  z.object({type:z.literal('stock.request'),items:quantities,neededDate:z.iso.date(),reason:text}),
  z.object({type:z.literal('stock.requestApprove'),id,neededDate:z.iso.date(),items:quantities,acceptPlanRisk:z.boolean().optional()}),
  z.object({type:z.literal('stock.requestCancel'),id,reason:text}),
@@ -153,7 +155,34 @@ export function execute(state:State,actorId:string,input:unknown,now=new Date().
   const batch={id:newId(),...(request?{requestId:request.id}:{}),productId:p.id,quantity:command.quantity,receivedQuantity:0,createdAt:now,createdBy:actor.name,...(p.dailyCapacity?{dailyCapacity:p.dailyCapacity}:{}),...(p.productionResourceId?{resourceId:p.productionResourceId}:{})};s.inventory!.batches.push(batch);target=batch.id;detail=p.code+': '+command.quantity+' adet depo teslimi bekliyor.';break;
  }
  case 'stock.receive':{
-  allowed(actor,['admin','sevkiyat']);const b=s.inventory!.batches.find(b=>b.id===command.id);if(!b)fail('Üretim kaydı bulunamadı.');if(command.quantity>b.quantity-b.receivedQuantity)fail('Teslim alınacak adet kalan miktarı aşamaz.');b.receivedQuantity+=command.quantity;if(b.requestId){const r=s.stockRequests?.find(r=>r.id===b.requestId);if(r&&r.items.every(i=>i.producedQuantity===i.quantity)&&s.inventory!.batches.filter(x=>x.requestId===r.id).every(x=>x.receivedQuantity===x.quantity))r.status='Tamamlandı';}stockMovement(s,b.productId,command.quantity,'stockReceipt',b.id,now,actor.name);target=b.id;detail=command.quantity+' adet sayılarak teslim alındı.';break;
+  allowed(actor,['admin','sevkiyat']);const b=s.inventory!.batches.find(b=>b.id===command.id);if(!b)fail('Üretim kaydı bulunamadı.');if(command.quantity>b.quantity-b.receivedQuantity-(b.rejectedQuantity??0))fail('Teslim alınacak adet kalan miktarı aşamaz.');b.receivedQuantity+=command.quantity;if(b.requestId){const r=s.stockRequests?.find(r=>r.id===b.requestId);if(r&&r.items.every(i=>i.producedQuantity===i.quantity)&&s.inventory!.batches.filter(x=>x.requestId===r.id).every(x=>x.receivedQuantity+(x.rejectedQuantity??0)===x.quantity))r.status='Tamamlandı';}stockMovement(s,b.productId,command.quantity,'stockReceipt',b.id,now,actor.name);target=b.id;detail=command.quantity+' adet sayılarak teslim alındı.';break;
+ }
+ case 'receipt.discrepancy':{
+  allowed(actor,['admin','sevkiyat']);
+  const line=command.source==='order'?s.orders.find(o=>o.id===command.referenceId&&openOrder(o))?.items.find(i=>i.id===command.productId):undefined;
+  const batch=command.source==='batch'?s.inventory!.batches.find(b=>b.id===command.referenceId&&b.productId===command.productId):undefined;
+  const awaiting=line?(line.awaitingReceiptQuantity??0):batch?batch.quantity-batch.receivedQuantity-(batch.rejectedQuantity??0):-1;
+  if(awaiting!==command.expectedAwaiting||command.quantity>awaiting)fail('Kabul bekleyen miktar değişti veya eksik miktar sınırı aşıyor. Yenileyin.');
+  const list=s.inventory!.discrepancies??=[];
+  if(list.some(d=>d.status==='pending'&&d.source===command.source&&d.referenceId===command.referenceId&&d.productId===command.productId))fail('Bu ürün için yönetici kararı bekleniyor.');
+  const d={id:newId(),...command,requestedBy:actor.name,createdAt:now,status:'pending' as const};list.push(d);target=d.id;detail=command.reason;break;
+ }
+ case 'receipt.review':{
+  allowed(actor,['admin']);const d=s.inventory!.discrepancies?.find(d=>d.id===command.id&&d.status==='pending');if(!d)fail('Bekleyen eksik kabul bildirimi bulunamadı.');
+  if(command.approve){
+   if(d.source==='order'){
+    const o=s.orders.find(o=>o.id===d.referenceId&&openOrder(o)),line=o?.items.find(i=>i.id===d.productId);
+    if(!o||!line||(line.awaitingReceiptQuantity??0)!==d.expectedAwaiting||d.quantity>(line.awaitingReceiptQuantity??0))fail('Kabul bekleyen miktar değişti. Bildirimi reddedip yeniden sayın.');
+    line.awaitingReceiptQuantity!-=d.quantity;line.pendingQuantity+=d.quantity;o.status=deriveStatus(o.items);
+   }else{
+    const b=s.inventory!.batches.find(b=>b.id===d.referenceId&&b.productId===d.productId);
+    if(!b||b.quantity-b.receivedQuantity-(b.rejectedQuantity??0)!==d.expectedAwaiting||d.quantity>d.expectedAwaiting)fail('Kabul bekleyen miktar değişti. Bildirimi reddedip yeniden sayın.');
+    b.rejectedQuantity=(b.rejectedQuantity??0)+d.quantity;
+    if(b.requestId){const r=s.stockRequests?.find(r=>r.id===b.requestId);const i=r?.items.find(i=>i.id===b.productId);if(!r||!i)fail('Stok talebi bulunamadı.');i.producedQuantity-=d.quantity;r.status='Üretimde';}
+   }
+  }
+  d.status=command.approve?'approved':'rejected';d.reviewedBy=actor.name;d.reviewedAt=now;target=d.id;
+  detail=command.approve?'Eksik miktar kabul bekleyenden düşüldü; kabul edilmiş stok korunarak yeniden üretime açıldı.':'Eksik kabul bildirimi reddedildi.';break;
  }
  case 'stock.count':{
   allowed(actor,['admin','sevkiyat']);if(new Set(command.items.map(i=>i.productId)).size!==command.items.length)fail('Sayımda yinelenen ürün var.');

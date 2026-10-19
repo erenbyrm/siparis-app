@@ -1,3 +1,7 @@
+# 0.8.0 — mobil ürün kartları ve eksik kabul
+
+19 Ekim 2026. Yatay adet tablosu yerine ürün kartları, dikey depo/sayım görünümü, sipariş bazında günlük üretim ön izlemesi ve yalnızca girişte kurulum eklendi. Yönetici eksik kabul kararı kabul bekleyeni azaltır, kabul edilmiş stoğu korur ve eksiği yeniden üretime açar. EKP/EKO numaralı belgeler oluşturulur. Derlenmiş sunucunun Node ESM açılışı düzeltildi. [Kullanım rehberi](MOBIL_VE_EKSIK_KABUL.md).
+
 # 0.7.0 — ana ekrana kurulabilen uygulama
 
 15 Ekim 2026. Kurulum rehberi, uygulama simgeleri, bağlantısız açılış ekranı ve güncelleme bildirimi eklendi. 107 test ve üretim derlemesi geçti. Yerel tarayıcıda sunucu kapalıyken bağlantısız ekran doğrulandı. Gerçek cihaz kurulumu ve Supabase kabul testi bekliyor. [Rehber](TELEFONA_KURULUM.md).
