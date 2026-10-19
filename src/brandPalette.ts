@@ -1,0 +1,10 @@
+export const fallbackColor='#176b60';
+export function logoColor(pixels:ArrayLike<number>):string {
+ const buckets=new Map<string,{sum:number[],weight:number}>();
+ for(let i=0;i+3<pixels.length;i+=4){const rgb=[pixels[i],pixels[i+1],pixels[i+2]],hi=Math.max(...rgb),lo=Math.min(...rgb);if(pixels[i+3]<180||hi<25||lo>225||hi-lo<30)continue;const weight=(hi-lo)/255;const key=rgb.map(v=>Math.floor(v/32)).join(',');const b=buckets.get(key)??{sum:[0,0,0],weight:0};b.weight+=weight;rgb.forEach((v,j)=>b.sum[j]+=v*weight);buckets.set(key,b);}
+ const best=[...buckets.values()].sort((a,b)=>b.weight-a.weight)[0];return best?'#'+best.sum.map(v=>Math.round(v/best.weight).toString(16).padStart(2,'0')).join(''):fallbackColor;
+}
+export function luminance(hex:string){const rgb=hex.slice(1).match(/../g)!.map(v=>parseInt(v,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;}
+export function readableAccent(hex:string){let rgb=(/^#[0-9a-f]{6}$/i.test(hex)?hex:fallbackColor).slice(1).match(/../g)!.map(v=>parseInt(v,16));let value=hex;for(let i=0;i<40;i++){value='#'+rgb.map(v=>v.toString(16).padStart(2,'0')).join('');if(1.05/(luminance(value)+.05)>=4.5)break;rgb=rgb.map(v=>Math.floor(v*.9));}return value;}
+export async function extractLogoColor(source:string){const bitmap=await createImageBitmap(await (await fetch(source)).blob());try{const canvas=document.createElement('canvas');canvas.width=64;canvas.height=64;const ctx=canvas.getContext('2d');if(!ctx)return fallbackColor;ctx.drawImage(bitmap,0,0,64,64);return logoColor(ctx.getImageData(0,0,64,64).data);}finally{bitmap.close();}}
+export function applyBrand(color:string){const root=document.documentElement,accent=readableAccent(color);root.style.setProperty('--teal',accent);root.style.setProperty('--brand-dark',accent);root.style.setProperty('--brand-soft',`color-mix(in srgb, ${accent} 10%, var(--surface))`);root.style.setProperty('--brand-bright',`color-mix(in srgb, ${accent} 45%, white)`);document.querySelector('meta[name="theme-color"]')?.setAttribute('content',root.dataset.theme==='dark'?'#111b20':accent);}

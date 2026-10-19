@@ -1,3 +1,7 @@
+## 0.9.0 güncellemesi
+
+[Ayarlar, mobil kullanım, toplu onay ve veri geçişi](docs/AYARLAR_MOBIL_VE_VERI.md). Yeni API eski depolamayla çalışır; kayıt bazında 32 MB uygulama sınırı için önce uyumlu yayın, sonra aynı Supabase projesinde `database/002_record_storage.sql` gerekir.
+
 # Mobil Sipariş 0.8.0
 
 Satış teklifi → müşteri onayı → yönetici onayı → üretim → kısmi/tam sevkiyat.

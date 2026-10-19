@@ -6,3 +6,8 @@ dist/
 *.log
 coverage/
 test-results/
+
+private-backups/
+
+output/
+tmp/

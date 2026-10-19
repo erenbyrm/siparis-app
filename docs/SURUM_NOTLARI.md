@@ -1,3 +1,7 @@
+# 0.9.0 — birleşik ayarlar, toplu onay ve veri kapasitesi
+
+19 Ekim 2026. Tek Ayarlar menüsü, açık/karanlık/sistem görünümü, logoya göre renk, sade mobil filtreler ve dikey yönetim listeleri. Merkezi yönetici onayları, kayıt altında belge işlemleri; Son belge kaldırıldı. Giriş yükleme yarışları, kayıt bazında özel depolama geçişi ve bütünlük kontrollü yedek araçları. [Kullanım ve geçiş rehberi](AYARLAR_MOBIL_VE_VERI.md). Supabase geçişi ve gerçek cihaz kabulü yönetici adımı bekler.
+
 # 0.8.0 — mobil ürün kartları ve eksik kabul
 
 19 Ekim 2026. Yatay adet tablosu yerine ürün kartları, dikey depo/sayım görünümü, sipariş bazında günlük üretim ön izlemesi ve yalnızca girişte kurulum eklendi. Yönetici eksik kabul kararı kabul bekleyeni azaltır, kabul edilmiş stoğu korur ve eksiği yeniden üretime açar. EKP/EKO numaralı belgeler oluşturulur. Derlenmiş sunucunun Node ESM açılışı düzeltildi. [Kullanım rehberi](MOBIL_VE_EKSIK_KABUL.md).

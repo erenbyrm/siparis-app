@@ -96,7 +96,9 @@ const productInput=productSchema.omit({id:true}).extend({id:id.optional()});
 const customerInput=customerSchema.omit({id:true}).extend({id:id.optional()});
 const userInput=userSchema.omit({id:true}).extend({id:id.optional()});
 const quantities=z.array(z.object({id,quantity:integer})).min(1).max(500);
+const approvalSchema=z.discriminatedUnion('type',[z.object({type:z.literal('order.approve'),id,deliveryDate:z.iso.date(),acceptPlanRisk:z.boolean().optional()}),z.object({type:z.literal('stock.requestApprove'),id,neededDate:z.iso.date(),items:quantities,acceptPlanRisk:z.boolean().optional()}),z.object({type:z.literal('stock.review'),id,approve:z.boolean()}),z.object({type:z.literal('receipt.review'),id,approve:z.boolean()})]);
 export const commandSchema=z.discriminatedUnion('type',[
+ z.object({type:z.literal('approval.batch'),items:z.array(approvalSchema).min(1).max(100)}),
  z.object({type:z.literal('product.save'),product:productInput}),
  z.object({type:z.literal('product.archive'),id}),
  z.object({type:z.literal('product.import'),products:z.array(productInput.omit({id:true})).min(1).max(10000)}),
@@ -128,10 +130,11 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('backup.import'),data:z.unknown(),ownerId:id})
 ]);
 export type Command=z.infer<typeof commandSchema>;
-export function execute(state:State,actorId:string,input:unknown,now=new Date().toISOString(),requestId?:string):State{
+export function execute(state:State,actorId:string,input:unknown,now=new Date().toISOString(),requestId?:string,options:{maxBytes?:number}={}):State{
  const parsed=commandSchema.safeParse(input);if(!parsed.success)throw new DomainError(parsed.error.issues[0]?.message??'Geçersiz işlem.');
  const command=parsed.data,s=structuredClone(state),actor=s.users.find(u=>u.id===actorId&&u.active);
  if(!actor)throw new DomainError('Kullanıcı pasif veya oturum geçersiz.',403);
+ if(command.type==='approval.batch'){if(actor.role!=='admin')throw new DomainError('Yalnızca yönetici toplu onay verebilir.',403);let next=state;for(const item of command.items)next=execute(next,actorId,item,now,undefined,options);return next;}
  ensureInventory(s);ensureDocuments(s);
  let target='system',detail='';
  switch(command.type){
@@ -301,7 +304,7 @@ export function execute(state:State,actorId:string,input:unknown,now=new Date().
  try{assertInventory(s);}catch(e){fail(e instanceof Error?e.message:'Depo kaydı geçersiz.');}
  const document=issueDocument(s,state,actor,command,target,detail,now);if(requestId)document.requestId=requestId;assertDocuments(s);
  s.revision++;s.audit.push({id:newId(),documentNumber:document.number,at:now,actorId:actor.id,actorName:actor.name,action:command.type,targetId:target,detail});
- if(new TextEncoder().encode(JSON.stringify(s)).byteLength>2_000_000)fail('Çalışma alanı 2 MB kapasite sınırına ulaştı. Mevcut veriler korundu; yeni kayıt için yönetici kapasite düzenlemesi yapmalı.');
+ if(new TextEncoder().encode(JSON.stringify(s)).byteLength>(options.maxBytes??2_000_000))fail('Çalışma alanı kapasite sınırına ulaştı. Mevcut veriler korundu; yönetici Yedekleme bölümünden kapasiteyi kontrol etmeli.');
  return s;
 }
 export function stateForUser(state:State,user:AppUser):State{

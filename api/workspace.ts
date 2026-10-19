@@ -1,3 +1,5 @@
+import {readWorkspace,writeWorkspace,isRecordWorkspace} from '../server/workspaceStorage.js';
+import {workspaceResponse} from '../server/workspaceWire.js';
 import type {PoolClient} from 'pg';
 import type {VercelRequest,VercelResponse} from '@vercel/node';
 import {createClient} from '@supabase/supabase-js';
@@ -22,20 +24,23 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
   await client.query('SET LOCAL statement_timeout = 10000');
   await client.query('INSERT INTO siparis_private.workspace (id,data) VALUES (true,$1) ON CONFLICT (id) DO NOTHING',[JSON.stringify(emptyState())]);
   const row=await client.query('SELECT data FROM siparis_private.workspace WHERE id=true FOR UPDATE');
-  let state=row.rows[0].data as State;const revisionBefore=state.revision;
+  const stored=row.rows[0].data,recordMode=isRecordWorkspace(stored);
+  let state=await readWorkspace(client,stored);const before=structuredClone(state),revisionBefore=state.revision,maxBytes=recordMode?32_000_000:2_000_000;
   let actor=authorizeIdentity(state,{email:data.user.email,emailConfirmed:!!data.user.email_confirmed_at},process.env.BOOTSTRAP_ADMIN_EMAIL);
   if(payload){
    const previous=await client.query('SELECT actor_id FROM siparis_private.requests WHERE id=$1',[payload.requestId]);
    if(previous.rowCount){if(previous.rows[0].actor_id!==actor.id)throw new DomainError('İstek kimliği başka kullanıcıya ait.',409);}
    else{
     if(payload.revision!==state.revision)throw new DomainError('Başka bir kullanıcı kayıtları güncelledi. Liste yenilendi; işleminizi kontrol edip tekrar deneyin.',409);
-    state=execute(state,actor.id,payload.command,new Date().toISOString(),payload.requestId);
+    state=execute(state,actor.id,payload.command,new Date().toISOString(),payload.requestId,{maxBytes});
     await client.query('INSERT INTO siparis_private.requests (id,actor_id) VALUES ($1,$2)',[payload.requestId,actor.id]);
    }
   }
-  if(state.revision!==revisionBefore)await client.query('UPDATE siparis_private.workspace SET data=$1,updated_at=now() WHERE id=true',[JSON.stringify(state)]);
+  if(state.revision!==revisionBefore)await writeWorkspace(client,before,state,recordMode);
   actor=state.users.find(u=>u.id===actor.id)!;
-  await client.query('COMMIT');return res.status(200).json({state:stateForUser(state,actor),user:actor,...(payload?{documentId:state.documentBook?.records.find(d=>d.requestId===payload.requestId)?.id}: {})});
+  const envelope={state:stateForUser(state,actor),user:actor,storage:actor.role==='admin'?{mode:recordMode?'records' as const:'legacy' as const,limitBytes:maxBytes,bytes:Buffer.byteLength(JSON.stringify(state))}:undefined,...(payload?{documentId:state.documentBook?.records.find(d=>d.requestId===payload.requestId)?.id}: {})};
+  const result=!payload&&req.query?.knownRevision!==undefined&&String(req.query.knownRevision)===String(state.revision)?{unchanged:true}:workspaceResponse(envelope,req.query??{},!!payload);
+  await client.query('COMMIT');return res.status(200).json(result);
  }catch(error){
   if(client)await client.query('ROLLBACK').catch(()=>{});
   if(error instanceof DomainError)return res.status(error.status).json({error:error.message});

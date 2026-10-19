@@ -26,7 +26,7 @@ export function readImport(raw:string):{data:State,warnings:string[]}{
  return {data:readBackup(raw),warnings:['Hesap yetkileri ve eski işlem geçmişi geri yüklenmez. Özgün yedek dosyasını ayrıca saklayın.']};
 }
 export function readBackup(raw:string):State{
- if(raw.length>4_000_000)throw new DomainError('Yedek 4 MB sınırını aşıyor.');
+ if(new TextEncoder().encode(raw).byteLength>40_000_000)throw new DomainError('Yedek 40 MB sınırını aşıyor.');
  let data:unknown;try{data=JSON.parse(raw);}catch{throw new DomainError('Geçerli bir JSON dosyası seçin.');}
  if(!data||typeof data!=='object'||!('format' in data)||data.format!=='siparis-backup'||!('version' in data)||data.version!==2||!('data' in data))throw new DomainError('Bu dosya desteklenen Mobil Sipariş v2 yedeği değil.');
  return validateState(data.data);

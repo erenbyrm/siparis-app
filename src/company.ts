@@ -1,11 +1,11 @@
 import {z} from 'zod';
 const image=(max:number)=>z.string().max(max,'Görsel boyutu sınırı aşıldı.').refine(v=>v===''||/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(v),'PNG, JPEG veya WebP görsel seçin.');
-export const companySchema=z.object({name:z.string().trim().min(1,'Şirket adını girin.').max(120),legalName:z.string().trim().max(200).default(''),phone:z.string().trim().max(50).default(''),email:z.union([z.literal(''),z.email().max(254)]).default(''),address:z.string().trim().max(600).default(''),website:z.string().trim().max(200).refine(v=>!v||/^https?:\/\/[^\s]+$/i.test(v),'Web adresi https:// ile başlamalı.').default(''),taxOffice:z.string().trim().max(100).default(''),taxNumber:z.string().trim().max(30).default(''),logo:image(90000).default(''),photo:image(220000).default('')});
+export const companySchema=z.object({name:z.string().trim().min(1,'Şirket adını girin.').max(120),legalName:z.string().trim().max(200).default(''),phone:z.string().trim().max(50).default(''),email:z.union([z.literal(''),z.email().max(254)]).default(''),address:z.string().trim().max(600).default(''),website:z.string().trim().max(200).refine(v=>!v||/^https?:\/\/[^\s]+$/i.test(v),'Web adresi https:// ile başlamalı.').default(''),taxOffice:z.string().trim().max(100).default(''),taxNumber:z.string().trim().max(30).default(''),brandColor:z.string().regex(/^$|^#[0-9a-fA-F]{6}$/,'Altı haneli renk seçin.').default(''),logo:image(90000).default(''),photo:image(220000).default('')});
 export type Company=z.infer<typeof companySchema>;
-export const defaultCompany=():Company=>({name:'Mobil Sipariş',legalName:'',phone:'',email:'',address:'',website:'',taxOffice:'',taxNumber:'',logo:'',photo:''});
+export const defaultCompany=():Company=>({name:'Mobil Sipariş',legalName:'',phone:'',email:'',address:'',website:'',taxOffice:'',taxNumber:'',logo:'',photo:'',brandColor:''});
 const key='siparis_branding_v1';
-export function rememberedBrand(){try{const raw=JSON.parse(localStorage.getItem(key)??'null');return companySchema.parse({...defaultCompany(),name:raw.name,logo:raw.logo});}catch{return defaultCompany();}}
-export function rememberBrand(company:Company){try{localStorage.setItem(key,JSON.stringify({name:company.name,logo:company.logo}));}catch{/* Branding cache must never block the workspace. */}}
+export function rememberedBrand(){try{const raw=JSON.parse(localStorage.getItem(key)??'null');return companySchema.parse({...defaultCompany(),name:raw.name,logo:raw.logo,brandColor:raw.brandColor??''});}catch{return defaultCompany();}}
+export function rememberBrand(company:Company){try{localStorage.setItem(key,JSON.stringify({name:company.name,logo:company.logo,brandColor:company.brandColor}));}catch{/* Branding cache must never block the workspace. */}}
 // Decode then re-encode raster uploads; never embed arbitrary files or SVG markup.
 export async function prepareCompanyImage(file:File,kind:'logo'|'photo'):Promise<string>{
  if(!['image/png','image/jpeg','image/webp'].includes(file.type))throw new Error('PNG, JPEG veya WebP görsel seçin.');
