@@ -1,3 +1,9 @@
+# v0.9.5 — 20 Ekim 2026
+
+- iPhone ana ekran simgesi SÖZBİR amblemi ile yenilendi: 180 × 180, beyaz zeminli opak PNG; açık sizes bildirimi ve kök apple-touch-icon.png yedeği.
+- Manifest ve tarayıcı simgeleri aynı amblemle güncellendi; yeni dosya adları eski simge önbelleğiyle karışmaz. Maskable simgede ek kenar payı bırakıldı.
+- Mevcut kurulu simgenin iOS tarafından hemen yenilenmesi garanti değildir; Safari üzerinden yeniden Ana Ekrana Ekle yapılabilir. Veritabanı ve şirket profilindeki logo değişmedi.
+
 # v0.9.4 — 20 Ekim 2026
 
 - Vercel ön izleme araç çubuğu uygulama ekranında hedefli olarak gizlendi; telefon ve masaüstünde aynı kural uygulanır.
