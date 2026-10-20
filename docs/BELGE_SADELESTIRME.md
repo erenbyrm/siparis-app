@@ -25,3 +25,7 @@ Bu oturumda aynı proje/takım kimliğiyle enablePreviewFeedback=false ve enable
 ## Doğrulama
 
 133 test, TypeScript ve üretim derlemesi geçti. Tanım değişikliklerinde PDF/sıra numarası oluşmaması; işlem geçmişinin korunması; sipariş→üretim→kabul→sevkiyat ve depo siparişi→üretim→kabul numaraları; eski belge yedeği uyumluluğu ve filtrelemesi test edildi. Yerel tarayıcıda beş kategorinin kaldığı, eski ek belgelerin listeden çıktığı ve sipariş PDF seçeneklerinin kullanılabildiği doğrulandı.
+
+## v0.9.4 — Telefon ekranındaki araç çubuğu
+
+Platform ayarına erişilemediği için uygulama HTML başlığına yalnız `vercel-live-feedback` özel öğesini gizleyen CSS eklendi. Etiket Vercel resmi feedback.js kaynağından doğrulandı. Sonradan eklenen öğelere de uygulanır; iframe, giriş ve belge görüntüleyicilere dokunmaz. Bu görsel gizlemedir; Vercel proje ayarını kapattığımız anlamına gelmez. Telefonda açık eski sayfa tamamen kapatılıp yeni sürüm yeniden açılmalıdır.

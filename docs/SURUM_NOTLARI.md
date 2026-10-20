@@ -1,3 +1,8 @@
+# v0.9.4 — 20 Ekim 2026
+
+- Vercel ön izleme araç çubuğu uygulama ekranında hedefli olarak gizlendi; telefon ve masaüstünde aynı kural uygulanır.
+- Giriş, PDF görüntüleme ve Vercel erişim koruması değiştirilmedi.
+
 # 0.9.3 — iş belgelerini sadeleştirme
 
 20 Ekim 2026. Yalnız SIP/STT/URT/DKA/SVK fişleri üretilir ve görüntülenir. Tanım, ayar ve onay değişiklikleri işlem geçmişinde kalır; ayrı PDF üretmez. Eski ek belgeler veri silinmeden listelerden çıkarılır. [Rehber ve Vercel Toolbar kapatma durumu](BELGE_SADELESTIRME.md).
