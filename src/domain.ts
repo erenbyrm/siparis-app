@@ -302,8 +302,8 @@ export function execute(state:State,actorId:string,input:unknown,now=new Date().
  }
  }
  try{assertInventory(s);}catch(e){fail(e instanceof Error?e.message:'Depo kaydı geçersiz.');}
- const document=issueDocument(s,state,actor,command,target,detail,now);if(requestId)document.requestId=requestId;assertDocuments(s);
- s.revision++;s.audit.push({id:newId(),documentNumber:document.number,at:now,actorId:actor.id,actorName:actor.name,action:command.type,targetId:target,detail});
+ const document=issueDocument(s,state,actor,command,target,detail,now);if(requestId&&document)document.requestId=requestId;assertDocuments(s);
+ s.revision++;s.audit.push({id:newId(),...(document?{documentNumber:document.number}:{}),at:now,actorId:actor.id,actorName:actor.name,action:command.type,targetId:target,detail});
  if(new TextEncoder().encode(JSON.stringify(s)).byteLength>(options.maxBytes??2_000_000))fail('Çalışma alanı kapasite sınırına ulaştı. Mevcut veriler korundu; yönetici Yedekleme bölümünden kapasiteyi kontrol etmeli.');
  return s;
 }

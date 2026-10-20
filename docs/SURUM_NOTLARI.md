@@ -1,3 +1,7 @@
+# 0.9.3 — iş belgelerini sadeleştirme
+
+20 Ekim 2026. Yalnız SIP/STT/URT/DKA/SVK fişleri üretilir ve görüntülenir. Tanım, ayar ve onay değişiklikleri işlem geçmişinde kalır; ayrı PDF üretmez. Eski ek belgeler veri silinmeden listelerden çıkarılır. [Rehber ve Vercel Toolbar kapatma durumu](BELGE_SADELESTIRME.md).
+
 # 0.9.2 — oturum sonrası tam veri yenileme
 
 20 Ekim 2026. Oturum/yetki hatası çalışma alanını temizlediğinde bilinen veri sürümü de sıfırlanır; yeniden giriş/yenilemede tam yanıt alınır. Gerçek Supabase geçişi ve 32 MB ekranı kullanıcı tarafından doğrulandı. [Kabul durumu ve kalan cihaz kontrolü](KABUL_DURUMU.md).
