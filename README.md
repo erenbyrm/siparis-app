@@ -4,7 +4,7 @@
 
 [Ayarlar, mobil kullanım, toplu onay ve veri geçişi](docs/AYARLAR_MOBIL_VE_VERI.md). Kayıt bazında 32 MB depolama geçişi tamamlanmıştır; `database/002_record_storage.sql` yeniden çalıştırılmamalıdır.
 
-# Mobil Sipariş 0.10.0
+# Mobil Sipariş 0.10.1
 
 Satış teklifi → müşteri onayı → yönetici onayı → üretim → kısmi/tam sevkiyat.
 

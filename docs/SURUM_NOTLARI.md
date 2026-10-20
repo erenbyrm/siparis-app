@@ -1,3 +1,8 @@
+# v0.10.1 — 20 Ekim 2026
+
+- Oturum sonrası çalışma alanı hazırlanırken görünen yazı ve düğmeler kaldırıldı. Açılışta ortalanmış büyük SÖZBİR logosu ve yumuşak bir geçiş gösterilir.
+- Bağlantı kurulamazsa tekrar deneme ve giriş ekranına dönme seçenekleri yalnız hata durumunda görünür.
+
 # v0.10.0 — 20 Ekim 2026
 
 - Rol bazlı **Bugün yapılacaklar** ekranı eklendi. Yönetici, satış, üretim ve depo ekipleri kendi bekleyen iş sayılarını ve öncelikli siparişlerini görür.

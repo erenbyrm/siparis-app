@@ -1,10 +1,10 @@
 # Kurulum ve kabul durumu
 
-Son güncelleme: 20 Ekim 2026. Uygulama 0.10.0.
+Son güncelleme: 20 Ekim 2026. Uygulama 0.10.1.
 
 ## Tamamlanan
 
-- Ön izleme dalı: codex/order-workflow-v2. Ana yayınla birleştirilmedi.
+- Güncel geliştirme dalı: codex/order-workflow-v2. 0.10.0 bu dal üzerinden canlı Vercel yayınına alındı.
 - Ayarlar stil eksikliği 0.9.1'de düzeltildi; iki stil dosyasının yayımlanan kaynakla eşleşmesi kontrol edildi. Kişisel / Şirket ve ekip / Tanımlar / Veri ve kayıtlar grupları; telefon ve bilgisayar görünümü.
 - 137 otomatik test, TypeScript kontrolü ve üretim derlemesi. Yerel tarayıcıda sipariş, müşteri onayı, toplu yönetici onayı, üretim, depo kabulü, sevkiyat, PDF indirme, rol bazlı Bugün ekranı ve görünüm tercihleri denendi.
 - Kullanıcı geçiş öncesi yedeğin indiğini bildirdi.
@@ -21,13 +21,17 @@ Son güncelleme: 20 Ekim 2026. Uygulama 0.10.0.
 - PDF paylaşım kontrolü sırasında belgelerin sadeleştirilmesi istendi. 0.9.3 yalnız sipariş/depo siparişi/üretim/kabul/sevkiyat fişlerini korur. Gerçek telefon PDF paylaşımı ve yazdırma henüz doğrulanmadı.
 - Vercel Toolbar kapatma API isteği bağlı hesapta 404 döndü; kalıcı kapatma için kullanıcı proje ayarına erişmeli.
 
-## 0.10.0 yerel kabul
+## 0.10.0 kabul
 
 - Bağlantı yanıtı kaybolduğunda tamamlanan işlem aynı istek kimliğiyle doğrulandı; ardından yeni sipariş kaydedilebildi.
 - Stok sayımı ve stok talebi taslaklarının ekran değişiminden sonra korunduğu 390 piksel telefon görünümünde doğrulandı.
 - Geçmiş teslim tarihli ve depo kabulü bekleyen iş gecikme olarak işaretlendi.
 - Yönetici, satış, üretim ve depo rollerinin Bugün ekranı ve görev bağlantıları kontrol edildi.
-- Canlı Supabase verisi, SQL geçişleri ve yayın değiştirilmedi. 0.10.0 için yeni SQL gerekmez.
+- Production ortamına mevcut Supabase bağlantı değişkenleri eklendi ve 0.10.0 herkese açık kalıcı Vercel adresine yayımlandı. SQL veya canlı veriler değiştirilmedi.
+
+## 0.10.1
+
+- Çalışma alanı yükleme ekranı büyük SÖZBİR logolu sade geçiş olarak yenilendi. Bağlantı hatasında kurtarma düğmeleri korunur. Yeni SQL gerekmez.
 
 ## Sonraki kullanıcı kontrolü
 
