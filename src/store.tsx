@@ -10,7 +10,7 @@ const KEY=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 export const cloudConfigured=!!(URL&&KEY);
 export const auth:SupabaseClient|null=cloudConfigured?createClient(URL,KEY):null;
 type Mode='signed-out'|'demo'|'cloud';
-type ContextValue={storage:StorageInfo|null,snapshot:()=>Promise<State>,lastDocumentId:string|null,mode:Mode,state:State|null,user:AppUser|null,busy:boolean,loading:boolean,error:string,connected:boolean,notice:string,setError:(e:string)=>void,setNotice:(s:string)=>void,startDemo:()=>void,switchDemo:(id:string)=>void,logout:()=>Promise<void>,refresh:()=>Promise<void>,run:(command:Command)=>Promise<boolean>};
+type ContextValue={storage:StorageInfo|null,snapshot:()=>Promise<State>,lastDocumentId:string|null,mode:Mode,state:State|null,user:AppUser|null,busy:boolean,loading:boolean,error:string,connected:boolean,notice:string,uncertain:boolean,setError:(e:string)=>void,setNotice:(s:string)=>void,startDemo:()=>void,switchDemo:(id:string)=>void,logout:()=>Promise<void>,refresh:()=>Promise<void>,resolveUncertain:()=>Promise<void>,run:(command:Command)=>Promise<boolean>};
 const Context=createContext<ContextValue|null>(null);
 export const message=(error:unknown)=>error instanceof Error?error.message:'İşlem tamamlanamadı.';
 async function request(body?:{requestId:string,revision:number,command:Command},knownRevision?:number):Promise<Envelope|null>{
@@ -24,6 +24,7 @@ export function StoreProvider({children}:{children:React.ReactNode}){
  const [loading,setLoading]=useState(false),[loadError,setLoadError]=useState('');
  const authUserId=useRef<string|null>(null);
  const [lastDocumentId,setLastDocumentId]=useState<string|null>(null);
+ const [hasUncertain,setHasUncertain]=useState(false);
  const demo=useRef<State|null>(null),modeRef=useRef(mode),userRef=useRef(user),pending=useRef(false),generation=useRef(0);
  const uncertain=useRef<{requestId:string,revision:number,command:Command}|null>(null);
  const appliedRevision=useRef(-1);
@@ -48,17 +49,24 @@ export function StoreProvider({children}:{children:React.ReactNode}){
    if(modeRef.current==='demo')return;
    if(session){
     if(authUserId.current!==session.user.id||modeRef.current!=='cloud'){
-     generation.current++;loaderRef.current!.invalidate();appliedRevision.current=-1;authUserId.current=session.user.id;uncertain.current=null;setLastDocumentId(null);
+     generation.current++;loaderRef.current!.invalidate();appliedRevision.current=-1;authUserId.current=session.user.id;uncertain.current=null;setHasUncertain(false);setLastDocumentId(null);
      setState(null);setUser(null);userRef.current=null;setError('');setLoadError('');setConnected(true);setLoading(true);
     }
     setMode('cloud');modeRef.current='cloud';setTimeout(()=>void refresh(),0);
-   }else{generation.current++;loaderRef.current!.invalidate();authUserId.current=null;uncertain.current=null;setLastDocumentId(null);appliedRevision.current=-1;modeRef.current='signed-out';setMode('signed-out');setState(null);setUser(null);setLoadError('');}
+   }else{generation.current++;loaderRef.current!.invalidate();authUserId.current=null;uncertain.current=null;setHasUncertain(false);setLastDocumentId(null);appliedRevision.current=-1;modeRef.current='signed-out';setMode('signed-out');setState(null);setUser(null);setLoadError('');}
   });return()=>{subscription.unsubscribe();loaderRef.current!.invalidate();};
  },[]);
  useEffect(()=>{const timer=setInterval(()=>{if(document.visibilityState==='visible'&&!pending.current)void refresh();},15000);const reload=()=>{if(!pending.current)void refresh();};window.addEventListener('focus',reload);window.addEventListener('storage',reload);return()=>{clearInterval(timer);window.removeEventListener('focus',reload);window.removeEventListener('storage',reload);};},[mode]);
  const startDemo=()=>{try{const raw=localStorage.getItem(DEMO_KEY);const s=raw?validateState(JSON.parse(raw)):createDemo();if(!raw)localStorage.setItem(DEMO_KEY,JSON.stringify(s));loaderRef.current!.invalidate();setLoadError('');appliedRevision.current=-1;demo.current=s;const u=s.users.find(u=>u.role==='admin'&&u.active)!;generation.current++;setMode('demo');modeRef.current='demo';apply({state:stateForUser(s,u),user:u});setError('');}catch(e){setError('Deneme kaydı okunamadı. Mevcut kayıt korunuyor. '+message(e));}};
  const switchDemo=(id:string)=>{setLastDocumentId(null);if(pending.current)return;const u=demo.current?.users.find(u=>u.id===id&&u.active);if(u&&demo.current)apply({state:stateForUser(demo.current,u),user:u});};
- const logout=async()=>{setLastDocumentId(null);if(pending.current)return;generation.current++;loaderRef.current!.invalidate();authUserId.current=null;setLoadError('');appliedRevision.current=-1;setMode('signed-out');modeRef.current='signed-out';setState(null);setUser(null);uncertain.current=null;setError('');setNotice('');if(auth)await auth.auth.signOut();};
+ const logout=async()=>{setLastDocumentId(null);if(pending.current)return;generation.current++;loaderRef.current!.invalidate();authUserId.current=null;setLoadError('');appliedRevision.current=-1;setMode('signed-out');modeRef.current='signed-out';setState(null);setUser(null);uncertain.current=null;setHasUncertain(false);setError('');setNotice('');if(auth)await auth.auth.signOut();};
+ const resolveUncertain=async()=>{
+  const body=uncertain.current;if(!body||modeRef.current!=='cloud'||pending.current)return;
+  pending.current=true;setBusy(true);setError('');
+  try{const data=await request(body);if(!data)throw new Error('Son işlem doğrulanamadı.');apply(data,true);uncertain.current=null;setHasUncertain(false);setNotice('Son işlem doğrulandı. Yeni işlemlere devam edebilirsiniz.');}
+  catch(e){setError('Son işlem henüz doğrulanamadı. Bağlantıyı kontrol edip tekrar deneyin. '+message(e));}
+  finally{pending.current=false;setBusy(false);}
+ };
  const run=async(command:Command)=>{
   if(pending.current||!state||!user)return false;
   if(mode==='cloud'&&!navigator.onLine){setError('İnternet bağlantısı yok. İşlem gönderilmedi. Bağlantı gelince verileri yenileyip tekrar deneyin.');return false;}
@@ -70,14 +78,14 @@ export function StoreProvider({children}:{children:React.ReactNode}){
     if(navigator.locks)await navigator.locks.request('siparis-demo-write',update);else await update();
    }else{
     if(uncertain.current&&JSON.stringify(uncertain.current.command)!==JSON.stringify(command))throw new Error('Önce sonucu belirsiz önceki işlemi aynı bilgilerle yeniden deneyin.');
-    const body=uncertain.current??{requestId:crypto.randomUUID(),revision:state.revision,command};uncertain.current=body;
-    try{const data=await request(body);if(!data)throw new Error('İşlem sonucu alınamadı.');if(mutationGeneration!==generation.current)return false;apply(data,true);uncertain.current=null;}catch(e){if(e instanceof DomainError&&e.status<500)uncertain.current=null;throw e;}
+    const body=uncertain.current??{requestId:crypto.randomUUID(),revision:state.revision,command};uncertain.current=body;setHasUncertain(true);
+    try{const data=await request(body);if(!data)throw new Error('İşlem sonucu alınamadı.');if(mutationGeneration!==generation.current)return false;apply(data,true);uncertain.current=null;setHasUncertain(false);}catch(e){if(e instanceof DomainError&&e.status<500){uncertain.current=null;setHasUncertain(false);}throw e;}
    }
    setNotice('İşlem kaydedildi.');return true;
   }catch(e){if(mutationGeneration!==generation.current)return false;setError(message(e));if(e instanceof DomainError&&e.status===409)await refresh();return false;}
   finally{pending.current=false;setBusy(false);}
  };
  const snapshot=async()=>{const gen=generation.current;if(modeRef.current==='cloud'){const data=await request();if(gen!==generation.current)throw new Error('Oturum değişti. Yeni hesabınızla yeniden yedek alın.');if(!data||data.user.role!=='admin')throw new Error('Yedek için yönetici girişi gerekli.');apply(data);return data.state;}const raw=localStorage.getItem(DEMO_KEY);if(!raw)throw new Error('Deneme kaydı bulunamadı.');return validateState(JSON.parse(raw));};
- return <Context.Provider value={{storage,snapshot,lastDocumentId,mode,state,user,busy,loading,error:error||loadError,connected,notice,setError,setNotice,startDemo,switchDemo,logout,refresh,run}}>{children}</Context.Provider>;
+ return <Context.Provider value={{storage,snapshot,lastDocumentId,mode,state,user,busy,loading,error:error||loadError,connected,notice,uncertain:hasUncertain,setError,setNotice,startDemo,switchDemo,logout,refresh,resolveUncertain,run}}>{children}</Context.Provider>;
 }
 export function useStore(){const value=useContext(Context);if(!value)throw new Error('StoreProvider required');return value;}

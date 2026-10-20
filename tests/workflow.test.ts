@@ -5,6 +5,7 @@ import {execute,emptyState,stateForUser,validateState,totals,searchMatch,type St
 import {parseProducts,makeBackup,readBackup,readLegacy,readImport} from '../src/imports';
 import {authorizeIdentity} from '../server/identity';
 import {printHtml,ordersCSV,dateKey} from '../src/outputs';
+import {nextOrderStep} from '../src/workflowView';
 const admin='demo-admin',sales='demo-sales',production='demo-production',shipping='demo-shipping';
 function created(){return execute(createDemo(),sales,{type:'order.create',customerId:'demo-c1',items:[{id:'demo-p1',quantity:2}],discount:{type:'percent',value:10},vatMode:'product'});}
 function approved(){let s=created();s=execute(s,sales,{type:'order.customerApprove',id:s.orders[0].id});return execute(s,admin,{type:'order.approve',id:s.orders[0].id,deliveryDate:'2099-12-31',acceptPlanRisk:true});}
@@ -47,6 +48,15 @@ test('CSV neutralizes a formula behind leading whitespace',()=>{const s=created(
 test('legacy file can be imported on a different origin without passwords',()=>{const p=createDemo().products[0];const r=readImport(JSON.stringify({format:'siparis-legacy',version:20,data:{products:[p],customers:[],orders:[],users:[{password:'must-not-import'}]}}));assert.equal(r.data.products.length,1);assert.equal(r.data.users.length,0);assert.ok(!JSON.stringify(r.data).includes('must-not-import'));});
 test('capacity failure leaves source state unchanged',()=>{const s=createDemo();s.audit=Array.from({length:1200},(_,n)=>({id:String(n),at:'2026-10-07T08:00:00Z',actorId:admin,actorName:'Yönetici',action:'test',targetId:'test',detail:'a'.repeat(1800)}));const before=JSON.stringify(s);assert.throws(()=>execute(s,admin,{type:'product.archive',id:'demo-p1'}),/kapasite/);assert.equal(JSON.stringify(s),before);});
 test('excessive monetary total is rejected before saving',()=>{const s=createDemo();s.products[0].price=100000000;assert.throws(()=>execute(s,sales,{type:'order.create',customerId:'demo-c1',items:[{id:'demo-p1',quantity:1000000}],discount:{type:'percent',value:0},vatMode:'none'}),/sınırını/);assert.equal(s.orders.length,0);});
+test('writes cannot create a state that backup validation will reject',()=>{
+ const s=createDemo();s.users=Array.from({length:1000},(_,n)=>({id:'u'+n,name:'Kullanıcı '+n,email:`user${n}@example.test`,role:'pazarlamaci' as const,active:true}));s.users[0]={...s.users[0],id:admin,email:'admin@example.test',role:'admin'};
+ const before=JSON.stringify(s);assert.throws(()=>execute(s,admin,{type:'user.save',user:{name:'Fazla kullanıcı',email:'limit@example.test',role:'pazarlamaci',active:true}}),/1000/);assert.equal(JSON.stringify(s),before);
+});
+test('next order step explains the responsible workflow and quantity',()=>{
+ let s=created();assert.match(nextOrderStep(s.orders[0]).label,/Müşteri/);
+ s=execute(s,sales,{type:'order.customerApprove',id:s.orders[0].id});assert.match(nextOrderStep(s.orders[0]).label,/Yönetici/);
+ s=execute(s,admin,{type:'order.approve',id:s.orders[0].id,deliveryDate:'2099-12-31',acceptPlanRisk:true});assert.match(nextOrderStep(s.orders[0]).detail,/2 adet/);
+});
 test('legacy migration corrects status and quantities without reading old passwords',()=>{
  const p={id:1,orderNo:1,code:'ABC',name:'Ürün',price:100,kdvRate:20};
  const values:Record<string,unknown>={siparis_products_v20:[p],siparis_orders_v20:[{id:'SIP-1',createdAt:'06.10.2026 12:00:00',createdBy:'Eski',customer:{id:1,name:'Müşteri'},items:[{...p,quantity:2,pendingQuantity:0,readyForShipmentQuantity:1,sentQuantity:0}],status:'Tamamlandı',vatRate:20,shipments:[]}]};

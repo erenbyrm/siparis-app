@@ -2,13 +2,13 @@
 
 ## 0.9.0 güncellemesi
 
-[Ayarlar, mobil kullanım, toplu onay ve veri geçişi](docs/AYARLAR_MOBIL_VE_VERI.md). Yeni API eski depolamayla çalışır; kayıt bazında 32 MB uygulama sınırı için önce uyumlu yayın, sonra aynı Supabase projesinde `database/002_record_storage.sql` gerekir.
+[Ayarlar, mobil kullanım, toplu onay ve veri geçişi](docs/AYARLAR_MOBIL_VE_VERI.md). Kayıt bazında 32 MB depolama geçişi tamamlanmıştır; `database/002_record_storage.sql` yeniden çalıştırılmamalıdır.
 
-# Mobil Sipariş 0.8.0
+# Mobil Sipariş 0.10.0
 
 Satış teklifi → müşteri onayı → yönetici onayı → üretim → kısmi/tam sevkiyat.
 
-**Durum:** Yerel deneme ve otomatik kontroller tamamlandı. Supabase hesabı/veritabanı henüz kurulmadı. Gerçek ekip kullanımı için [kurulum rehberini](docs/KURULUM.md) uygulayın; canlı kabul testleri geçmeden eski sürümün yerine almayın.
+**Durum:** Supabase kayıt depolama geçişi ve iki cihazda veri eşleşmesi kullanıcı tarafından doğrulandı. Güncel geliştirme dalı `codex/order-workflow-v2` dalıdır. SQL geçişlerini yeniden çalıştırmayın. Güncel kabul durumu için [kabul belgesini](docs/KABUL_DURUMU.md) kullanın.
 
 Depo ve stok, yönetici onaylı sayım ve üretim kabulü: [kullanım rehberi](docs/DEPO_VE_SAYIM.md).
 
@@ -53,7 +53,7 @@ Build, testleri ve TypeScript kontrolünü de çalıştırır. Testler hosted Su
 
 Tarayıcı → Vercel `/api/workspace` → doğrulanmış Supabase kullanıcısı → sunucu rol kontrolü → PostgreSQL işlemi. İş verileri Supabase'in genel REST API'sine açık değildir. `DATABASE_URL` yalnızca sunucudadır. İlk yönetici yalnızca doğrulanmış `BOOTSTRAP_ADMIN_EMAIL` hesabıdır.
 
-Küçük ekip başlangıç mimarisidir: çalışma alanı tek JSON kaydıdır, yazmalar kilitlenerek sıralanır, açık ekran 15 saniyede bir yenilenir. Büyük veri/ekip için tabloların ayrılması, sunucu sayfalaması ve yük testi gerekir. Çevrimdışı merkezi kayıt yoktur. Çalışma alanı 2 MB sınırını aşarsa yeni yazma reddedilir; mevcut veri korunur.
+Küçük ekip başlangıç mimarisidir: veriler kayıt bazında saklanır, yazmalar kilitlenerek sıralanır ve açık ekran 15 saniyede bir yenilenir. Büyük veri/ekip için sunucu sayfalaması ve yük testi gerekir. Çevrimdışı merkezi kayıt yoktur. Kayıt depolama modunda çalışma alanı 32 MB uygulama sınırına ulaşırsa yeni yazma reddedilir; mevcut veri korunur.
 
 JSON aktarımı boş çalışma alanına ürün, müşteri ve siparişleri taşır. Kullanıcı yetkileri ve eski işlem geçmişi geri yüklenmez; siparişler seçilen aktif kişiye bağlanır. Tam felaket kurtarma için Supabase veritabanı yedeği ve ayrı bir geri yükleme denemesi gerekir. JSON dosyası orijinal geçmişi arşiv amaçlı içerir; güvenli saklayın.
 

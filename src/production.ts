@@ -68,7 +68,8 @@ export function buildProductionPlan(state:State,today=todayInTurkey(),candidate?
    if(remaining)issue(line.code,remaining,'120 günlük planlama ufkuna sığmayan miktar.');
   }
   if(finish&&config)result.expectedDeliveryDate=stockIds.has(order.id)?finish:addWorkingDays(finish,config.transportDays,config);
-  result.late=!!(order.deliveryDate&&result.expectedDeliveryDate&&result.expectedDeliveryDate>order.deliveryDate);
+  const unresolved=order.items.some(i=>i.pendingQuantity>0||i.readyForShipmentQuantity>0||(i.awaitingReceiptQuantity??0)>0);
+  result.late=!!(order.deliveryDate&&((result.expectedDeliveryDate&&result.expectedDeliveryDate>order.deliveryDate)||(unresolved&&today>order.deliveryDate)));
  }
  return plan;
 }

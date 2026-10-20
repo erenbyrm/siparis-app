@@ -67,3 +67,9 @@ test('fractional day shares preserve integer quantities and do not exceed capaci
  const s=waiting(151);s.products[0].dailyCapacity=7;const p=buildProductionPlan(approve(s,'2026-12-31'),'2026-10-09');
  assert.equal(p.allocations.reduce((n,a)=>n+a.quantity,0),151);assert.ok(p.allocations.every(a=>Number.isInteger(a.quantity)&&a.load<=1));
 });
+test('past-due work remains late while waiting for warehouse receipt',()=>{
+ let s=approve(waiting(10),'2026-10-12');const id=s.orders[0].id;
+ s=execute(s,'demo-production',{type:'order.ready',id,items:[{id:'demo-p1',quantity:10}]},now);
+ const result=buildProductionPlan(s,'2026-10-13').orders.find(o=>o.orderId===id)!;
+ assert.equal(result.incomplete,true);assert.equal(result.late,true);assert.equal(result.expectedDeliveryDate,undefined);
+});

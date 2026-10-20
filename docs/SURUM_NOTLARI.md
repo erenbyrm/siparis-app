@@ -1,3 +1,14 @@
+# v0.10.0 — 20 Ekim 2026
+
+- Rol bazlı **Bugün yapılacaklar** ekranı eklendi. Yönetici, satış, üretim ve depo ekipleri kendi bekleyen iş sayılarını ve öncelikli siparişlerini görür.
+- Sipariş ayrıntısında sıradaki sorumlu işlem ve bekleyen adet açıkça gösterilir.
+- Sunucuda tamamlanıp yanıtı bağlantıda kaybolan işlemler için güvenli **Son işlemi doğrula** adımı eklendi; aynı istek kimliğiyle sonuç alınır ve yeni kayıt kilidi kaldırılır.
+- Stok sayımı ve depo üretim talebi taslakları ekran değişiminde korunur; başarılı kayıtta veya kullanıcı isteğiyle temizlenir.
+- Depo kabulü bekleyen geçmiş teslim tarihli işler gecikme sayacına dahil edildi. Eksik teslim karar geçmişinde ürün kodu depo rolünde de görünür.
+- Yazma sonunda koleksiyon sınırları doğrulanır; uygulamanın kabul ettiği verinin yedek doğrulamasında reddedilmesi engellendi.
+- Telefon yakınlaştırmasını engelleyen viewport kısıtlaması kaldırıldı.
+- 137 otomatik test, TypeScript kontrolü, üretim derlemesi ve 390 piksel tarayıcı akışı geçti. Bu sürüm SQL değişikliği gerektirmez.
+
 # v0.9.5 — 20 Ekim 2026
 
 - iPhone ana ekran simgesi SÖZBİR amblemi ile yenilendi: 180 × 180, beyaz zeminli opak PNG; açık sizes bildirimi ve kök apple-touch-icon.png yedeği.
