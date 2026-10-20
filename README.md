@@ -1,3 +1,5 @@
+[Güncel kurulum/kabul durumu — 20 Ekim 2026](docs/KABUL_DURUMU.md). Kullanılan test projesinde 002 geçişi tamamlandı; yeniden çalıştırmanız gerekmiyor.
+
 ## 0.9.0 güncellemesi
 
 [Ayarlar, mobil kullanım, toplu onay ve veri geçişi](docs/AYARLAR_MOBIL_VE_VERI.md). Yeni API eski depolamayla çalışır; kayıt bazında 32 MB uygulama sınırı için önce uyumlu yayın, sonra aynı Supabase projesinde `database/002_record_storage.sql` gerekir.

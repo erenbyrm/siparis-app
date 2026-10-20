@@ -1,3 +1,7 @@
+# 0.9.2 — oturum sonrası tam veri yenileme
+
+20 Ekim 2026. Oturum/yetki hatası çalışma alanını temizlediğinde bilinen veri sürümü de sıfırlanır; yeniden giriş/yenilemede tam yanıt alınır. Gerçek Supabase geçişi ve 32 MB ekranı kullanıcı tarafından doğrulandı. [Kabul durumu ve kalan cihaz kontrolü](KABUL_DURUMU.md).
+
 # 0.9.1 — Ayarlar görünüm düzeltmesi
 
 19 Ekim 2026. Önceki yayına taşınmayan güncel styles.css eklendi. Ayarlar kendi stil dosyasıyla, dört başlık altında eşit kartlara ayrıldı; ikon, başlık ve açıklama hizaları telefon/bilgisayar için düzenlendi. Yayın kaynakları artık CSS dosyalarını da içerir.

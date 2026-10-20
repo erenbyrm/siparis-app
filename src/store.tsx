@@ -33,7 +33,7 @@ export function StoreProvider({children}:{children:React.ReactNode}){
  if(!loaderRef.current)loaderRef.current=createWorkspaceLoader<Envelope|null>({
   read:()=>request(undefined,appliedRevision.current),
   success:data=>{if(data)apply(data);else setConnected(true);setLoadError('');},
-  failure:e=>{setConnected(false);setLoadError(message(e));if(e instanceof DomainError&&[401,403].includes(e.status)){setState(null);setUser(null);}},
+  failure:e=>{setConnected(false);setLoadError(message(e));if(e instanceof DomainError&&[401,403].includes(e.status)){appliedRevision.current=-1;userRef.current=null;setState(null);setUser(null);}},
   loading:setLoading,
   retryable:e=>!(e instanceof DomainError)||e.status===409||e.status>=500
  });

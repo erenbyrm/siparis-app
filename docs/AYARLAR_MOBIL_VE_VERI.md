@@ -26,7 +26,7 @@ Eş zamanlı giriş/odak yenilemeleri tek okumada birleşir. Geçici okuma sorun
 
 ## Merkezi veri geçişi — yönetici adımı gerekli
 
-Bu sürüm eski depolamayla da çalışır. Merkezi veritabanına bu oturumda erişim olmadığı için geçiş uzaktan uygulanmadı.
+Bu sürüm eski depolamayla da çalışır. 20 Ekim 2026: kullanıcı 002 geçişini Supabase SQL Editor üzerinde çalıştırdı. Gönderdiği sonuç “Success. No rows returned”; uygulama ekranı “Kayıt bazında merkezi depolama etkin”, 0,03 MB / 32 MB, 32 ürün, 0 sipariş, 0 müşteri gösterdi. Geçiş ve uygulamanın yeni depolamayı okuyabildiği bu ekranlarla doğrulandı. Agent doğrudan veritabanına bağlanmadı. Aşağıdaki adımlar yeni kurulumlar içindir; mevcut projede yeniden uygulanması gerekmiyor.
 
 1. Önce 0.9.0 ön izleme yayını hazır olsun; uygulamadan güncel JSON yedeğini indirin.
 2. Kullanılan Supabase test projesinde SQL Editor açın. `database/002_record_storage.sql` dosyasının tamamını yeni sorguya yapıştırıp Run seçin. İlk kurulumdaki 001 aynı projede önceden çalışmış olmalı.
@@ -49,6 +49,8 @@ Ekrandan aktarım en fazla 4 MB'dır. Daha büyük doğrulanmış yedek için, k
 
 130 otomatik test; gerçek PostgreSQL motorunda (PGlite) 001→002 veri koruma, tekrar geçiş, RLS, yalnız değişen kayıtların yazılması, geri alma, 2 MB üstü veri; API yetki / tekrar istek / sürüm kontrolü; toplu onay atomikliği; eksik kabulde 80 kabul edilen + 20 yeniden üretim; yedek bütünlüğü ve giriş yükleme yarışları doğrulandı.
 
-Yerel tarayıcıda sipariş oluşturma, müşteri onayı, üç kayıt toplu yönetici onayı, üretim, sayarak kabul, sevkiyatla kapanış, PDF indirme, logo yükleme, renk seçimi, açık/karanlık görünüm ve rol bazında Ayarlar denendi. Telefon 360/390 px ve tablet 820 px incelenir; görseller delivery/screens altındadır.
+Yerel tarayıcıda sipariş oluşturma, müşteri onayı, üç kayıt toplu yönetici onayı, üretim, sayarak kabul, sevkiyatla kapanış, PDF indirme, logo yükleme, renk seçimi, açık/karanlık görünüm ve rol bazında Ayarlar denendi. Telefon 360/390 px ve tablet 820 px incelendi; görseller delivery/screens altındadır.
 
-Kalan: kullanılan Supabase'de 002 geçişi, gerçek kullanıcıyla giriş ve ikinci cihaz senkronizasyonu, fiziksel Android/iPhone kurulum/klavye/paylaşım/yazdırma kabulü. Korumalı yayının sunucu kayıtlarına bağlantı 403 verdiğinden gerçek sunucu hatasının kök nedeni doğrudan doğrulanamadı. Ana yayın değiştirilmez; çalışma ön izleme dalındadır.
+Tamamlanan: kullanılan Supabase'de 002 geçişi, gerçek hesapla yeni depolama/kapasite ekranının okunması ve 32 ürünün varlığının ekran görüntüsüyle doğrulanması. Kullanıcı geçiş öncesi yedeğin indiğini bildirdi. Geçiş sonrası yeni yedeğin indirilmesi henüz doğrulanmadı.
+
+Kalan: gerçek iki cihaz arasında kayıt oluşturma/yenileme senkronizasyonu; fiziksel Android/iPhone kurulum, klavye, paylaşım ve yazdırma kabulü. Korumalı yayının sunucu kayıtlarına bağlantı 403 verdiğinden gerçek sunucu hatasının kök nedeni doğrudan doğrulanamadı. Ana yayın değiştirilmez; çalışma ön izleme dalındadır.
