@@ -1,6 +1,6 @@
 # Kurulum ve kabul durumu
 
-Son güncelleme: 20 Ekim 2026. Uygulama 0.10.1.
+Son güncelleme: 20 Ekim 2026. Uygulama 0.11.0.
 
 ## Tamamlanan
 
@@ -32,6 +32,11 @@ Son güncelleme: 20 Ekim 2026. Uygulama 0.10.1.
 ## 0.10.1
 
 - Çalışma alanı yükleme ekranı büyük SÖZBİR logolu sade geçiş olarak yenilendi. Bağlantı hatasında kurtarma düğmeleri korunur. Yeni SQL gerekmez.
+
+## 0.11.0
+
+- Uygulamanın görsel sistemi şirket ana rengine bağlandı. Açık ve koyu görünümün zemin, kart, menü, kenarlık, düğme ve vurgu tonları seçilen renkten otomatik oluşturulur.
+- Anlam taşıyan uyarı, hata ve başarı renkleri korunur. Renk kontrastı test edilir. Yeni SQL gerekmez ve canlı veriler değiştirilmez.
 
 ## Sonraki kullanıcı kontrolü
 

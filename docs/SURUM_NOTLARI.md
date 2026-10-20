@@ -1,3 +1,10 @@
+# v0.11.0 — 20 Ekim 2026
+
+- Şirket ayarlarından seçilen ana renk artık yalnız düğmelere değil; sayfa zeminine, kartlara, menülere, seçimlere, kenarlıklara ve gölgelere de uyumlu tonlarla uygulanır.
+- Açık ve karanlık görünüm için ayrı tonlar aynı ana renkten otomatik üretilir. Tarayıcı üst çubuğunun rengi de seçilen görünüme uyum sağlar.
+- Kart köşeleri, katmanlar, menüler, giriş ekranı ve mobil alt menü daha tutarlı bir görsel düzene kavuştu. Uyarı, hata ve başarı renkleri anlamlarını korur.
+- Renk üretimi ve yazı okunabilirliği otomatik testlerle doğrulandı. Yeni SQL gerekmez ve canlı veriler değiştirilmez.
+
 # v0.10.1 — 20 Ekim 2026
 
 - Oturum sonrası çalışma alanı hazırlanırken görünen yazı ve düğmeler kaldırıldı. Açılışta ortalanmış büyük SÖZBİR logosu ve yumuşak bir geçiş gösterilir.
