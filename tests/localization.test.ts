@@ -34,7 +34,7 @@ test('every static translated interface phrase has all three translations',()=>{
 
 test('language preference is optional for old data and saved on the signed-in user',()=>{
  const state=emptyState();
- const user:AppUser={id:'u1',name:'Yönetici',email:'yonetici@example.com',role:'admin',active:true};
+ const user:AppUser={id:'u1',name:'ADMİN',email:'yonetici@example.com',role:'admin',active:true,isSystemAdmin:true};
  state.users=[user];
  assert.equal(validateState(state).users[0].language,undefined);
  const next=execute(state,user.id,{type:'user.language',language:'ar'},'2026-10-21T09:00:00.000Z');

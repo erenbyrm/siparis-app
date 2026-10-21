@@ -28,21 +28,23 @@ Aktarım geçersiz/kesirli miktar veya sevkiyat geçmişi uyuşmazlığında dur
 
 Supabase **Authentication** ayarlarında e-posta/parola girişini ve e-posta doğrulamasını etkin tutun. Yeni parolalar için en az 12 karakter şartını Supabase tarafında da ayarlayın.
 
-- **URL Configuration → Site URL:** canlı uygulamanızın adresi.
-- **Redirect URLs:** canlı adresi ve `/?reset=1` yolunu, test edeceğiniz sabit önizleme adresi ve onun `/?reset=1` yolunu ekleyin. Önizleme oluşunca gerçek adresi kullanın.
+- **URL Configuration → Site URL:** `https://siparis-app-cf14.vercel.app`.
+- **Redirect URLs:** `https://siparis-app-cf14.vercel.app/` ve `https://siparis-app-cf14.vercel.app/?reset=1`. Vercel erişim korumalı dal/önizleme adresini canlı e-posta bağlantılarında kullanmayın.
 - Personelin doğrulama ve parola sıfırlama e-postalarını alması için **Custom SMTP** kurun. Mevcut kurumsal e-posta sağlayıcınız destekliyorsa onun SMTP bilgilerini kullanın. Supabase varsayılan göndericisinde proje ekibi dışındaki alıcılara gönderim kısıtlıdır. [Resmî SMTP açıklaması](https://supabase.com/docs/guides/auth/auth-smtp).
 - SMTP bilgilerini yalnızca Supabase paneline girin. Bağlantıların bozulmaması için e-posta sağlayıcısındaki bağlantı izlemeyi kapatın.
 
-## 4. Vercel'de dört bağlantı ayarını girin
+## 4. Vercel'de bağlantı ayarlarını girin
 
 Mevcut proje: **siparis-app-cf14**. **Settings → Environment Variables** bölümüne aşağıdakileri ekleyin. Önce test ortamında ayrı Supabase projesi kullanılması önerilir; canlı veritabanını test dallarına bağlamayın.
 
 | Ayar | Nereden bulunur? | Kullanım |
 |---|---|---|
 | `VITE_SUPABASE_URL` | Supabase Project Settings/API veya Connect: Project URL | Tarayıcı ve sunucu; açık değer |
+| `VITE_PUBLIC_APP_URL` | `https://siparis-app-cf14.vercel.app` | Doğrulama ve parola yenileme e-postalarının döneceği herkese açık adres |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key (eski projelerde anon key) | Tarayıcı ve sunucu; **secret/service_role kullanmayın** |
 | `DATABASE_URL` | Supabase Connect → Transaction pooler → URI, port 6543 | **Yalnızca sunucu; gizli** |
-| `BOOTSTRAP_ADMIN_EMAIL` | İlk yöneticinin doğrulayacağı sizin e-postanız | Yalnızca sunucu |
+| `BOOTSTRAP_ADMIN_EMAIL` | ADMİN'in ana doğrulanmış giriş e-postası | Yalnızca sunucu; `muhasebe@sozbirmerdiven.com` |
+| `RECOVERY_ADMIN_EMAIL` | Aynı ADMİN'in kurtarma giriş e-postası | Yalnızca sunucu; `erenbyrm@outlook.com` |
 
 `DATABASE_URL` içindeki parola yer tutucusunu siz doldurun. Özel karakterler URI için kodlanmalıdır. SSL kullanın (`sslmode=require`); bağlantı dizesini loglara veya GitHub'a yazmayın. [Supabase bağlantı rehberi](https://supabase.com/docs/guides/database/connecting-to-postgres).
 
@@ -52,12 +54,12 @@ Değerler eski yayına kendiliğinden işlenmez; **Redeploy** gerekir. Önce yen
 
 ## 5. İlk yönetici ve personel
 
-1. Yapılandırılmış önizlemede **Yeni hesap** açın; e-posta tam olarak `BOOTSTRAP_ADMIN_EMAIL` olsun. Parolayı siz girin.
-2. E-postayı doğrulayın ve giriş yapın. Boş sistemde bu hesap ilk yönetici olur.
-3. **Kullanıcılar** ekranında personelin adını, gerçek e-postasını ve görevini ekleyin. Bu işlem otomatik e-posta göndermez.
-4. Personel kendi e-postasıyla hesap açıp doğrular. Kullanıcı listesindeki e-posta eşleşince yetkisi etkin olur.
+1. `BOOTSTRAP_ADMIN_EMAIL` ve `RECOVERY_ADMIN_EMAIL` için Supabase'de iki doğrulanmış giriş açın. Değerler e-postalarla tam eşleşmelidir; iki giriş uygulamada aynı EREN BAYRAM kullanıcısına bağlanır.
+2. Önce ana veya kurtarma e-postasıyla giriş yapın. Sunucu varsa ana e-postalı kullanıcıyı kanonik ADMİN yapar; yoksa tek bir ADMİN kaydı oluşturur. Diğer e-postayla giriş ikinci bir uygulama kullanıcısı oluşturmaz. Pasife alınmış kanonik hesabı kendiliğinden yeniden etkinleştirmez.
+3. Yalnızca ADMİN, **Kullanıcılar** ekranında personelin adını, e-postasını ve görevini ekleyebilir. Normal Yönetici bu ekranı göremez ve kullanıcı kaydı değiştiremez.
+4. Personel kendi e-postasıyla hesap açıp doğrular. Kullanıcı listesindeki e-posta eşleşince yetkisi etkin olur. Parolalar uygulamada tutulmaz; ADMİN yalnızca ilgili e-postaya güvenli yenileme bağlantısı gönderebilir.
 5. Rolü Supabase kullanıcı metadata'sından değiştirmeyin; yetki kaynağı yönetici ekranıdır.
-6. İlk yönetici oluşturulduktan sonra `BOOTSTRAP_ADMIN_EMAIL` kaldırılabilir. Yeni yönetici için mevcut yönetici ekranını kullanın; kurum içinde hesap kurtarma sorumlusu belirleyin.
+6. İki Supabase girişinin aynı kanonik ADMİN hesabına bağlanması için `BOOTSTRAP_ADMIN_EMAIL` ve `RECOVERY_ADMIN_EMAIL` sunucu ayarlarını koruyun. Değer değişikliğinden sonra yeniden dağıtım yapın.
 
 ## 6. Gerçek verileri yükleyin
 

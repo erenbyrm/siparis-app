@@ -1,3 +1,12 @@
+# v0.13.0 — 21 Ekim 2026
+
+- Masaüstü karşılama kartındaki uzun şirket görseli kırpılmadan, oranı korunarak gösterilir.
+- Mobil depo sayımı 0–9 sayı klavyesini açar; klavye açıldığında sabit alt menü yerinden oynamaz.
+- Hesap doğrulama ve parola yenileme bağlantıları herkese açık kalıcı canlı uygulama adresine döner.
+- `muhasebe@sozbirmerdiven.com` ile `erenbyrm@outlook.com` aynı kanonik **EREN BAYRAM / ADMİN** uygulama hesabına bağlanır; ikinci doğrulanmış giriş ayrı kullanıcı oluşturmaz.
+- Yönetici operasyon yetkilerini korur. Kullanıcı hesabı ve rol yönetimi ile parola yenileme bağlantısı gönderme işlemleri yalnız **ADMİN** tarafından yapılabilir.
+- Bu sürüm yeni SQL gerektirmez ve canlı iş verilerini değiştirmez.
+
 # v0.12.0 — 21 Ekim 2026
 
 - Ayarlar → Dil bölümüne Türkçe, Arapça, İngilizce ve Almanca seçenekleri eklendi. Giriş ekranından da dil seçilebilir.

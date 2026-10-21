@@ -4,7 +4,7 @@
 
 [Ayarlar, mobil kullanım, toplu onay ve veri geçişi](docs/AYARLAR_MOBIL_VE_VERI.md). Kayıt bazında 32 MB depolama geçişi tamamlanmıştır; `database/002_record_storage.sql` yeniden çalıştırılmamalıdır.
 
-# Mobil Sipariş 0.12.0
+# Mobil Sipariş 0.13.0
 
 Satış teklifi → müşteri onayı → yönetici onayı → üretim → kısmi/tam sevkiyat.
 
@@ -48,11 +48,11 @@ Build, testleri ve TypeScript kontrolünü de çalıştırır. Testler hosted Su
 - [Değişiklikler ve doğrulama](docs/SURUM_NOTLARI.md)
 - [Veritabanı kurulumu](database/001_workspace.sql)
 - [Eski sürümden veri çıkarma](scripts/export-legacy.js)
-- `.env.example`: gerekli dört değişken; gerçek değerleri GitHub'a koymayın.
+- `.env.example`: gerekli ortam değişkenleri; gerçek değerleri GitHub'a koymayın.
 
 ## Mimari ve sınırlar
 
-Tarayıcı → Vercel `/api/workspace` → doğrulanmış Supabase kullanıcısı → sunucu rol kontrolü → PostgreSQL işlemi. İş verileri Supabase'in genel REST API'sine açık değildir. `DATABASE_URL` yalnızca sunucudadır. İlk yönetici yalnızca doğrulanmış `BOOTSTRAP_ADMIN_EMAIL` hesabıdır.
+Tarayıcı → Vercel `/api/workspace` → doğrulanmış Supabase kullanıcısı → sunucu rol kontrolü → PostgreSQL işlemi. İş verileri Supabase'in genel REST API'sine açık değildir. `DATABASE_URL` yalnızca sunucudadır. Doğrulanmış `BOOTSTRAP_ADMIN_EMAIL` ve `RECOVERY_ADMIN_EMAIL` adresleri aynı kanonik EREN BAYRAM / ADMİN uygulama hesabına bağlanır.
 
 Küçük ekip başlangıç mimarisidir: veriler kayıt bazında saklanır, yazmalar kilitlenerek sıralanır ve açık ekran 15 saniyede bir yenilenir. Büyük veri/ekip için sunucu sayfalaması ve yük testi gerekir. Çevrimdışı merkezi kayıt yoktur. Kayıt depolama modunda çalışma alanı 32 MB uygulama sınırına ulaşırsa yeni yazma reddedilir; mevcut veri korunur.
 

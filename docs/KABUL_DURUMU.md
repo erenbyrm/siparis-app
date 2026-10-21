@@ -1,6 +1,6 @@
 # Kurulum ve kabul durumu
 
-Son güncelleme: 21 Ekim 2026. Uygulama 0.12.0.
+Son güncelleme: 21 Ekim 2026. Uygulama 0.13.0.
 
 ## Tamamlanan
 
@@ -44,6 +44,15 @@ Son güncelleme: 21 Ekim 2026. Uygulama 0.12.0.
 - Tercih kullanıcı kaydındaki isteğe bağlı alanda saklanır ve cihazlar arasında merkezi kayıtla eşleşir. Mevcut kullanıcılar ve eski yedekler değişiklik yapılmadan okunur.
 - Arapça görünüm sağdan sola yerleşir. İş akışındaki durum değerleri veride Türkçe tutulmaya devam eder; yalnız ekrandaki karşılıkları çevrilir. Kullanıcıların girdiği şirket, müşteri, ürün ve açıklama metinleri değiştirilmez.
 - SQL geçişi yapılmadı; canlı Supabase verisine dokunulmadı.
+
+## 0.13.0
+
+- Masaüstü karşılama kartındaki uzun şirket görseli kırpılmadan, oranı korunarak gösterilir.
+- Mobil depo sayım alanı 0–9 sayı klavyesini açar. Klavye açılırken alt uygulama menüsünün konumu korunur.
+- Hesap doğrulama ve parola yenileme bağlantıları herkese açık kalıcı canlı uygulama adresine döner.
+- `muhasebe@sozbirmerdiven.com` ve `erenbyrm@outlook.com` doğrulanmış girişleri tek kanonik **EREN BAYRAM / ADMİN** uygulama hesabına bağlanır; ikinci adres yeni uygulama kullanıcısı oluşturmaz.
+- Yönetici operasyon yetkilerini korur. Kullanıcı hesabı, rolü ve parola yenileme bağlantısını yalnız **ADMİN** yönetebilir.
+- 152 otomatik test, TypeScript kontrolü ve üretim derlemesi geçti. SQL geçişi yapılmadı; canlı iş verileri değiştirilmedi.
 
 ## Sonraki kullanıcı kontrolü
 

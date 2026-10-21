@@ -26,7 +26,7 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
   const row=await client.query('SELECT data FROM siparis_private.workspace WHERE id=true FOR UPDATE');
   const stored=row.rows[0].data,recordMode=isRecordWorkspace(stored);
   let state=await readWorkspace(client,stored);const before=structuredClone(state),revisionBefore=state.revision,maxBytes=recordMode?32_000_000:2_000_000;
-  let actor=authorizeIdentity(state,{email:data.user.email,emailConfirmed:!!data.user.email_confirmed_at},process.env.BOOTSTRAP_ADMIN_EMAIL);
+  let actor=authorizeIdentity(state,{email:data.user.email,emailConfirmed:!!data.user.email_confirmed_at},process.env.BOOTSTRAP_ADMIN_EMAIL,process.env.RECOVERY_ADMIN_EMAIL);
   if(payload){
    const previous=await client.query('SELECT actor_id FROM siparis_private.requests WHERE id=$1',[payload.requestId]);
    if(previous.rowCount){if(previous.rows[0].actor_id!==actor.id)throw new DomainError('İstek kimliği başka kullanıcıya ait.',409);}
