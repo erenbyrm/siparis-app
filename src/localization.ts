@@ -149,8 +149,6 @@ const rows:TranslationRow[]=[
  ['Karanlık','Dark','Dunkel','داكن'],
  ['Görünüm ayarı','Appearance setting','Darstellungseinstellung','إعداد المظهر'],
  ['Hesap bilgilerinizde değişiklik için yöneticinize başvurun. Şifre yenileme bağlantısını giriş ekranındaki Şifremi unuttum seçeneğinden alabilirsiniz.','Contact your manager to change account information. You can request a password reset link from Forgot my password on the sign-in screen.','Wenden Sie sich für Änderungen Ihrer Kontodaten an Ihren Manager. Einen Link zum Zurücksetzen erhalten Sie über Passwort vergessen auf der Anmeldeseite.','لتغيير معلومات الحساب تواصل مع المدير. يمكنك طلب رابط إعادة تعيين كلمة المرور من خيار نسيت كلمة المرور في شاشة الدخول.'],
- ['Siparişten','From order','Von der Bestellung','من الطلب'],
- ['teslimata.','to delivery.','bis zur Lieferung.','إلى التسليم.'],
  ['Satış, üretim ve sevkiyat ekibinizin','Your sales, production and shipping team’s','Der gemeinsame','مساحة العمل المشتركة لفريق'],
  ['ortak çalışma alanı.','shared workspace.','Arbeitsbereich für Vertrieb, Produktion und Versand.','المبيعات والإنتاج والشحن.'],
  ['Sipariş yönetimi','Order management','Bestellverwaltung','إدارة الطلبات'],

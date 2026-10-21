@@ -5,6 +5,7 @@
 - Arapçada sayfa yönü, menüler, kartlar, tablolar ve yön okları sağdan sola döner. E-posta, telefon, tarih ve sayı alanlarının okunabilir yönü korunur.
 - Tarih, saat, sayı ve TL gösterimi seçilen dilin biçimine uyar. Sipariş, müşteri ve kullanıcıların yazdığı kayıt içeriği çevrilmez veya değiştirilmez.
 - Çevrimdışı ekranı da seçilen dili hatırlar. Bu sürüm yeni SQL gerektirmez ve canlı iş verilerini değiştirmez.
+- Giriş ekranındaki büyük “Siparişten teslimata.” başlığı kaldırıldı; şirket logosu ve kısa açıklama daha sade bir düzende bırakıldı.
 
 # v0.11.0 — 20 Ekim 2026
 
