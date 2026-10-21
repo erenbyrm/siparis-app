@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="tr">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+ <meta name="theme-color" content="#164d46">
+ <title>Bağlantı yok · Mobil Sipariş</title>
+ <style>body{margin:0;background:#f3f7f5;color:#19383d;font:16px system-ui,sans-serif;display:grid;min-height:100dvh;place-items:center}main{max-width:420px;padding:32px 24px}img{width:72px;height:72px;border-radius:18px}h1{font-size:28px}p{line-height:1.7;color:#536f6c}a{display:block;text-align:center;background:#176b60;color:white;padding:16px;border-radius:12px;text-decoration:none;font-weight:600}small{display:block;line-height:1.6;margin-top:24px;color:#536f6c}</style>
+</head>
+<body>
+ <main><img src="/icons/sozbir-icon-192-v1.png" alt="Mobil Sipariş"><h1 id="heading">Bağlantını kontrol et</h1><p id="message">Uygulamayı açmak için internet bağlantısı gerekiyor. Bağlantın geldiğinde tekrar deneyebilirsin.</p><a id="retry" href="/">Yeniden dene</a><small id="detail">Bu ekran herhangi bir sipariş veya stok işlemi kaydetmez. Önceki işlemin sonucu belirsizse bağlantı geldikten sonra kaydını kontrol et.</small></main>
+ <script>
+  try{
+   const language=localStorage.getItem('siparis_language_v1')||'tr';
+   const messages={
+    ar:['لا يوجد اتصال · Mobil Sipariş','تحقق من الاتصال','يلزم الاتصال بالإنترنت لفتح التطبيق. حاول مرة أخرى عند عودة الاتصال.','حاول مرة أخرى','لا تحفظ هذه الشاشة أي طلب أو عملية مخزون. إذا كانت نتيجة العملية السابقة غير مؤكدة فتحقق من السجل بعد عودة الاتصال.'],
+    en:['Offline · Mobil Sipariş','Check your connection','An internet connection is required to open the application. Try again when your connection returns.','Try again','This screen does not save any order or stock action. If the result of your previous action is uncertain, check the record after reconnecting.'],
+    de:['Offline · Mobil Sipariş','Verbindung prüfen','Zum Öffnen der App ist eine Internetverbindung erforderlich. Versuchen Sie es erneut, sobald die Verbindung wiederhergestellt ist.','Erneut versuchen','Dieser Bildschirm speichert keine Bestell- oder Lageraktion. Falls das Ergebnis des letzten Vorgangs unklar ist, prüfen Sie den Datensatz nach Wiederherstellung der Verbindung.']
+   };
+   const text=messages[language];if(text){document.documentElement.lang=language;document.documentElement.dir=language==='ar'?'rtl':'ltr';document.title=text[0];document.getElementById('heading').textContent=text[1];document.getElementById('message').textContent=text[2];document.getElementById('retry').textContent=text[3];document.getElementById('detail').textContent=text[4];}
+  }catch{}
+ </script>
+</body>
+</html>

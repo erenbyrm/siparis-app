@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {checkedBackup,verifyBackup,checkedImport} from '../src/backupIntegrity';import {createDemo} from '../src/demo';import {makeBackup} from '../src/imports';
+test('backup checksum round trip and tampered data rejection',async()=>{const original=createDemo(),backup=await checkedBackup(original);assert.equal(await verifyBackup(JSON.stringify(backup)),true);assert.deepEqual((await checkedImport(JSON.stringify(backup))).data,original);backup.data.products[0].price++;await assert.rejects(()=>verifyBackup(JSON.stringify(backup)),/bütünlük/);});
+test('old backup remains importable and is clearly marked unverified',async()=>{const raw=JSON.stringify(makeBackup(createDemo()));assert.equal(await verifyBackup(raw),false);assert.match((await checkedImport(raw)).warnings[0],/eski yedek/);});
