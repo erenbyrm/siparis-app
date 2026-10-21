@@ -1,3 +1,11 @@
+# v0.12.0 — 21 Ekim 2026
+
+- Ayarlar → Dil bölümüne Türkçe, Arapça, İngilizce ve Almanca seçenekleri eklendi. Giriş ekranından da dil seçilebilir.
+- Dil tercihi kullanıcı hesabına kaydedilir; aynı hesapla giriş yapılan telefon ve bilgisayarda kullanılır. Eski kullanıcı kayıtları Türkçe varsayılanıyla uyumludur.
+- Arapçada sayfa yönü, menüler, kartlar, tablolar ve yön okları sağdan sola döner. E-posta, telefon, tarih ve sayı alanlarının okunabilir yönü korunur.
+- Tarih, saat, sayı ve TL gösterimi seçilen dilin biçimine uyar. Sipariş, müşteri ve kullanıcıların yazdığı kayıt içeriği çevrilmez veya değiştirilmez.
+- Çevrimdışı ekranı da seçilen dili hatırlar. Bu sürüm yeni SQL gerektirmez ve canlı iş verilerini değiştirmez.
+
 # v0.11.0 — 20 Ekim 2026
 
 - Şirket ayarlarından seçilen ana renk artık yalnız düğmelere değil; sayfa zeminine, kartlara, menülere, seçimlere, kenarlıklara ve gölgelere de uyumlu tonlarla uygulanır.

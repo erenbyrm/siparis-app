@@ -4,6 +4,7 @@ import React,{createContext,useContext,useEffect,useRef,useState} from 'react';
 import {createClient,type SupabaseClient} from '@supabase/supabase-js';
 import {createDemo} from './demo';
 import {DomainError,execute,stateForUser,validateState,type State,type AppUser,type Command} from './domain';
+import {message} from './errors';
 const DEMO_KEY='siparis_demo_v2';
 const URL=import.meta.env.VITE_SUPABASE_URL;
 const KEY=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -12,7 +13,7 @@ export const auth:SupabaseClient|null=cloudConfigured?createClient(URL,KEY):null
 type Mode='signed-out'|'demo'|'cloud';
 type ContextValue={storage:StorageInfo|null,snapshot:()=>Promise<State>,lastDocumentId:string|null,mode:Mode,state:State|null,user:AppUser|null,busy:boolean,loading:boolean,error:string,connected:boolean,notice:string,uncertain:boolean,setError:(e:string)=>void,setNotice:(s:string)=>void,startDemo:()=>void,switchDemo:(id:string)=>void,logout:()=>Promise<void>,refresh:()=>Promise<void>,resolveUncertain:()=>Promise<void>,run:(command:Command)=>Promise<boolean>};
 const Context=createContext<ContextValue|null>(null);
-export const message=(error:unknown)=>error instanceof Error?error.message:'İşlem tamamlanamadı.';
+export {message};
 async function request(body?:{requestId:string,revision:number,command:Command},knownRevision?:number):Promise<Envelope|null>{
  const session=await auth?.auth.getSession();const token=session?.data.session?.access_token;
  if(!token)throw new DomainError('Oturum açın.',401);

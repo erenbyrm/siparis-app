@@ -1,7 +1,8 @@
 import {totals,type Order,type State} from './domain';
 import {companySchema,type Company} from './company';
-export const currency=(n:number)=>new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY'}).format(n);
-export const date=(iso:string)=>new Intl.DateTimeFormat('tr-TR',{dateStyle:'medium',timeStyle:'short',timeZone:'Europe/Istanbul'}).format(new Date(iso));
+import {localeFor} from './localization';
+export const currency=(n:number)=>new Intl.NumberFormat(localeFor(),{style:'currency',currency:'TRY'}).format(n);
+export const date=(iso:string)=>new Intl.DateTimeFormat(localeFor(),{dateStyle:'medium',timeStyle:'short',timeZone:'Europe/Istanbul'}).format(new Date(iso));
 export const dateKey=(iso:string)=>new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit',timeZone:'Europe/Istanbul'}).format(new Date(iso));
 export const shortNumber=(n:string)=>n.startsWith('SIP-')&&n.length>30?n.slice(0,21).toUpperCase():n;
 export const escapeHtml=(value:unknown)=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));

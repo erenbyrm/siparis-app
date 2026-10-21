@@ -1,6 +1,6 @@
 # Kurulum ve kabul durumu
 
-Son güncelleme: 20 Ekim 2026. Uygulama 0.11.0.
+Son güncelleme: 21 Ekim 2026. Uygulama 0.12.0.
 
 ## Tamamlanan
 
@@ -37,6 +37,13 @@ Son güncelleme: 20 Ekim 2026. Uygulama 0.11.0.
 
 - Uygulamanın görsel sistemi şirket ana rengine bağlandı. Açık ve koyu görünümün zemin, kart, menü, kenarlık, düğme ve vurgu tonları seçilen renkten otomatik oluşturulur.
 - Anlam taşıyan uyarı, hata ve başarı renkleri korunur. Renk kontrastı test edilir. Yeni SQL gerekmez ve canlı veriler değiştirilmez.
+
+## 0.12.0
+
+- Kullanıcı ayarlarına Türkçe, Arapça, İngilizce ve Almanca arayüz seçenekleri eklendi. Giriş ekranında da dil seçici bulunur.
+- Tercih kullanıcı kaydındaki isteğe bağlı alanda saklanır ve cihazlar arasında merkezi kayıtla eşleşir. Mevcut kullanıcılar ve eski yedekler değişiklik yapılmadan okunur.
+- Arapça görünüm sağdan sola yerleşir. İş akışındaki durum değerleri veride Türkçe tutulmaya devam eder; yalnız ekrandaki karşılıkları çevrilir. Kullanıcıların girdiği şirket, müşteri, ürün ve açıklama metinleri değiştirilmez.
+- SQL geçişi yapılmadı; canlı Supabase verisine dokunulmadı.
 
 ## Sonraki kullanıcı kontrolü
 

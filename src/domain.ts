@@ -8,6 +8,8 @@ z.config(z.locales.tr());
 
 export const roles = ['admin', 'pazarlamaci', 'uretim', 'sevkiyat'] as const;
 export type Role = typeof roles[number];
+export const languages = ['tr', 'ar', 'en', 'de'] as const;
+export type Language = typeof languages[number];
 export const roleNames: Record<Role, string> = {admin:'Yönetici',pazarlamaci:'Pazarlamacı',uretim:'Üretim',sevkiyat:'Depo ve Sevkiyat'};
 export const statuses = ['Müşteriden Onay Bekleniyor','Yönetici Onayı Bekleniyor','Yönetici Onayladı','Hazırlanıyor','Sevkiyata Hazır','Tamamlandı','İptal'] as const;
 export type Status = typeof statuses[number];
@@ -19,7 +21,7 @@ const quantity = z.number().int().min(0).max(1_000_000);
 const money = z.number().finite().min(0).max(100_000_000).refine(v=>Math.abs(v*100-Math.round(v*100))<0.00001,'En fazla iki ondalık basamak kullanın.');
 export const productSchema = z.object({id,orderNo:integer,code:text,name:text,price:money,kdvRate:z.number().min(0).max(100),active:z.boolean().default(true),dailyCapacity:integer.optional(),productionResourceId:id.optional()});
 export const customerSchema = z.object({id,name:text,company:optionalText,phone:optionalText,address:optionalText,note:optionalText,active:z.boolean().default(true)});
-export const userSchema = z.object({id,name:text,email:z.email().max(254),role:z.enum(roles),active:z.boolean()});
+export const userSchema = z.object({id,name:text,email:z.email().max(254),role:z.enum(roles),active:z.boolean(),language:z.enum(languages).optional()});
 export const discountSchema = z.object({type:z.enum(['percent','amount']),value:money}).refine(v=>v.type!=='percent'||v.value<=100,'İskonto %100 üzerinde olamaz.');
 const lineSchema = productSchema.extend({quantity:integer,pendingQuantity:quantity,awaitingReceiptQuantity:quantity.optional(),readyForShipmentQuantity:quantity,sentQuantity:quantity,lineDiscount:discountSchema.optional()});
 const shipmentSchema = z.object({id,number:text.optional(),createdAt:z.iso.datetime(),createdBy:text,items:z.array(z.object({itemId:id,code:text,name:text,quantity:integer})).min(1).max(500)});
@@ -105,6 +107,7 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('customer.save'),customer:customerInput}),
  z.object({type:z.literal('customer.archive'),id}),
  z.object({type:z.literal('user.save'),user:userInput}),
+ z.object({type:z.literal('user.language'),language:z.enum(languages)}),
  z.object({type:z.literal('company.save'),company:companySchema}),
  z.object({type:z.literal('production.configure'),config:productionConfigSchema}),
  z.object({type:z.literal('order.create'),customerId:id.optional(),customer:customerInput.omit({id:true}).optional(),items:z.array(z.object({id,quantity:integer,lineDiscount:discountSchema.optional()})).min(1).max(500),discount:discountSchema,vatMode:z.enum(['product','none'])}),
@@ -227,12 +230,16 @@ export function execute(state:State,actorId:string,input:unknown,now=new Date().
   s.productionConfig=command.config;detail='Çalışma takvimi ve üretim birimleri güncellendi.';break;
  }
  case 'user.save':{
-  allowed(actor,['admin']);const u={...command.user,id:command.user.id??newId(),email:command.user.email.toLowerCase()};
+  allowed(actor,['admin']);const existing=command.user.id?s.users.find(x=>x.id===command.user.id):undefined;
+  const u={...command.user,...(!command.user.language&&existing?.language?{language:existing.language}:{}),id:command.user.id??newId(),email:command.user.email.toLowerCase()};
   if(command.user.id&&!s.users.some(x=>x.id===u.id))fail('Kullanıcı bulunamadı.');
   if(s.users.some(x=>x.email.toLowerCase()===u.email&&x.id!==u.id))fail('E-posta zaten kayıtlı.');
   if(u.id===actor.id&&(!u.active||u.role!=='admin'||u.email!==actor.email))fail('Kendi yönetici erişiminizi buradan kaldıramazsınız.');
   s.users=command.user.id?s.users.map(x=>x.id===u.id?u:x):[...s.users,u];
   if(!s.users.some(x=>x.active&&x.role==='admin'))fail('En az bir aktif yönetici gerekli.');target=u.id;detail=u.name+' / '+roleNames[u.role];break;
+ }
+ case 'user.language':{
+  actor.language=command.language;target=actor.id;detail='Kullanıcı dili güncellendi: '+command.language;break;
  }
  case 'order.create':{
   allowed(actor,['admin','pazarlamaci']);if(new Set(command.items.map(x=>x.id)).size!==command.items.length)fail('Aynı ürün tek satırda olmalı.');

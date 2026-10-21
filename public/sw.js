@@ -1,6 +1,6 @@
 // Cache only the public offline screen and generic icons. Never cache business data,
 // authentication, application HTML, API responses, PDFs or uploaded documents.
-const CACHE='siparis-offline-0.11.0';
+const CACHE='siparis-offline-0.12.0';
 const STATIC=['/offline.html','/icons/sozbir-icon-192-v1.png','/icons/sozbir-icon-512-v1.png','/icons/sozbir-maskable-512-v1.png','/icons/sozbir-apple-touch-180-v1.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(STATIC)));});
 // No skipWaiting: an update never reloads a user's unfinished form.

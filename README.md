@@ -1,10 +1,10 @@
-[Güncel kurulum/kabul durumu — 20 Ekim 2026](docs/KABUL_DURUMU.md). Kullanılan test projesinde 002 geçişi tamamlandı; yeniden çalıştırmanız gerekmiyor.
+[Güncel kurulum/kabul durumu — 21 Ekim 2026](docs/KABUL_DURUMU.md). Kullanılan test projesinde 002 geçişi tamamlandı; yeniden çalıştırmanız gerekmiyor.
 
 ## 0.9.0 güncellemesi
 
 [Ayarlar, mobil kullanım, toplu onay ve veri geçişi](docs/AYARLAR_MOBIL_VE_VERI.md). Kayıt bazında 32 MB depolama geçişi tamamlanmıştır; `database/002_record_storage.sql` yeniden çalıştırılmamalıdır.
 
-# Mobil Sipariş 0.11.0
+# Mobil Sipariş 0.12.0
 
 Satış teklifi → müşteri onayı → yönetici onayı → üretim → kısmi/tam sevkiyat.
 
@@ -22,6 +22,7 @@ Depo ve stok, yönetici onaylı sayım ve üretim kabulü: [kullanım rehberi](d
 - Supabase Auth + sunucuda rol kontrolü + özel PostgreSQL şeması için hazır altyapı.
 - Eşzamanlı değişiklikte sürüm kontrolü ve aynı istek kimliğiyle tekrar gönderimde çift işlem engeli.
 - Ayrı ve açıkça etiketlenmiş yerel deneme alanı.
+- Kullanıcı hesabına kaydedilen Türkçe, Arapça, İngilizce ve Almanca arayüz; Arapçada sağdan sola yerleşim.
 
 ## Bilgisayarda çalıştırma
 
