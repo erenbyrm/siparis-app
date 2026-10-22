@@ -57,10 +57,32 @@ Bağlı ana belge: [İş Uygulamaları Platformu Ana Şartnamesi](SAAS_4_UYGULAM
 4. İçe aktarma testleri: aynı fatura ikinci kez gelirse tek kayıt, banka ödeme ve cari tahsilat aynı olay olduğunda ikinci ödeme yok, dış cari ile mevcut cari eşleşmesi, satır numarasıyla hata bildirimi, fiyat/kur/KDV doğrulama, firma ve tüzel kişilik ayrımı, onaysız değişiklik yok, ay kapanışı korunur; veriler şirketler arasında sızmaz.
 5. Mevcut `operasyon-gelistirme` dışında main/prod sistemine dokunma; Supabase canlı DB migrasyonu, production deploy veya gerçek finans işlemi kullanıcıdan ayrıca açık onay gerektirir.
 
-## 6. Sonraki tek önemli karar — entegrasyondaki senkronizasyon yönü
+## 6. Karar 45 — Entegrasyon yönü de şirket bazında seçilir (2026-10-23, C / S3 ONAYLANDI)
 
-- **S1 — Kontrollü tek yön + güvenli dışa aktarma (önerilen ilk etap):** Muhasebe programından cari, fatura ve hareket bilgisi Finans'a import edilir, Finans'ta hazırlanan gerekli fişler dosya/uygun servis formatında muhasebeye **onaylı olarak aktarılabilir**; çift yönlü gerçek zamanlı arka plan senkronizasyonu yoktur. Hangi kaydın hangi sistemde yetkili olduğu net tutulur.
-- **S2 — Çift yönlü senkronizasyon (gelişmiş):** Değişiklikler iki taraftan gelir ama tekil kayıt sorumluluğu, conflict queue, idempotency, geri alma ve testli entegrasyon sözleşmesi zorunludur. Sağlayıcı yetenekleri araştırılmadan vaat edilmez.
-- **S3 — İki yönlü seçenek de firma bazlı seçilebilir:** S1 varsayılan ve güvenli başlangıç; S2 yalnız teknik olanaklar, doğru yetkiler ve şirket onayından sonra etkin olur.
+**Kullanıcı C seçeneğini açıkça onayladı.** Finans'ın F2 muhasebe entegrasyonunu kullanan her firma, **S1 kontrollü veri içe alma + onaylı dışa aktarma** veya **S2 desteklenen muhasebe sistemiyle otomatik iki yönlü senkronizasyon** yöntemini seçebilir. Birincil kayıt sisteminin türü (F1/F2, Karar 44) ile aktarım yönü (S1/S2, Karar 45) birbirinden bağımsız ama uyumlu politikalardır. **İlk geliştirme S1 ile başlar; S2 yalnız teknik erişim, yetkilendirme ve güvenilir testlerden sonra ilgili şirket için açılır.**
 
-**Henüz karar verilmedi:** Kullanıcı F1/F2 kullanım modlarını firma bazında seçilebilir olarak onayladı. S1/S2/S3 ayrımı ayrı karardır; otomatik canlı çift yönlü senkronizasyon onayı olarak yorumlanamaz.
+### S1 — Kontrollü içe alma ve onaylı dışa aktarma
+
+- Yetkili muhasebe programı veya dış dosyadan cari, fatura, borç/alacak, banka, tahsilat ve ödeme kayıtları; veri kaynağı ve nesne bazlı yetki haritasına göre Finans'a **taslak/önizleme** ile alınır.
+- Finans'ta hazırlanmış muhasebeye aktarılacak uygun kayıtlar, onay sonrası desteklenen dosya şablonu veya belgelenmiş entegrasyon arayüzüyle **dışarı sunulabilir**. Dışa aktarmak, muhasebe programının gerçekten işlediği anlamına gelmez: **gönderildi / muhasebede onaylandı / reddedildi / mutabakat bekliyor** durumları ayrı tutulur.
+- İçe aktarma (manual/batch) ve dışa aktarma yetkileri, işlem onayı, satır bazlı hata, geri alma veya finansal ters kayıt, import job ID ve kayıt sahibi görüntülenir. Kullanıcı açık yetki vermeden dış finans sisteminde yeni bir kaydı sessiz oluşturma.
+
+### S2 — İki yönlü otomatik senkronizasyon (sağlayıcı olanaklıysa)
+
+- Her veri sınıfında kayıt otoritesini belirt: örneğin cari kartı kaynak sistemde açılmışsa Finans'dan yapılan değişikliği oraya yazma yetkisi ve çakışma çözümü açık olmalı. **İki yönlü iletişim, iki bağımsız muhasebe defterine aynı olayı iki kere işlemek anlamına gelmez.**
+- Mevcut yazılımın **belgelenmiş / izin verilmiş API veya resmî entegrasyon yöntemi** gerekli. Webhook varsa olay aboneliği, güvenli zamanlanmış eşzamanlama varsa polling, değişiklik imleri/sürüm numaraları ve sağlayıcı limitleri kullanılabilir. Webhook/API/zamanlama yeteneği bulunmayan yazılımlar için teknik imkân varmış gibi gösterme; firmaya S1 sun.
+- Giden ve gelen değişimlerde **aynı kaynak olayının geri yansıyıp sonsuz çoğalmaması** için origin ID, external ID, idempotency key, source_version, correlation ID ve senkronizasyon yön izi sakla. Kuyruk, tekrar deneme, concurrency lock, outbox/inbox veya denk güvencelerle tek olay tek finans hareketi üretir.
+- **Çakışma kuyruğu:** İki tarafta eşzamanlı değiştirilen vade/ödeme/borç kaydı, kapanmış döneme güncelleme, eksik kur/cari eşleme, tutarsız fatura veya çoklu kayıt belirsizliği otomatik silinip birleştirilmez. Kaynak yetkilisi, yetkili kullanıcıya eski-yeni kaynak farkını ve çözümünü gösterir.
+- Başlangıçta **önce salt-okuma / dry-run / staging** ve geriye dönük kayıt eşleme testi; sonra kısıtlı kullanıcı/işlem kapsamı, izlenen artımlı rollout ve şirket onayı. Canlı entegrasyon anahtarı/secrets sunucuda şifreli korunur, tenant hesabı ve yasal şirket ayrımı sağlam olmalı. Gerçek muhasebe sistemine yazma veya gerçek para transferi için ayrı erişim/işlem onayları gerekir.
+- S2 için **otomatiklik yetkisiz finans işlemi demek değildir**. Gönderim, finansal onay, kapanmış dönem kilidi, yüksek tutar kontrolü ve ayrı onaycı gerektiren istisnalar aynen uygulanır. Kuruluş düzeyinde izleme/uyarı ile senkronizasyon kopması, gecikme, başarısız kayıt ve nakit/cari farkı ayrı gösterilir.
+- Her muhasebe sağlayıcısı için gerçek yetenek profili tanımlanır: `read_capabilities`, `write_capabilities`, desteklenen kayıt türleri, aktarım sıklığı, last sync, hata ve mutabakat; **API yoksa otomatik iki yönlü canlı senkronizasyon garanti edilmez**. Özellikle Zirve Ticari için API veya otomatik yöntem teknik olarak doğrulanmadan vaat edilmez.
+
+### Yönetim ve test kabul koşulları
+
+- Firma yönetici ayarı: S1 veya S2, sağlayıcı, kullanıcı ve uygulama yetkisi, nesne başına kayıt otoritesi, kapsam/hesap/şube, başlangıç tarihi, dönem kilidi; seçenekler yalnız gerçek sağlayıcı kapasitesiyle etkin.
+- Mod değişimi S1→S2 veya S2→S1: kayıt eşleştirme, bakiye mutabakatı, bekleyen aktarım kontrolü, test/simülasyon, onaylı geçiş tarihi, rollback planı ve audit zorunlu. S2 devreden çıkarıldığında kuyruktaki işler çift gönderim yaratmaz.
+- Testler: aynı dosyanın iki kez import edilmesi, aynı webhook'un iki kez gönderilmesi, başarısız yazmadan sonra retry, aynı faturanın Finans ve muhasebede ayrı görünmesi, kaynak origin echo loop, concurrent update, sır dışı olay, yanlış şirket/yanlış tüzel kişi, ay kapanışı, cari eşleme çakışması, veri aktarılamaması ve API erişimi olmaması → S1'e güvenli dönüş. Çift borç/alacak, ikinci tahsilat veya eksi/çift bakiye kesinlikle oluşmamalı.
+- S2 yalnız şirket onaylı ve teknik olarak doğrulanmış entegrasyon sağlayıcısında sunulur; üretimde canlı para/muhasebe yazımı için kullanıcıdan ayrıca açık onay alınır.
+
+**Henüz ayrı karara bağlanmadı:** Hangi muhasebe sağlayıcılarının ilk sürümde destekleneceği, her sağlayıcının bağlantı yöntemi (resmî teknik belgelere göre), hangi nesnelerin iki yönlü yazılabilir olduğu ve ilk canlı geçiş tarihi bu onaydan çıkmaz. Şirketi/tüzel kişilikleri ve cari kayıt birincil kaynağını doğru modelleyerek önce güvenli bağımsız Finans çekirdeği ve S1'e hazırlan.
+
