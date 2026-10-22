@@ -236,4 +236,4 @@ Kategori adları / sırası / grup yerleşimi kullanıcı tarafından yönetilec
 
 ## 15. Karar 42 ile güncellenen uygulama adları (2026-10-23)
 
-Ürünlerin kullanıcıya görünen adları bundan sonra **Operasyon, Finans, İnsan Kaynakları (İK), Müşteri Portalı (MP)** olacak. Tarihsel marka öneki artık uygulama adı olarak kullanılmaz. Firmalar arası yetki ve kayıt yönetimi için beşinci ayrı platform yönetim arayüzü talep edildi; bunun güvenli web uygulaması olarak gerçekleştirilmesi **Karar 43'te teklif edilen ve henüz nihai olarak onaylanmamış teknik sunum biçimidir**. Maliyet verilerinin paylaşımı gizlilik/rol/tenant sınırlarıyla aynen korunur.
+Ürünlerin kullanıcıya görünen adları bundan sonra **Operasyon, Finans, İnsan Kaynakları (İK), Müşteri Portalı (MP)** olacak. Tarihsel marka öneki artık uygulama adı olarak kullanılmaz. Firmalar arası yetki ve kayıt yönetimi için beşinci ayrı platform yönetim arayüzü talep edildi; bunun güvenli web uygulaması olarak gerçekleştirilmesi **Karar 43 ile kesin olarak onaylanmış teknik sunum biçimidir**. Maliyet verilerinin paylaşımı gizlilik/rol/tenant sınırlarıyla aynen korunur.
