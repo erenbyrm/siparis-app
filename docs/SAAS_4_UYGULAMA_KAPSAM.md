@@ -39,7 +39,7 @@ Ortak veritabanı mümkün, fakat şirket/tenant sınırları sunucuda ve verita
 - Şirket internetten kendi başvurusunu yapar, kurumsal bilgiler + ilk yönetici + e-posta doğrulama alınır; platform onayından önce uygulama kullanılmaz.
 - Firma hangi dört uygulamayı kullanacağını talep edebilir; platform ADMİNİ şirket bazında açar/kapatır. Sonradan eklenebilir; kapatmak geçmiş kayıtları silmez.
 - Her kişinin tek kimliği vardır, yetkili olduğu ayrı uygulamalara geçebilir. Her uygulama kendi yetki setini uygular. Personel özlük kaydı ayrı; her personele yazılım kullanıcı hesabı açmak zorunlu değil.
-- Şirkette işler yürütülürken en az **iki farklı gerçek yetkili kullanıcı** bulunur; asgari ast–üst/ayrı onaycı ilişkisi. Başvuru/ilk kurulum tek hesapla yapılabilir ama uygun ikinci kişi tanımlanmadan kritik canlı işlemler açılamaz. Geçişte mevcut canlı mevcut uygulamayı kilitleme.
+- Şirkette işler yürütülürken en az **iki farklı gerçek yetkili kullanıcı** bulunur; asgari ast–üst/ayrı onaycı ilişkisi. Başvuru/ilk kurulum tek hesapla yapılabilir ama uygun ikinci kişi tanımlanmadan kritik canlı işlemler açılamaz. Geçişte mevcut canlı Operasyon uygulamasını kilitleme.
 
 ## 4. Rol hiyerarşisi, çoklu görev, sınır ve onay
 
