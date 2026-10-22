@@ -375,7 +375,7 @@ Siparişin hazır kısmının erken/kısmi ya da topluca sevkiyatına müşteri 
 
 **Önerilen başlangıç kombinasyonu (henüz özel olarak seçilmiş şirket ayarı değildir):** Önceki ay esaslı koruyucu P1 + kapasite tabanlı G1 + bütçeli gider T2. Her firma kurulumda kendi yöntemini seçebilir, sonra yetkili onayıyla değiştirebilir. Daha karmaşık yöntemleri Faz 1'de zorla kodlama: önce dört ayrı app mimarisi ve veri güvenliği, sonra hesaplayıcılar/aşamalı testler.
 
-**Sonraki açık karar:** P1 koruyucu hesaplamada kullanılacak **alüminyum kilogram fiyatının kaynak yöntemi** (son gerçek alış mı, güncel tedarikçi teklif listesi mi, yönetici tarafından girilen onaylı referans fiyat mı?) kullanıcıyla netleştirilecek.
+**Karar 36 ile onaylandı:** Üç alüminyum kg fiyat kaynağı da desteklenir: son doğrulanmış alış faturası, tedarikçi güncel fiyat listesi ve yetkili yöneticinin onaylı referansı. Şirket kendi kaynağını seçer; ayrıntılar Karar 36 ve [Maliyet Hesaplama Politikaları](MALIYET_HESAPLAMA_POLITIKALARI.md) belgesindedir.
 
 ## 29. Karar 35 — Şirketlerin seçebildiği çok yöntemli maliyet politikaları (2026-10-22, ONAYLANDI)
 
@@ -388,3 +388,12 @@ Siparişin hazır kısmının erken/kısmi ya da topluca sevkiyatına müşteri 
 - **Yetki ve geçmiş:** Firma yöneticisi yöntem seçip değişiklik yapar; kritik fiyatlandırma/muhasebe politikası değişikliği yetkili onayına tabi; etkili tarih ve eski siparişte kullanılan teklif maliyeti/değişiklikler denetlenebilir. Platform admin şirket ücret, maliyet, müşteri/finans verisini sırf platform rolüyle okuyamaz.
 - **Geliştirme sırası:** Önce dört bağımsız uygulama Faz 1 iskeleti ve sıfır veri kaybı. Maliyet için ayrı model ve gerçek/öngörülen/koruyucu tutar ayrımından başla, basit politikalar ve testler ekle; gelişmiş karma dağıtım/simülasyon sonraki faz. Şirketten şirkete yasal muhasebe kuralı seçimi onaylı değerleme standardı ile sınırlandırılır.
 - **AYRINTILI TEKNİK TASARIM VE KABUL TESTLERİ (zorunlu okuma):** [docs/MALIYET_POLITIKALARI.md](MALIYET_POLITIKALARI.md). Belgedeki yöntem örnekleri ürün seçenekleridir; ücret, stok değerleme, maliyet politikası ve fiyat kaynağına dair açık uygulama parametreleri gerçek sisteme geçmeden önce yetkiliyle netleştirilecektir.
+
+## 30. Karar 36 — Alüminyum kg fiyatı için üç farklı şirket kaynağı (2026-10-22, ONAYLANDI)
+
+- **Üç fiyat kaynağı da kullanılabilir ve şirket kendi aktif kaynağını seçer:** (A1) Finans'taki **son doğrulanmış alış faturası**, (A2) **tedarikçinin geçerli fiyat listesi/teklifi**, (A3) **yetkili yönetici tarafından belirlenip onaylanmış referans kg fiyatı**. Bütün şirketler için aynı fiyat kaynağı zorunlu değildir; firmanın politikası değiştirilebilir ve geçmiş sürümler korunur.
+- Her fiyatın hangi alüminyum türü/profil/alaşıma, hangi kg ölçüsüne, para birimine, tarih ve kaynağa ait olduğu açık tutulur. Fatura düzeltmeleri, teklifin süresinin dolması ve eski/alakasız fiyatın yanlışlıkla seçilmesi karşılaştırma ve uyarıyla yönetilir. Geçerli fiyat yoksa sistem sıfır veya hayalî kg fiyatı kullanmaz.
+- P1'in **yalnız yukarı yönlü alüminyum artışının** hesabı seçilen onaylı fiyat kaynağına göre yapılır, ancak sadece ürünün ilgili alüminyum maliyeti bileşeni değişir; aynı zam iki kez uygulanmaz. Alüminyum düşüşünü ticari referansın otomatik düşüşüne yansıtmama şirket bazlı tercihtir. P2 gibi iki yönlü yöntemler firma seçiminden etkilenir; **gerçek stok/muhasebe maliyeti bu ticari referansa göre değiştirilemez**.
+- Politikayı değiştiren şirket yetkilisinin kimliği, kaynak belge, onay tarihi ve eski/yeni seçimin etkisi denetlenir; önceki kesinleşmiş teklif ve siparişlerin fiyatlandırma fotoğrafı korunur. Tenant izolasyonu ve ilgili gizli maliyetlerin rol temelli erişimi zorunludur.
+- **Kaynaklar ve kabul testleri, Codex için ayrıntılı teknik tasarım:** [Maliyet Hesaplama Politikaları / Karar 36](MALIYET_HESAPLAMA_POLITIKALARI.md). Dört bağımsız uygulama, mevcut Operasyon işlevleri ve canlı veri güvenliği şartları değişmez.
+- **Sonraki açık karar:** Yeni kg fiyatı tespit edildiğinde fiyatlandırma referansına otomatik yansıtma mı, yoksa yetkili yönetici onayı sonrası etkinleşme mi uygulanmalı? Firma bazlı yapılandırma önerilir; kullanıcı görüşü alınacak.
