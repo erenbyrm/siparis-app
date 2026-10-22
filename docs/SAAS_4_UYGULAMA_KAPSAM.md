@@ -1,7 +1,9 @@
-# SÖZBİR Yazılım Ailesi — Codex ana geliştirme şartnamesi
-Tarih: 2026-10-22 · Durum: Onaylanmış kararlar + açık detaylar · Uygulama kaynağı: SÖZBİR Operasyon 0.13.0
+# İş Uygulamaları Platformu — Codex ana geliştirme şartnamesi
+Tarih: 2026-10-22 · Durum: Onaylanmış kararlar + açık detaylar · Uygulama kaynağı: Operasyon 0.13.0
 
 > **BAĞLAYICI:** Dört ayrı iş uygulaması yapılacak. Özelliklerin tamamını mevcut Operasyon'un menülerine doldurmak, dört uygulamayı sadece dört sekme olarak sunmak veya mevcut çalışan uygulamayı sıfırdan yazmak **YASAK**. Ayrı giriş noktaları, bağımsız arayüzler, ayrı derleme/yayınlama hedefleri ve bağımsız şirket/modül erişim kontrolleri olacak. Ortak kimlik, iş verisi entegrasyonu ve teknik paketler paylaşılabilir.
+
+> **GÜNCEL İSİMLENDİRME (Karar 42, 2026-10-23):** Ticari iş uygulamalarının adları yalnızca **Operasyon, Finans, İnsan Kaynakları (İK), Müşteri Portalı (MP)**. Eski şirket markası artık **uygulama adı/önek olarak kullanılmayacak**. Ayrıca şirketler arası hesap/izin yönetimi için **beşinci ayrı yönetim arayüzü** talep edildi; sunum biçimi olarak **ayrı, güvenli web uygulaması** Karar 43'te önerilmiştir ve kullanıcı onayı beklemektedir. Tarihsel depolama/uyumluluk ve mevcut gerçek müşteri şirket kimliği bu adlandırma değişikliğinden ayrı ele alınır.
 
 ## 0. Codex'e doğrudan görev — işe başla
 
@@ -9,14 +11,14 @@ Mevcut `erenbyrm/siparis-app` deposunda **yalnızca** `operasyon-gelistirme` dal
 
 Sadece analiz raporu üretip durma: **ilk güvenli geliştirme dilimini** uygula, test ekle, `pnpm test`, `pnpm check`, `pnpm build` doğrula; değişiklikleri küçük ve gözden geçirilebilir commit/PR'lar hâlinde sun. İlk dilim, kodu kırmadan çok uygulamalı mimari iskeleti + rol/tenant tasarım ve test altyapısı + Operasyon için uyumluluk katmanı olmalı. Önceden kararlaştırılmamış ödeme sağlayıcısı, SGK/e-bildirge erişimi, canlı veritabanı migrasyonu veya production yayını uygulama. Açık ürün kararları yapılandırılabilir olarak modellenip ayrıca işaretlensin.
 
-## 1. DÖRT AYRI UYGULAMA — kesin mimari kuralı
+## 1. DÖRT AYRI İŞ UYGULAMASI — kesin mimari kuralı
 
-1. **SÖZBİR Operasyon:** Mevcut uygulama temel alınacak; satış/sipariş/onay, ürün, üretim, depo, stok, sayım, rezervasyon, yükleme, sevkiyat, araçlar, teslimat, iadeler ve operasyon raporları.
-2. **SÖZBİR Finans:** Ayrı arayüz ve dağıtım; cari hesap, alacak/borç, kredi/risk politikası, tahsilat/ödeme, nakit/kasa, banka, kredi kartı, POS, vade, finansal raporlar. Sadece finans yetkili kullanıcı görür.
-3. **SÖZBİR Müşteri Portalı:** Ayrı arayüz ve dağıtım; her müşteri sadece kendi firma/cari yetkisi kapsamındaki sipariş, sevkiyat, teslimat, ekstre ve belgeleri görür, izin verilmişse sipariş/ödeme talebi oluşturur ve ileride gerçek online ödeme yapar.
-4. **SÖZBİR İnsan Kaynakları:** Ayrı arayüz ve dağıtım; personel kayıtları, organizasyon, puantaj, vardiya, izin, fazla mesai, ücret, bordro, prim, avans, masraf, belge, eğitim, performans ve personel talepleri. İK verisi sıkı gizli.
+1. **Operasyon:** Mevcut uygulama temel alınacak; satış/sipariş/onay, ürün, üretim, depo, stok, sayım, rezervasyon, yükleme, sevkiyat, araçlar, teslimat, iadeler ve operasyon raporları.
+2. **Finans:** Ayrı arayüz ve dağıtım; cari hesap, alacak/borç, kredi/risk politikası, tahsilat/ödeme, nakit/kasa, banka, kredi kartı, POS, vade, finansal raporlar. Sadece finans yetkili kullanıcı görür.
+3. **İnsan Kaynakları (İK):** Ayrı arayüz ve dağıtım; personel kayıtları, organizasyon, puantaj, vardiya, izin, fazla mesai, ücret, bordro, prim, avans, masraf, belge, eğitim, performans ve personel talepleri. İK verisi sıkı gizli.
+4. **Müşteri Portalı (MP):** Ayrı arayüz ve dağıtım; her müşteri sadece kendi firma/cari yetkisi kapsamındaki sipariş, sevkiyat, teslimat, ekstre ve belgeleri görür, izin verilmişse sipariş/ödeme talebi oluşturur ve ileride gerçek online ödeme yapar.
 
-**Tercih edilen teknik hedef:** mevcut kodu koruyarak aşamalı modüler monorepo (örnek: `apps/operasyon`, `apps/finans`, `apps/musteri-portali`, `apps/insan-kaynaklari`, `packages/auth`, `packages/permissions`, `packages/contracts`, `packages/db`, `packages/audit`, `packages/ui`). Klasör şemasını inceleme sonrası uyarlayabilirsin; DEĞİŞMEZ koşul dört ayrı gerçek uygulama ve birbirinden bağımsız deploy/route entrypoint olmasıdır. Tümünü bir `App.tsx` içinde dört koşullu sayfaya dönüştürme. Her uygulamanın ayrı navigasyonu, giriş/erişim denetimi, kendi sürümlemesi ve testleri bulunsun. Platform yönetim konsolu ortak altyapı yönetim aracı olabilir; beşinci ticari ürün olarak sayılmaz.
+**Tercih edilen teknik hedef:** mevcut kodu koruyarak aşamalı modüler monorepo (örnek: `apps/operasyon`, `apps/finans`, `apps/musteri-portali`, `apps/insan-kaynaklari`, `packages/auth`, `packages/permissions`, `packages/contracts`, `packages/db`, `packages/audit`, `packages/ui`). Klasör şemasını inceleme sonrası uyarlayabilirsin; DEĞİŞMEZ koşul dört ayrı gerçek uygulama ve birbirinden bağımsız deploy/route entrypoint olmasıdır. Tümünü bir `App.tsx` içinde dört koşullu sayfaya dönüştürme. Her uygulamanın ayrı navigasyonu, giriş/erişim denetimi, kendi sürümlemesi ve testleri bulunsun. Şirketler arası platform yönetim arayüzü, bu dört ticari iş uygulamasından ayrıdır. Kullanıcının talebi doğrultusunda beşinci ayrı yönetim yüzü planlanmaktadır; güvenli web uygulaması olarak sunulması Karar 43 kapsamında kullanıcı onayı bekleyen öneridir. Beşinci ticari iş modülü değildir.
 
 Ortak veritabanı mümkün, fakat şirket/tenant sınırları sunucuda ve veritabanı katmanında güvenle uygulanmalı. Her iş kaydı açık ve doğrulanmış `company_id`/tenant bağlamı taşımalı; tenant değeri istemciden güvenilerek alınmamalı. Uygulamalar arasında paylaşılan cari/ürün/sipariş/kimlik gibi nesnelerde tekil kaynak ve bütünlük sözleşmeleri tasarla, veri çoğaltma/tutarsızlık yaratma.
 
@@ -37,7 +39,7 @@ Ortak veritabanı mümkün, fakat şirket/tenant sınırları sunucuda ve verita
 - Şirket internetten kendi başvurusunu yapar, kurumsal bilgiler + ilk yönetici + e-posta doğrulama alınır; platform onayından önce uygulama kullanılmaz.
 - Firma hangi dört uygulamayı kullanacağını talep edebilir; platform ADMİNİ şirket bazında açar/kapatır. Sonradan eklenebilir; kapatmak geçmiş kayıtları silmez.
 - Her kişinin tek kimliği vardır, yetkili olduğu ayrı uygulamalara geçebilir. Her uygulama kendi yetki setini uygular. Personel özlük kaydı ayrı; her personele yazılım kullanıcı hesabı açmak zorunlu değil.
-- Şirkette işler yürütülürken en az **iki farklı gerçek yetkili kullanıcı** bulunur; asgari ast–üst/ayrı onaycı ilişkisi. Başvuru/ilk kurulum tek hesapla yapılabilir ama uygun ikinci kişi tanımlanmadan kritik canlı işlemler açılamaz. Geçişte mevcut canlı SÖZBİR'i kilitleme.
+- Şirkette işler yürütülürken en az **iki farklı gerçek yetkili kullanıcı** bulunur; asgari ast–üst/ayrı onaycı ilişkisi. Başvuru/ilk kurulum tek hesapla yapılabilir ama uygun ikinci kişi tanımlanmadan kritik canlı işlemler açılamaz. Geçişte mevcut canlı mevcut uygulamayı kilitleme.
 
 ## 4. Rol hiyerarşisi, çoklu görev, sınır ve onay
 
@@ -189,7 +191,7 @@ Siparişin hazır kısmının erken/kısmi ya da topluca sevkiyatına müşteri 
 - Kısmi kabul yapıldığında yalnız kabul edilen miktar stok olur; geri kalan miktar için bekleyen görev sürer ve gecikme izlemesi durmaz. Ret, eksik/kusurlu ürün ve açıklama alanları denetlenebilir.
 - **Gecikme hiçbir şekilde ürünleri otomatik depoya kabul ettirmez** ve üretimden doğrudan sevkiyata izin vermez. Sevkiyat yalnızca fiilen kabul edilmiş ve kullanılabilir stoktan yapılır (Karar 25).
 - Olaylar işlem geçmişine eklenir; sonradan filtrelenebilir gecikme raporları oluşturulabilir. Bildirim kanalı/tekrar sıklığı, şirket tercihine göre sonraki aşamada yapılandırılabilir.
-- Mevcut SÖZBİR Operasyon üretim→depo kabulü→sevk sırası değiştirilmeyecek; mevcut testler korunacak, gecikme ve yetkisiz kabul/sevk için yeni testler eklenecek.
+- Mevcut Operasyon üretim→depo kabulü→sevk sırası değiştirilmeyecek; mevcut testler korunacak, gecikme ve yetkisiz kabul/sevk için yeni testler eklenecek.
 
 ## 19. Üretim, reçete, fire, dara ve maliyet — TASARIM TASLAĞI (henüz kullanıcı onayı bekliyor)
 
@@ -304,7 +306,7 @@ Siparişin hazır kısmının erken/kısmi ya da topluca sevkiyatına müşteri 
 - Ürün bazlı kira/elektrik/endirekt işçilik dağıtımı için firmanın seçebildiği ve zamanla revizyon geçmişi korunan yöntemler: makine saati, işçilik saati, hat kapasitesi, üretim adedi/ağırlığı veya tanımlı gider merkezi anahtarı. Çok farklı ürünleri **sadece adede eşit bölerek** otomatik kesin maliyet hesaplama varsayılanı olmasın; atıl kapasite ve eksik üretim etkileri görünür olsun.
 - Gider, ücret ve faturalar **Finans/İK'da tek kaynak kaydı** ve rol bazlı yetkiyle girilir; Operasyon toplam/dağıtılmış maliyeti yetki düzeyine göre görüntüler. Tahakkuk, gider dağıtımı ve ödeme birbirinden ayrı olaylardır; tekrar senkronizasyon mükerrer kayıt oluşturmaz.
 - **Üç kullanım profili** ile uyumlu: Pratik — basit gider merkezi + ay sonunda toplu gider girişi/dağıtımı; Kontrollü — fabrika/hat/bölüm bazında maliyet; Ayrıntılı — makine/iş emri/süre/parti ve maliyet varyansı. Firma eksik veriyle başlamaya devam edebilir ancak eksik alanlar raporda gösterilir.
-- **Koruma:** Mevcut SÖZBİR Operasyon 0.13.0 akışı, çalışan personel ve müşteri hesapları, kabul→sevk emniyeti, canlı veriler korunur. Gider dağıtımı ilk aşamada test verisinde uygulanır; kullanıcı onayı olmadan canlı maliyet tarihçesi yeniden hesaplanmaz.
+- **Koruma:** Mevcut Operasyon 0.13.0 akışı, çalışan personel ve müşteri hesapları, kabul→sevk emniyeti, canlı veriler korunur. Gider dağıtımı ilk aşamada test verisinde uygulanır; kullanıcı onayı olmadan canlı maliyet tarihçesi yeniden hesaplanmaz.
 
 ### Bir sonraki kullanıcı kararı
 Üretim genel giderleri hangi temel anahtarla dağıtılsın? **Öneri:** Üretim hattı/makine veya işçilik süresi ölçülebilen firmalarda bu süreler, ölçülemeyen küçük firmalarda şirketçe seçilen pratik anahtar. Bu dağıtım politikası kullanıcıyla netleşmeden tüm firmalara tek yöntem zorlanmayacak.
@@ -382,7 +384,7 @@ Siparişin hazır kısmının erken/kısmi ya da topluca sevkiyatına müşteri 
 - **Firma bazlı seçilebilir yöntemler onaylandı.** Kullanıcı önceki ay maliyet + alüminyum yalnız yukarı yönlü fiyat ayarını bütün şirketlere zorunlu yapmak yerine, şirketin **seçip açıp kapatabileceği bir fiyatlandırma politikası** olarak onayladı. Ayrıca önceki maliyet/kapasite/genel gider/ay içi tahmin kararlarının ayrıntılandırılıp **alternatif hesaplama yöntemleri** olarak sunulmasını istedi.
 - Üç ayrı tutar: (a) finansal standartlara ve şirketin muhasebe politikasına uygun **gerçek üretim/stok maliyeti**, (b) cari dönem için **tahmini/öngörülen yönetim maliyeti**, (c) satıcı/yönetici için **koruyucu teklif referans maliyeti**. **(c) muhasebe/stok değerlemesini değiştiremez; (b) gerçek maliyet gibi sunulamaz.**
 - **Satışa esas referans yöntemleri:** Önceki ay kapanmış maliyet + yalnız alüminyum zam etkisi (isteğe bağlı fiyat düşüş koruması); güncel malzeme + gider tahmini; son 3/6 kapanmış ay ağırlıklı maliyet; standart reçete + gider bütçesi; cari ay gerçekleşen ve kalan tahmini; yetkili manuel referans. Bunlar firma/ürün ailesi bazında seçilebilir ve ayrı ayrı yapılandırılabilir.
-- **Gider dağıtımı yöntemleri:** Kullanıcının Karar 34'te onayladığı **ürün kapasitesinin tersine dayalı eşdeğer hat günü** yöntemi önerilen SÖZBİR varsayılanıdır. Firma diğer yöntemlerden gerçek makine saati, gerçek işçilik saati, üretim adedi, ağırlık/teknik birim ve gider merkezi bazında karma dağıtım seçebilir; aynı gider iki kez dağıtılamaz; normal/atıl kapasite ayrımı gerekir.
+- **Gider dağıtımı yöntemleri:** Kullanıcının Karar 34'te onayladığı **ürün kapasitesinin tersine dayalı eşdeğer hat günü** yöntemi önerilen başlangıç şirketi için önerilen varsayılandır. Firma diğer yöntemlerden gerçek makine saati, gerçek işçilik saati, üretim adedi, ağırlık/teknik birim ve gider merkezi bazında karma dağıtım seçebilir; aynı gider iki kez dağıtılamaz; normal/atıl kapasite ayrımı gerekir.
 - **Ay içi tahmin yöntemleri:** Önceki ay devreden maliyet; aylık tahakkuk/bütçe + güncel malzeme; önceki ay ve cari güncel tahminlerin karma modeli; yalnız kapanmış maliyetle fiyatlandırma ve cari fiiliyi ayrı gösterme. İlk 15 gün gider faturası gelmedi diye maliyet sıfıra/inandırıcı olmayan düzeye düşmez.
 - **Büyük maliyet şokları:** Kirada, ücret/SGK'da, servis/yemekte, enerjide ve taşeronda önemli artışlar için fiyatlandırma tabanı uyarı/yeniden onay seçeneği; alüminyum artışı yalnız alüminyum bileşenine yansır; aylık baz revizyonunda aynı zam etkisi yeniden eklenmez.
 - **Yetki ve geçmiş:** Firma yöneticisi yöntem seçip değişiklik yapar; kritik fiyatlandırma/muhasebe politikası değişikliği yetkili onayına tabi; etkili tarih ve eski siparişte kullanılan teklif maliyeti/değişiklikler denetlenebilir. Platform admin şirket ücret, maliyet, müşteri/finans verisini sırf platform rolüyle okuyamaz.
@@ -479,3 +481,34 @@ Bu ağaç **örnektir**, kullanıcı tüm kategorilerin resmi nihai yerleşimini
 - **Ayrıntılı uygulama ve test tanımı:** [Maliyet Hesaplama Politikaları — Karar 41](MALIYET_HESAPLAMA_POLITIKALARI.md).
 
 **Sonraki açık ayrıntı:** Satış ağırlıklı ortalamanın geçmiş dönem penceresi (son 3 ay/6 ay/12 ay gibi) şirket ayarından seçilebilir; tek bir rakam kullanıcı tarafından henüz zorunlu kılınmadı. Ayrıca müşteri özel sözleşme/kampanya istisnaları yukarıdaki önizleme ve onay kurallarıyla korunacak.
+
+## 36. Karar 42 — Ürünlerin kesin kısa adları ve Finans tasarımına geçiş (2026-10-23, ONAYLANDI)
+
+**Kesin kullanıcı kararı:** Ürünlerin isimlerinde daha önce kullanılan özel şirket markası **artık önek veya uygulama adı olarak YER ALMAYACAK**. Kullanıcı tercihine göre dört müşteri/şirket iş uygulaması sırasıyla:
+1. **Operasyon**
+2. **Finans**
+3. **İnsan Kaynakları (İK)**
+4. **Müşteri Portalı (MP)**
+
+Ana kullanıcı menüsü, başlıklar, modül etiketleri, giriş ekranları, rapor başlıkları, teknik gereksinimler ve yeni dokümantasyon bu isimleri kullanacak. Eski repo/doküman dosyası adları ve mevcut canlı kod/URL/Vercel tanımları teknik uyumluluk nedeniyle hemen yeniden adlandırılmayabilir; **eski kod/işlem ve tarihsel veriler kırılmadan** planlı geçiş yapılır. Aynı şirkete ait örnek cari/kurumsal bilgi markası, uygulama adlandırma kararıyla değiştirilmez. Başvuran diğer şirketlerin ekranlarında tek müşterinin özel markası uygulama adı olamaz.
+
+**Çalışma sırası:** Kullanıcı sıradaki ayrıntılı iş akışı tasarımının **Finans** modülünde başlamasını açıkça istedi. Dört iş uygulamasının tamamı ve aşağıda kapsamı tanımlanan beşinci platform yönetim arayüzü birbirinden ayrı sorumluluklarda tasarlanır. Finans analizini mevcut cari, banka, POS, ödeme, tahsilat, senet/çek, fatura, hesap ve bordro/hammadde maliyeti kurallarıyla tutarlı tasarla; veri/özlük erişimleri korunur.
+
+## 37. Karar 43 — Beşinci yönetim arayüzü: Platform Yönetimi (2026-10-23, KAPSAM TALEBİ ONAYLI; SUNUM BİÇİMİ ONAY BEKLİYOR)
+
+**Kullanıcının talebi:** Dört iş uygulamasına ek olarak **tüm kayıtlı şirketleri ve uygulama izinlerini yöneten beşinci ayrı admin ekranı** olmalı. Kullanıcı bunun "uygulama mı web sayfası mı" olması gerektiğini sordu. **Asistanın teknik önerisi (henüz açık nihai onay alınmadı):** Bu, halka açık statik web sayfası veya dört uygulamanın içindeki gizli menü değil; **beşinci bağımsız, tarayıcıdan erişilen, mobil uyumlu güvenli WEB UYGULAMASI** olmalı. Önerilen nötr çalışma adı: **Platform Yönetimi**. Bu beşinci uygulama müşterilerin satın aldığı beşinci ticari iş modülü değil, platform operatörüne ait *control plane* / yönetim konsoludur.
+
+**Web uygulaması ile web sayfası ayrımı:** Web sayfası yalnız tanıtım/bilgi sunabilir; gerçek şirket ve yetki yönetimi kimlik doğrulama, kalıcı kayıtlar, sunucu/API yetki kontrolü, denetim ve çok faktörlü güvenlik istediği için tam web uygulamasıdır. Masaüstü ve telefonda tarayıcı üzerinden çalışabilir; yerel iOS/Android app geliştirme zorunlu değildir. Güvenlik politikaları uygun görülürse ileride PWA/masaüstü kısayolu eklenebilir ama bu bir gereksinim değildir.
+
+**Önerilen beşinci uygulamanın kapsamı:**
+- Şirket başvurusu inceleme/onay/ret; şirket açma, etkin/pasif, askıya alma ve geri açma; veri silme/kalıcı kapatma yalnız ayrıca tasarlanmış yasal ve çoklu onay süreçleriyle.
+- Her şirketin **Operasyon / Finans / İK / MP** uygulama erişimini, lisans/paket, etkin servis ve gerektiğinde kapasite/limit parametrelerini ayırarak yönetme. Şirketin hangi modüle sahip olduğunu değiştirmek var olan veri kayıtlarını silmez.
+- Şirket ilk yetkili kullanıcı daveti, rol/izin şablonları, uygulama erişimi ve üst limitleri; şirketin kendi yetkili yöneticisinin yönetebileceği izinler ile **platform operatörünün belirlediği erişim sınırları** kesin ayrılmalı.
+- Şirket/uygulama durumu, teknik sağlık ve **sadece gerekli üst düzey metadata** görünümü; hassas sipariş, müşteri bakiye, maliyet, bordro/maaş, şirket içi risk raporu, kişisel bilgi sırf platform admin rolüyle görünmez.
+- Merkezi platform audit: başvuru kararları, şirket erişim değişiklikleri, kritik yetki değişiklikleri, admin oturumları, engellenen denemeler, onaylayan gerçek kişi, zaman ve gerekçe; loglar görev ayrımı ve KVKK veri minimizasyonuyla.
+- Teknik güvenlik: özel alan adı/deploy/entrypoint ve rol, MFA (güçlü doğrulama), düşük yetki ilkesi, kısa yönetici oturumu ve yeniden doğrulama, rate limit, CSRF/oturum güvenliği, DB/RLS ve sunucu kontrolleri, sistem yöneticisi hesabına gelişigüzel rol atamayı engelleme, önemli yetki/şirket kapatma değişikliklerinde gerektiğinde iki ayrı gerçek kişi onayı.
+- Platform desteği için bir şirketin iş verilerine geçici erişim zorunlu olursa ayrı **şirket yetkisi ve süre sınırlı, denetlenen destek erişimi** gerekir; kalıcı süper kullanıcı üzerinden otomatik içerik erişimi **YASAK**. Şirket içi yetki yönetimi için esas iş uygulamasının yetkili firma yöneticisi rolü kullanılır.
+- Tek ortak kimlik/tenant güvenlik altyapısı altında ayrı beş arayüz planlanabilir. Önerilen monorepo beşinci entrypoint: `apps/platform-yonetimi` veya `apps/platform-admin`; 4 iş uygulaması entitlements, yayınlama, test ve gizlilikleri ayrı kalır. `apps/platform-admin` içeren beş ayrı kullanıcı deneyimi **tek mega uygulamada 5 sekmeye** indirilmez.
+- Mevcut Operasyon 0.13.0 davranışları, veri ve yetkili hesap geçişi kırılmadan aşamalı inşa; production deploy ve canlı veritabanı değişikliğine kullanıcı onayı olmadan geçiş yok.
+
+**Açık onay sorusu:** Beşinci ekranın tasarımını **"Platform Yönetimi" adlı ayrı, güvenli, responsive web uygulaması** şeklinde kesinleştirelim mi? Kullanıcının onayına kadar kapsam kararı korunur ama dağıtım/arayüz stratejisi nihai olarak etiketlenmez.
