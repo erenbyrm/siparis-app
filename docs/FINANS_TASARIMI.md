@@ -212,4 +212,25 @@ Geliştirme yalnız tasarım aşamasında: canlı sistem veya gerçek muhasebe k
 
 **Kabul:** Tek hareket iki belge kategorisine bölünmez; alacak/borç + havale, nakit, kart, POS, çek, senet hepsinde aynı; iki ayrı fiziksel nakit kasası birbirini iki kez saymaz; çek/senet her biri tek portföyde ve tek tahsilatta; bir IBAN = bir gerçek bakiye; belge sonradan gelince tek ekonomik borç korunur; platform izin kapansa bile rapor/audit/düzeltme durur değil, erişimi korunan yasal geçmiş olarak kalır; RLS ve yetki testleri uygulanır.
 
-**Açık diğer karar:** Fiziksel olarak ayrı iki nakit kasasının şube/konum ve sorumlu bazında daha fazla kasa tanımına izin verilmesi, kullanıcı tarafından üst limit olarak belirlenmemiştir; "iki kasa" desteklenir, fakat tüm işletmeler zorunlu olarak yalnız iki kasa kullanacak denmemeli.
+**Karar 51 ile ONAYLANDI:** Her iki belge grubu altında şirket istediği kadar ayrı kasa, çek portföyü ve senet portföyü oluşturabilir; **belge grubu ve tekil kasa/portföy bazında ayrı raporlama zorunludur**. İki sayısı yalnız örnekti, limit değildir. Ayrıntılar sonraki bölümde.
+
+## 13. Karar 51 — Belgeli/Belge Bekleyen gruplarında çoklu kasa ve çoklu çek/senet portföyleri; ayrı raporlama (2026-10-23, ONAYLANDI)
+
+**İş kararı:** Firma başına iki **belge grubu** (özellik açıksa) vardır: Belgeli ve Belgesiz (Belge Bekleyen). Bunlar **yalnız iki kasa** veya **yalnız iki çek/senet portföyü** demek değildir. Her grup altında firma ihtiyaç duyduğu sayıda gerçek ayrı kasayı ve çek/senet portföyünü tanımlayabilir. **Kasa, çek ve senet raporları hem belge grubu hem tekil kasa/portföy bazında ayrı ayrı olmalı.**
+
+### Finans kartı/portföy veri modelinde zorunlu alanlar
+
+- `cashbox`: `tenant_id`, `cashbox_id`, `cashbox_code`, `name`, `document_bucket` (tek), `currency`, `location/branch`, `responsible_user_id`, `active`, `opening_count`, `count_date`, `audit`. Şirket içi kasa kodu tekil veya açık scope ile benzersiz; yalnız ad/etiket üzerinden gerçek bakiye bağlama. Aynı fiziksel para iki ayrı kasanın nakit varlığı sayılamaz.
+- `cheque_portfolio` ve `promissory_note_portfolio`: `tenant_id`, `portfolio_id`, `code`, `name`, `document_bucket`, `status`, `responsible_user_id`, `branch`, `audit`. Kategori evrakın dayanak ticari belgesinin tam/eksik statüsüdür, kendisi hukuk dışı bir çek/senet türü değildir. Aynı çek/senet tek benzersiz fiziksel kimlikle portföyler arasında **transfer olay geçmişiyle taşınır**, iki portföyde iki kez bakiye oluşturmaz.
+- `cashbox_movement`, `portfolio_event`: transfer/durum değişikliği, kaynak-hedef tek hareket grubu, yön, tarih, para, vade, cari ve ilgili belge ID'leri, aktaran/teslim alan, onay, kaynak belge durumu, idempotency/denetim. Tek gerçek para çıkışını iki farklı belge grubundan bölme (Karar 50) yok. Ayrı kasa sorumluları sayım tutanaklarına göre fiilî bakiye kontrolü yapar.
+
+### Ayrı raporlar — kabul kriterleri
+
+1. **Kasa raporu** belge grubu başına ayrı; ardından istenirse her kasa için açılış, tahsilat/giriş, ödeme/çıkış, net akım, fiziksel sayım/kapanış, fark ve onaylanmamış belge mutabakat uyarıları. TL ve döviz tutarlarını kur belirtilmeden toplama; şirket içi kur kaynağı ayrı.
+2. **Çek portföy raporu** Belgeli ve Belgesiz (Belge Bekleyen) ayrı; alt portföy başına verilen/alınan çek, vade, borçlu/alacaklı, tutar, ciro, teminat, banka tahsilde, tahsil edildi, iade/karşılıksız ve bekleyen durumları. Aynı çekin birden çok statüsü/portföy hareketi olsa da **tek mevcut pozisyon** sayılır.
+3. **Senet portföy raporu** aynı biçimde; senet no, karşı taraf, vade, tutar, ciro, tahsilat/ödenen/ödenmeyen ve portföy/şube/sorumlu filtreleri.
+4. **Rapor erişimi ve çıktı:** `tenant_id`, bir tane `document_bucket` ve tek kasa/portföy filtresi veya o gruba ait yetkili **grup toplamı**; döneme göre tarih, sorumlu, döviz cinsi, kasa tipi, çek/senet durumu, cari ve şube filtreleri. Ekran, PDF/XLSX/CSV/API/export **aynı veri filtreleri** uygular. Bir kullanıcının başka firmaya geçişi önceki firmanın raporunu cache veya browser export ile sızdırmaz.
+5. **Yasal ve yönetim özeti:** Belgeli ve Belgesiz belge bekleyen tutarlar varsayılan ayrı gösterilir; ancak aynı gerçek kasanın parasını, aynı çekin değerini veya aynı belgeden doğan alacağı **çift sayan hiçbir ara toplam oluşturulmaz**. Muhasebe kayıt/tahakkuk, kanunî defter, vergi/bordro bildirimleri doğru usulüne göre ayrıca sürer; belgesiz etiketini kayıt gizleme olarak kullanma.
+6. **Örnek test:** Belgeli grupta Merkez TL, Şube TL, Döviz TL; Belgesiz grupta Merkez TL, Şantiye TL, Şube TL, Proje TL kasaları. Her birinin raporu ayrı, grup raporu yalnız o grubun gerçek alt kasaları, diğer grup karışmıyor. Çek portföyleri ikiden fazla; bir çek Tahsilde portföyüne aktarıldığında iki kez tahsil alacağı doğmuyor. Ayrı şirketler arasında rapor birleştirme yok (Karar 46); admin belge takibi özelliğini kapatsa önceki rapor geçmişi silinmiyor.
+
+**Sıradaki açık teknik detay:** Ayrı kasalar arasında virman yapmak ve belge grupları arasında fiziki kasa transferi durumunda hangi yetki/onay ve muhasebe sınıflaması uygulanacağı, Karar 50'deki **tek finans hareketi tek belge grubunda** kuralı ihlal etmeden tasarlanacak; bu kullanıcı tarafından ayrıca onaylanmadı.
