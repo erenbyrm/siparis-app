@@ -254,4 +254,23 @@ Siparişin hazır kısmının erken/kısmi ya da topluca sevkiyatına müşteri 
 - Firmada bağımsız depo unvanlı bir çalışan bulunmaması, yetkilendirilmiş depo görevi olan personelin depo kabulü yapabilmesini engellemez; ancak kritik işlemlerde **kendi istisnasını onaylayamama** ve şirketin iki gerçek kullanıcıya dayalı güvenlik kuralları atlanamaz.
 - Şirket yetkilileri çalışma profilini zamanla değiştirebilir; mevcut kayıtların doğrulama statüsü, tarihsel mutabakat geçmişi ve onay bilgisi geçmişe dönük değişmez. Kontrol yükü azaltılabilir; doğrulanmamış tüketim gerçeğe uygun ölçülmüş gibi etiketlenemez. Her profilde **bitmiş üründe fiziksel depo kabulü olmadan sevkiyat yasak**.
 - **Karar:** Şirkete göre seçilebilir işletme profilleri, vardiya/gün sonu toplu hammadde-fire mutabakatı, izlenebilirlik ve kritik istisna onayı kabul edildi. Kuruma özel SLA/tolerans ve yetki detayları geliştirme aşamasında özelleştirilecektir.
-- **Sıradaki açık karar:** Yeniden kullanılabilir kesim parçaları, satılabilir hurda ve geri kazanılamayan kaybın ayrı kategoriler/stoklar olarak yönetimi.
+- **Karar 31 ile onaylandı:** Yeniden kullanılabilir kesim parçaları, satılabilir hurda ve geri kazanılamayan kayıp ayrı izlenir; ayrıntılar Karar 31'de.
+
+
+## 23. Karar 31 — Yeniden kullanılabilir parça, satılabilir hurda ve geri kazanılamayan kayıp (2026-10-22, ONAYLANDI)
+
+**Kullanıcı üçlü ayrımı onayladı.** Fire ve artık malzeme tek bir belirsiz "kayıp" miktarına toplanmayacak:
+
+1. **Tekrar kullanılabilir parça:** Kesimden kalan, başka üretimde kullanılabilecek nitelikteki malzeme. Tür, malzeme/alaşım, ölçü/boy, kesit ve miktar/birim gibi yeniden kullanım için gerekli özellikleriyle izlenebilecek; kontrollü depo kabulü sonrası yeniden kullanılabilir malzeme stoku olarak tutulabilecek. Örnek: 120 cm alüminyum profil. İş emrinden kaynak partiye ve sonraki üretimde fiili tüketime kadar ilişki kurulabilmeli.
+2. **Satılabilir hurda:** Mevcut üretimde kullanılamayan, ancak ticari değeri olan alüminyum vb. hurda. Malzeme türü, net ağırlık/ölçüm, hurda deposu, kaynak üretim/iş emri ve yetkili fiziksel kabul kaydedilir. Finans uygulamasındaki cari, fatura, tahsilat ve hurda satış işlemine ilişkilendirilebilir; muhasebe kayıtları çift oluşmaz. Hurdanın stoka alınması **satış veya tahsilat değildir**.
+3. **Geri kazanılamayan kayıp:** Yeniden kullanılamayan ve satılamayan fiziksel kayıp; ilgili üretim emri, malzeme, gerekçe, miktar ve maliyet etkisi ayrı raporlanır. Teorik sarf ile gerçek sarf arasındaki her sapma kendiliğinden bu kategoriye girmez.
+
+### İşletme kolaylığı ve stok güvenliği
+
+- Üretim personeli gerçekleşen miktarları ve önerilen kategorileri bildirir; depo veya yetkilendirilmiş bağımsız görevli yeniden kullanılabilir parçaları/hurdaları fiilen sayıp-tartarak kabul eder. Bildirilen, bekleyen, fiziksel doğrulanmış ve ihtilaflı kayıtlar karıştırılmaz; sahte doğrulamayı teşvik eden otomatik kabul olmaz.
+- Karar 30'daki **Pratik / Kontrollü / Ayrıntılı** profiller korunur: küçük işletme toplu vardiya/gün sonu malzeme-hurda kaydı yapabilir, ayrıntılı işletme parça/parti/boy bazında izleyebilir. Çok sayıda küçük artık parçayı zorunlu olarak tek tek girmek gerekmez. Kontrol yöntemi fiziksel gerçekliği olduğundan daha kesin göstermemeli.
+- Aynı malzemenin yeniden kullanılabilir parça, satılabilir hurda ve kayıp kategorilerine bölünen miktarları iş emri/ana malzeme miktarıyla **miktarsal mutabakata** tabi tutulur. Geri kullanılabilir stok ile hurda stokunda çift sayım ve orijinal hammadde stokunda mükerrer artırma olmamalı. Kategori değişiklikleri ve stok hareketleri yetkiyle ve denetlenebilir düzeltme hareketiyle yapılır.
+- Her firma için malzeme grupları, depo noktaları, hurda takibi derinliği ve toleranslar yapılandırılabilir. Şirketten şirkete aynı maliyet yöntemini dayatma; yeniden kullanılabilir parça/hurda değerlemesi ve fire maliyetinin hangi maliyet merkezine nasıl yansıtılacağı Finans ile birlikte aşamalı olarak kararlaştırılacak.
+- Karar 25'in **bitmiş ürünün depo kabulü olmadan sevk edilmemesi** şartı geçerlidir. Bu madde hurdanın müşteriye ürün olarak sevki için muafiyet oluşturmaz. Hurda satışı ve hurda depo çıkışı, kendi ticari belge/teslim yetkisi ve fiziki kayıt zinciriyle yürütülür.
+
+**Sonraki açık karar:** Tekrar kullanılabilir alüminyum profil parçalarını firma seçimine göre *boy/ölçü bazında* ayrı stoklayıp kesim planlamasında kullanılabilir önerilere dahil edelim mi? Bu kadar ayrıntının Pratik profilde opsiyonel olması öneriliyor; kullanıcı görüşü alınacak.
