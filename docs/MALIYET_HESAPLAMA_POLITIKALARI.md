@@ -123,4 +123,27 @@ Giderin sınıflandırması ve hangi ürün/hat/gider merkezine ait olduğu, **h
 - **Kullanım kolaylığı:** Pratik profilde 'Alüminyum kg fiyatını nereden alalım?' sorusuna üç anlaşılır seçenek; Kontrollü/Ayrıntılı profilde tedarikçi karşılaştırmaları, teklif geçmişi, uyarı eşiği, grup ve para birimi ayarları. Hiçbir firmada zorunlu elle üç fiyat birden girme yükü yok.
 - **Testler:** A1 son geçerli fatura seçimi, iade/düzeltme; A2 süresi dolmuş teklifin engellenmesi; A3 yetkisiz manuel düzenleme ret; A1→A2→A3 şirket seçimi; kg/ton ve para birimi dönüşümü; aynı artışın ikinci kez yansımaması; P1 aşağı koruma ve P2 iki yönlü hareket; tenant veri izolasyonu; gizli maliyetin üretim personeline sızmaması; önceki satış snapshot'larının değişmemesi.
 
-**Henüz açık ayrıntı:** Fiyat güncellenince satış referansına **otomatik yürürlüğe girsin mi**, yoksa **yetkili Finans/Satış Müdürü inceleyip onaylayınca mı etkin olsun**? Özellikle yükselen fiyatın yeni teklifleri koruması ile hatalı faturanın yanlış zam yaratmaması arasında şirket bazlı ayar uygun olabilir. Kullanıcıdan karar alınacak.
+**Karar 37 ile çözüldü:** Firma bazında otomatik ve yetkili müdür onaylı fiyat güncellemesi seçenekleri desteklenecek; anormal değişim, doğrulama ve güvenlik eşikleri ayrıca yapılandırılabilecek. Detaylar Karar 37'de.
+
+## 10. Karar 37 — Firma bazlı otomatik veya yönetici onaylı fiyat güncellemesi (2026-10-22, C ONAYLANDI)
+
+**Kullanıcı C seçeneğini kesin onayladı.** Her şirket, A1 (son geçerli alış faturası), A2 (güncel tedarikçi fiyat listesi/teklifi) veya A3 (yetkili yönetici referansı) kaynağından hesaplanan fiyat değişikliklerinin **satışa esas referans maliyete ne zaman yansıyacağını** kendi politikasıyla seçer. Bir şirketin seçimi diğer şirketleri etkilemez.
+
+### Seçilebilir yürürlüğe alma modları
+
+- **U1 — Otomatik:** Yalnız **kaynağı geçerli, doğru birimi ve para birimiyle normalize edilmiş, yetki/uygunluk kontrollerini geçmiş** birim fiyat hareketleri şirketin etkin maliyet politikasına göre yeni fiyatlandırma referansına otomatik yansıtılır. P1 ise alüminyumun yalnız yukarı yönlü değişimi fiyatlandırma tabanını artırır, aşağı yönlü değişim tabanı otomatik azaltmaz; P2 gibi iki yönlü ticari politikalarda azalma da olabilir. Fiyat kaydı muhasebe stok maliyetini, önceden onaylanmış sipariş fiyatını veya faturayı değiştirmez.
+- **U2 — Yönetici onayıyla:** Sistem güncellenen fiyatı ve eski-yeni karşılaştırmasını **bekleyen maliyet referansı değişikliği** olarak sunar; gerekli yetkiye sahip Finans Müdürü / tanımlı Satış Müdürü veya Genel Müdür (şirket RBAC sınırları) inceleyip onaylamadan yeni teklif referansına yansımaz. Bekleme süresince yeni teklifleri eski maliyete göre düşük fiyatlama riskine karşı **"yeni maliyet güncellemesi onay bekliyor"** uyarısı ve yapılandırılabilir geçici fiyat teklifi kısıtlaması gösterilir.
+- Şirket her an yetkili onayla U1/U2 arasında geçebilir; **geçerlilik tarihi, hesap yöntemi, onaylayıcı ve geçmiş** saklanır. Sonradan geçiş geçmiş onaylı teklif/siparişleri yeniden fiyatlandırmaz.
+
+### Büyük fiyat değişimi / veri doğrulama güvenlik zinciri
+
+- Şirket/ürün grubu/malzeme bazında **değişim yüzdesi ve/veya mutlak TL/kg eşiği** ayarlanabilir. Eşik, birim/kur/ürün doğru karşılaştırılmadan ölçülmez. **Somut yüzde/TL limiti kullanıcı tarafından henüz verilmedi; keyfî sabit limit kodlama.**
+- U1 modunda dahi eşik aşan veya olağandışı fiyat, yetkisiz kaynak/şüpheli fatura düzeltmesi, süresi dolmuş tedarikçi teklifi, geçersiz para birimi/ölçü dönüşümü otomatik yürürlüğe **sessizce alınmaz**. Politikaya göre onay bekler/uyarı verir; sistem kullanıcı onayı olmadan yeni fiyata zorunlu devam etmez.
+- U2 modunda yetkili yönetici değişiklik ve gerekçeyi onaylar veya reddeder. Talep sahibi kendi ayrı yetkili onayı gerektiren istisnasını onaylayamaz. Yetkili müdürün şirketten şirkete hangi rol olduğu ayrıca atanabilir.
+- Bildirim ve denetim: Eski/yeni kg bedeli, kaynak (A1/A2/A3), ilgili belge/satıcı, onay durumu, zam/yüzde etkisi, etkilenen ürün/gruplar, hesap değişiklikleri, tarih, hesaplayan ve yetkili bilgisi; şirket gizlilik sınırları korunur.
+- Fiyat artışı hesaplama ve yayın **idempotent** olmalı; aynı kaynak olayı yeni sync'te tekrar gelince fiyat artışı ikinci defa eklenmez. Eşzamanlı iki onay/iki fiyat akışında yalnız doğru etkin sürüm geçerli olur.
+- Değişiklik onayından önce mevcut onaylı referans maliyet yürürlükte kalır; görünür 'güncelliği riskli' uyarısı ve gerekirse yetkili yönetim kuralıyla yeni teklif hazırlama kısıtı uygulanır. Onaylanmış eski müşteri siparişinin birim fiyatı, iskonto, faturası, cari bakiyesi kendi kendine değiştirilmez.
+- **Test senaryoları:** U1 geçerli +%10 kg değişimini doğru tek sefer yansıtır; U2 hiçbir fiyatı onaysız değiştirmez; U1 anormal büyük değişimi eşik kuralına göre onaya alır; U1 P1 aşağı yönlü değişimde tabanı düşürmez, U1 P2'de iki yönlü olabilir; onay bekleyen fiyat eski/satış ref karşılaştırmasında belirtilir; P1 önceki ay devrinde bir fiyat zammını iki kez yansıtmaz; eski teklif/sipariş fiyatları kalır; kullanıcı ve tenant erişimi ayrıdır.
+- **Geliştirme fazları:** Önce şirket politikası U1/U2 veri modeli/rol izinleri, taslak-onay-yayın durumları ve testler; otomatik bildirim/kural motoru sonra aşamalı uygulanabilir. İlk aşamada production fiyat güncellemesi yapılmaz.
+
+**Sonraki öneri sorusu:** Yükselen alüminyum kg fiyatı satış maliyeti referansını etkilediğinde firma ayrıca **mevcut ürün satış fiyat listelerini** de yetkili kontrollü otomatik güncelleyebilsin mi, yoksa referans maliyet yükselse dahi yayınlanmış satış fiyat listesi yalnız yönetici onayıyla mı değişsin? Bu, karar 37'deki maliyet referansının yürürlüğe girmesinden **farklı** bir ticari işlem olup henüz kullanıcı onayı bekliyor.
