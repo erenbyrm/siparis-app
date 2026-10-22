@@ -1,10 +1,10 @@
-# SÖZBİR — Şirkete Özel Maliyet Hesaplama ve Fiyatlandırma Politikaları
+# Platform — Şirkete Özel Maliyet Hesaplama ve Fiyatlandırma Politikaları
 
 > **Kapsam:** Operasyon + Finans + İK arasında yetkili veri paylaşımıyla şirket bazlı maliyet planlama, genel üretim gideri dağıtımı, satışa esas referans maliyet ve gerçek maliyet raporlaması.
 >
 > **Durum / Karar 35 (2026-10-22):** Kullanıcı, alüminyum aşağı düştüğünde satışa esas maliyetin otomatik düşmemesinin **bütün şirketlere zorlanmasına karşı**, bunun **şirket bazlı seçilebilir ayar** olmasını ONAYLADI. Ayrıca yakın zamanda kararlaştırılan ürün kapasitesi bazlı üretim genel gideri dağıtımı, önceki ay maliyeti ve diğer maliyet yaklaşımlarının **alternatif ve ayrıntılı seçenekler** halinde sunulmasını talep etti. Aşağıdaki yöntem kataloğunun her teknik ayrıntısı kullanıcı tarafından tek tek onaylanmış sayılmamalıdır: yeni politika seçenekleri uygulanmadan önce uygun mali müşavir/finans uzmanı ve şirket yetkilisinin belirlediği muhasebe ilkeleri dikkate alınır.
 >
-> **Öncelikli güvenlik:** Mevcut canlı SÖZBİR Operasyon özellikleri, siparişler, stok hareketleri, depo kabulü→sevkiyat zorunluluğu, Supabase/Postgres verileri, müşteri/çalışanlar ve geçmiş maliyet fotoğrafları korunacak. Bu dosya özelliğin kapsamını tanımlar, **prod deployment veya veri migrasyonu izni değildir.**
+> **Öncelikli güvenlik:** Mevcut canlı Operasyon özellikleri, siparişler, stok hareketleri, depo kabulü→sevkiyat zorunluluğu, Supabase/Postgres verileri, müşteri/çalışanlar ve geçmiş maliyet fotoğrafları korunacak. Bu dosya özelliğin kapsamını tanımlar, **prod deployment veya veri migrasyonu izni değildir.**
 
 ## 1. Üç ayrı ama ilişkili maliyet katmanı — birbirinin yerine geçmez
 
@@ -98,7 +98,7 @@ Giderin sınıflandırması ve hangi ürün/hat/gider merkezine ait olduğu, **h
 
 ## 8. Henüz açıklığa kavuşturulacak ayarlar
 
-- SÖZBİR şirketinin ilk açılış profili önerisi: **P1 (Önceki Ay + yalnız alüminyum yukarı yönlü güncelleme), G1 (ürün kapasitesi), T2 (bütçe+tahakkuk)**. Kullanıcının P1/G1 görüşleri mevcut; T2 varsayılanı henüz ayrıca onaylanmadı.
+- başlangıç şirketinin ilk açılış profili önerisi: **P1 (Önceki Ay + yalnız alüminyum yukarı yönlü güncelleme), G1 (ürün kapasitesi), T2 (bütçe+tahakkuk)**. Kullanıcının P1/G1 görüşleri mevcut; T2 varsayılanı henüz ayrıca onaylanmadı.
 - **Karar 36 ile netleşti:** Üç kg fiyatı kaynağı da firma bazında seçilebilir ve kayıt geçmişiyle desteklenir. Güncellemenin otomatik bildirim mi yoksa yönetici onayıyla mı etkin olacağı ve kaynak öncelik/fallback ayarları sonraki görüşmede kesinleştirilecek.
 - Şirket/ürün/grup seviyesinde fiyatlandırma referansının manuel düşürülmesi için hangi yönetici onayı gerektiği.
 - Normal kapasite ve atıl saat dağıtımı, muhasebe ve finansal raporlama standardı danışman onayı.
@@ -233,3 +233,7 @@ Kategori adları / sırası / grup yerleşimi kullanıcı tarafından yönetilec
 9. **Test ve performans**: K1 A ürünü net satış ciro ağırlığı %20, artış %5; B ciro ağırlığı %80, artış %15 ise kategori önerisi %13; K2 %15; K3 yönetici %10. Ana/alt kategori farklı artışları, özel nakit/vadeli miras, fiyat/list tavanları, yetkisiz toplu onay, tenant izolasyonu, olağandışı tek ürün, sıfır ciro, eksik maliyet, geri alınan/yineleyen komut ve eşzamanlı onay dahil edilmeli. Çok müşterili kategorilerde önizleme ölçeklenmeli; şirket verisi sızmamalı.
 
 **Açık olan ince ayar:** K1 için son 3/6/12 ay gibi geçmiş ciro dönemi ve neyin aktif ürün sayılacağı firmanın ayarına bağlanabilir; kullanıcı sabit bir pencereyi henüz seçmedi.
+
+## 15. Karar 42 ile güncellenen uygulama adları (2026-10-23)
+
+Ürünlerin kullanıcıya görünen adları bundan sonra **Operasyon, Finans, İnsan Kaynakları (İK), Müşteri Portalı (MP)** olacak. Tarihsel marka öneki artık uygulama adı olarak kullanılmaz. Firmalar arası yetki ve kayıt yönetimi için beşinci ayrı platform yönetim arayüzü talep edildi; bunun güvenli web uygulaması olarak gerçekleştirilmesi **Karar 43'te teklif edilen ve henüz nihai olarak onaylanmamış teknik sunum biçimidir**. Maliyet verilerinin paylaşımı gizlilik/rol/tenant sınırlarıyla aynen korunur.
