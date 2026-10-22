@@ -178,3 +178,15 @@ Siparişin hazır kısmının erken/kısmi ya da topluca sevkiyatına müşteri 
 - **Depocunun işi zamanında yapması işletme kuralıdır.** Bekleyen kabul listesinde üretim bildirim zamanı, ilgili depo/sorumlu, kaç adet beklediği ve bekleme süresi görünür; depo müdürü geciken işleri takip edebilir. Hatırlatma/eskalasyon süresi ve kanalına kullanıcıyla sonra karar verilecek; gecikme **otomatik depo kabulü** doğurmaz.
 - Sevkiyat birimi, üretimi tamamlanmış ama henüz kabul edilmemiş malları **bilgi amaçlı bekleyen üretim** olarak görebilir; bu miktarlar yüklenebilir/sevk edilebilir stokla karıştırılmaz. Yetkisiz doğrudan sevkiyat kaydı yapılamaz.
 - Mevcut Operasyon 0.13.0'da bulunan üretim bildirimi → depo kabulü → sevkiyat ayrımı **korunacak**, yeni çoklu depo ve araç stoklarıyla da aynı kural geçerli olacak.
+
+
+## 18. Karar 26 — Depo kabul süresi, sorumluluk ve gecikme uyarıları (2026-10-22, ONAYLANDI)
+
+- Üretim bildirimi kaydedilir kaydedilmez ilgili depoda **Depoya Kabul Bekleyenler** görev kaydı otomatik oluşur; işin doğuş zamanı, ürün/adet, iş emri/sipariş, hedef depo, sorumlu kişi veya ekip, durum ve bekleme süresi izlenir.
+- Şirket/depo yöneticileri **beklenen kabul süresi (SLA)** tanımlayabilir. Üretim/mesai takvimi ve iş günü kuralları desteklenebilecek biçimde tasarla; varsayılan kesin dakika/saat tüm sektörlere dayatılmasın.
+- Süre sınırı aşıldığında görev **Gecikti** olarak işaretlenir ve ilgili depocu, depo sorumlusu/müdürü için rol/yetki bazlı uygulama içi bildirim ve yönetici geciken işler görünümü oluşturulur. Bildirimler tekrar tekrar spam'e dönmesin; hatırlatma ve gerektiğinde üst yönetime yükseltme yapılandırılabilir.
+- Depo Müdürü, hangi çalışanın hangi kabulü ne zamandır beklettiğini, kaç ürün bulunduğunu ve gecikme geçmişini takip eder; farklı depolarda yalnız yetkili olduğu kapsamı görür. Kabul görevinin başka yetkili personele devri / vardiya devri geçmişi kaybolmadan gerçekleşebilir.
+- Kısmi kabul yapıldığında yalnız kabul edilen miktar stok olur; geri kalan miktar için bekleyen görev sürer ve gecikme izlemesi durmaz. Ret, eksik/kusurlu ürün ve açıklama alanları denetlenebilir.
+- **Gecikme hiçbir şekilde ürünleri otomatik depoya kabul ettirmez** ve üretimden doğrudan sevkiyata izin vermez. Sevkiyat yalnızca fiilen kabul edilmiş ve kullanılabilir stoktan yapılır (Karar 25).
+- Olaylar işlem geçmişine eklenir; sonradan filtrelenebilir gecikme raporları oluşturulabilir. Bildirim kanalı/tekrar sıklığı, şirket tercihine göre sonraki aşamada yapılandırılabilir.
+- Mevcut SÖZBİR Operasyon üretim→depo kabulü→sevk sırası değiştirilmeyecek; mevcut testler korunacak, gecikme ve yetkisiz kabul/sevk için yeni testler eklenecek.
