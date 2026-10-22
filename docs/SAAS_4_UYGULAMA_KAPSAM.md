@@ -208,4 +208,14 @@ Siparişin hazır kısmının erken/kısmi ya da topluca sevkiyatına müşteri 
 - **Finans entegrasyonu:** fiyatlandırma/maliyet kaynağı Finans; üretim veri kaynağı Operasyon. Muhasebeye kayıt gönderme ve çift kayıt oluşmasını engelleyen olay/idempotency tasarımı gerekir. Üretim elemanı gizli alış fiyatını, işçilik ücretini veya kâr marjını otomatik görmez.
 - **Raporlar:** plan/fiili tüketim, ürün/parti/iş emri bazında fire, hurda, üretim maliyeti, birim maliyet, kapasite, kalite, gecikme, işçilik ve taşeron takibi. Her şey firma ve rol bazında filtrelenir; izlenebilir geçmiş tutulur.
 - **Aşamalı geliştirme:** Önce malzeme kartı, temel BOM, stokta yeterlilik, iş emrinde üretim bildirimi ve depo kabulü, fiili tüketim/fire. Daha sonra çok kademeli BOM, lot/seri izleme, çok süreçli üretim, gelişmiş maliyet/işçilik, dış işlem ve varyans raporları. Mevcut 0.13.0 üretim planı ve depo kabulü silinmez.
-- **İlk karar sorusu:** standart reçete her ürün için temel olsun, iş emrine özel malzeme/tüketim değişikliği yetkilendirilmiş üretim müdürü onayıyla mümkün olsun mu? Bu henüz kesinleşmedi.
+- **Karar 27 ile onaylandı:** Standart reçete korunur; iş emrine özel reçete değişikliği yetkili Üretim Müdürü onayına tabidir. Ayrıntılar aşağıda.
+
+## 20. Karar 27 — Standart ve iş emrine özel üretim reçetesi (2026-10-22, ONAYLANDI)
+
+- **Her mamulün standart bir üretim reçetesi (BOM) bulunacak.** Standart reçete revizyonlanabilir ve geçerlilik tarihleriyle takip edilebilir; mevcut iş emri açılırken hangi reçete sürümünün esas alındığı kaydedilir.
+- Müşteriye özel ürün, malzeme alternatifi veya istisnai üretim ihtiyacında **yalnız ilgili üretim iş emrine özel reçete/tüketim değişikliği** yapılabilir. Bu değişiklik standart reçeteyi veya başka bir üretim emrini otomatik olarak değiştirmez.
+- İş emrine özel reçete değişikliği **ilgili işlemi yapmaya yetkili Üretim Müdürü onayına** tabidir. Müdürün onay yetkisi, çoklu rol, yetki sınırı ve kendi başlattığı istisnayı kendi onaylayamama kuralları (Karar 9, 12, 13) korunur; gerekirse Genel Müdür'e yükseltilir.
+- Orijinal standart reçete, üretime uygulanan onaylı iş emri reçetesi, talep eden/onaylayan kullanıcılar, değişiklik sebebi, değişen malzeme/adet/metre/kg gibi miktarlar, eski-yeni değerler, tarih ve onay geçmişi ayrı saklanır.
+- İş emrine özel değişiklik, beklenen hammadde ihtiyacını ve **planlanan maliyeti** günceller; gerçek tüketim ve **fiili maliyet** ayrıca kaydedilip karşılaştırılır. Üretim elemanı gizli alış fiyatlarını otomatik görmez.
+- Onaysız değişiklikle hammadde çıkışı veya kesin üretim kaydı oluşturulamaz; bu kural API/sunucu tarafında uygulanır. Önceden tamamlanan ve depo kabul edilen üretim kayıtları geçmişe dönük sessizce yeniden hesaplanmaz.
+- **Sonraki açık karar:** Hammadde sarfı reçeteye göre otomatik mi kesinleşsin, yoksa üretim elemanı fiili tüketimi kaydedip sistem reçeteyle karşılaştırsın mı?
