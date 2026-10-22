@@ -168,3 +168,13 @@ Her PR/commit için değişikliklerin özeti, dokunulan alanlar, dört ayrı uyg
 ## 16. Karar 24 — Sevkiyat karar yetkisi (ONAYLANDI)
 
 Siparişin hazır kısmının erken/kısmi ya da topluca sevkiyatına müşteri ekranı otomatik karar verdirmez. Yetkili Sevkiyat Müdürü veya yetki ve limitleri uygun Sevkiyat Sorumlusu/Sevkiyatçı karar verir. Sistem stok, üretim tahmini, müşteri teslimat taahhüdü, sefer ve nakliye maliyetini göstererek öneri sunar. Yetki sınırını aşan veya müşteriye verilen teslimat sözünü etkileyen değişiklikler üst onay ve gerektiğinde müşteri teyidi gerektirir. Üretilecek mallar fiziksel stok sayılmaz; yükleme, sevk, gerçek teslim ve kalan miktar ayrı izlenir. Onay gerektiren kendi istisna işlemini kimse kendi onaylayamaz. Hangi sevkiyat değişikliklerinin müdür onayı gerektirdiği firma bazında ayrıca belirlenecek.
+
+## 17. Karar 25 — Üretimden çıkan mal depo kabulü olmadan sevk edilemez (2026-10-22, ONAYLANDI)
+
+- **Kesin kural:** Üretim Elemanı bir ürünün üretimini tamamlandığına dair bildirim yaptığında bu bir **üretim bildirimi**dir; **fiziksel depo stoku, satışa uygun stok, sevkiyata hazır mal veya sevkiyat izni DEĞİLDİR**.
+- Depo Elemanı/Depo Sorumlusu ürünleri fiziksel sayar ve kendisine verilen yetkiler içinde depo kabulü yapar. Kısmi kabul mümkündür; kabul edilmeyen miktar **Depo kabulü bekleniyor** durumunda kalır ve sevk edilemez.
+- Sadece **depo kabulü tamamlanmış** ve varsa mevcut sipariş/rezervasyon kurallarına göre sevk için kullanılabilir ürünler yüklenip sevk edilebilir. Üretimden doğrudan araca veya müşteriye depo kabulünü atlayan stok çıkışı olmamalı; API ve veritabanı düzeyinde engellenmeli.
+- Teslim alma/kabul miktarları, eksik/fazla farkları, üretim bildirimiyle eşleşmesi, kabulü yapan gerçek kişi ve zaman bilgisi izlenebilir olmalı. Üretim bildiren ve depo kabulü yapan roller çoklu atanabilir; bu durum, ayrı onay gerektiren kritik bir işlemi kişinin kendisinin onaylamasına imkân vermez.
+- **Depocunun işi zamanında yapması işletme kuralıdır.** Bekleyen kabul listesinde üretim bildirim zamanı, ilgili depo/sorumlu, kaç adet beklediği ve bekleme süresi görünür; depo müdürü geciken işleri takip edebilir. Hatırlatma/eskalasyon süresi ve kanalına kullanıcıyla sonra karar verilecek; gecikme **otomatik depo kabulü** doğurmaz.
+- Sevkiyat birimi, üretimi tamamlanmış ama henüz kabul edilmemiş malları **bilgi amaçlı bekleyen üretim** olarak görebilir; bu miktarlar yüklenebilir/sevk edilebilir stokla karıştırılmaz. Yetkisiz doğrudan sevkiyat kaydı yapılamaz.
+- Mevcut Operasyon 0.13.0'da bulunan üretim bildirimi → depo kabulü → sevkiyat ayrımı **korunacak**, yeni çoklu depo ve araç stoklarıyla da aynı kural geçerli olacak.
