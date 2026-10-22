@@ -243,14 +243,15 @@ Siparişin hazır kısmının erken/kısmi ya da topluca sevkiyatına müşteri 
 - Doğrulanmış, personel tarafından bildirilmiş, reçeteden hesaplanmış ve mutabakat bekleyen miktarlar raporda açıkça farklı veri güvenilirliği/durum etiketleriyle gösterilir; hiçbir tahmin veya tek taraflı onay **fiziksel olarak doğrulanmış gerçek** diye sunulmaz.
 - Hammadde/fire kontrolleri üretimden çıkan mamulün fiziksel **depo kabulü zorunluluğunu** ortadan kaldırmaz (Karar 25); üretim→depo kabul→sevk kuralı korunur.
 
-### Küçük veya düzensiz işletmelerin operasyonel yükü — DEĞERLENDİRME TASLAĞI (onay bekliyor)
+### Karar 30 — Esnek işletme profilleri ve vardiya sonu toplu mutabakat (2026-10-22, ONAYLANDI)
 
 - Kullanıcı özellikle tek depocunun bütün işlere yetişememesi ve bazı firmaların henüz süreç disiplini kuramamış olması endişesini dile getirdi. Sistemin personeli sahte/ezbere onaya teşvik edecek kadar ağır bir süreç dayatmaması **tasarım hedefidir**.
-- **Öneri, henüz onaylanmadı:** Aynı uygulama içerisinde şirketçe seçilen **Pratik / Kontrollü / Ayrıntılı** kullanım profilleri. Bunlar yeni uygulamalar değil, kontrol sıklığı ve arayüz derinliği ayarlarıdır:
+- **Kullanıcı tarafından ONAYLANDI:** Aynı uygulama içerisinde şirketçe seçilen **Pratik / Kontrollü / Ayrıntılı** kullanım profilleri. Bunlar yeni uygulamalar değil, kontrol sıklığı ve arayüz derinliği ayarlarıdır:
   - Pratik: BOM önerisi + üretim beyanı; mümkün olan hammadde/hurda hareketleri toplu vardiya/gün sonu bağımsız mutabakata sunulur. Ön doğrulama tamamlanmadığı sürece miktarlar 'beyan/teorik' olarak işaretlenir.
   - Kontrollü: Fiziksel hammadde çıkışları ve iadeler, vardiya mutabakatı ve sınır aşımı onayı; kritik ürün/iş emirleri için sıkı kontrol.
   - Ayrıntılı: İş emri/lot/parti bazında tüketim, fiziksel tartım, hurda, neden kodları, tam izlenebilirlik; opsiyonel barkod/terazi entegrasyonu.
 - Kısmi/birden çok iş için toplu kayıt ile bildirim yükü düşürülebilir; yetkili kişi kontrol etmediği veriyi 'doğruladım' diye işaretlememeli. Toplu işlemde kişi/zaman/kaynak/parti ilişkileri ve geri izlenebilirlik kaybolmamalı.
 - Firmada bağımsız depo unvanlı bir çalışan bulunmaması, yetkilendirilmiş depo görevi olan personelin depo kabulü yapabilmesini engellemez; ancak kritik işlemlerde **kendi istisnasını onaylayamama** ve şirketin iki gerçek kullanıcıya dayalı güvenlik kuralları atlanamaz.
-- Süreç profili veya doğrulama sıklığı, kullanıcı kararı netleşmeden kesin ürün davranışı olarak uygulamaya kodlanmamalı. Her profilde **bitmiş üründe fiziksel depo kabulü olmadan sevkiyat yasak**.
-- **Açık karar:** Hammadde/fire doğrulamasını seçilebilir işletme profilleriyle ve vardiya sonunda toplu doğrulama seçeneğiyle sunalım mı? (Sonraki kullanıcı onayı.)
+- Şirket yetkilileri çalışma profilini zamanla değiştirebilir; mevcut kayıtların doğrulama statüsü, tarihsel mutabakat geçmişi ve onay bilgisi geçmişe dönük değişmez. Kontrol yükü azaltılabilir; doğrulanmamış tüketim gerçeğe uygun ölçülmüş gibi etiketlenemez. Her profilde **bitmiş üründe fiziksel depo kabulü olmadan sevkiyat yasak**.
+- **Karar:** Şirkete göre seçilebilir işletme profilleri, vardiya/gün sonu toplu hammadde-fire mutabakatı, izlenebilirlik ve kritik istisna onayı kabul edildi. Kuruma özel SLA/tolerans ve yetki detayları geliştirme aşamasında özelleştirilecektir.
+- **Sıradaki açık karar:** Yeniden kullanılabilir kesim parçaları, satılabilir hurda ve geri kazanılamayan kaybın ayrı kategoriler/stoklar olarak yönetimi.
