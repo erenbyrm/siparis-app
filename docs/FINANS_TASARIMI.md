@@ -163,7 +163,7 @@ Kullanıcı aynı cari/tedarikçi için **hem faturası olan hem faturası olmay
 
 **Kullanıcı şartı:** Tek cari hesabında birbirinden ayrı **Belgeli** ve **Belgesiz (Belge Bekleyen)** açık bakiye ve hareket dökümü görünür. Bir tahsilat/ödeme kayıt edilirken yetkili kullanıcının **hangi bakiye türünden düşüleceğini** seçmesi zorunludur; uygun açık borç/olay kimliği ve tutar doğrulanır. Bu işlem başka bir cari veya şirket verisine mahsup yapılamaz.
 
-- Veri önerisi: cari tekil kimlik; her ekonomik olayın tenant, cari, tutar, para birimi, belge durumu ve kaynak kimliği; ödeme için tek gerçek hareket kimliği ve bu harekete bağlı mahsup satırları (hedef açık borç kimliği, kategori, tutar, tarih/versiyon). Bir kez gönderilen veya banka sonucu doğrulanan ödeme, aynı belgeye ikinci kez mahsup yaratamaz. Nakit/banka ödeme kanalı **belgeli/belgesiz durumundan farklı bir alandır**.
+- Veri önerisi: cari tekil kimlik; her ekonomik olayın tenant, cari, tutar, para birimi, belge durumu ve kaynak kimliği; ödeme için tek gerçek hareket kimliği ve bu harekete bağlı mahsup satırları (hedef açık borç kimliği, kategori, tutar, tarih/versiyon). Bir kez gönderilen veya banka sonucu doğrulanan ödeme, aynı belgeye ikinci kez mahsup yaratamaz. **Karar 50:** Bir hareketin aynı anda Belgeli ve Belgesiz grup borçlarına dağıtılması YASAK; tek hareket tek belge sınıfını kapsar. Nakit/banka ödeme kanalı **belgeli/belgesiz durumundan farklı bir alandır**.
 - Belgeli bakiye muhasebece teyitli belgeye bağlı işlemleri; belgesiz bakiye belgesi beklenen hareketlerin yönetim amaçlı açık tutarını gösterir. Kanunen tahakkuku gereken işlemi belgede gecikme var diye zorunlu defter/beyan dışında tutmaya olanak verme. Yetkili uzmanların belge ve vergi farklarını düzeltme kuyruğu olmalı.
 - Örnek: cari Belgeli 60.000 TL, Belgesiz 20.000 TL. Belgesiz borca 10.000 TL gerçek ödeme yapılırsa Belgesiz 10.000 TL açık kalır, Belgeli 60.000 TL. Sonradan 20.000 TL toplam tutarlı doğrulanmış fatura geldiğinde önceki 10.000 TL ödeme korunur; kalan 10.000 TL açık tutar Belgeli tarafına geçer. Belgeli açık bakiye 70.000, Belgesiz açık bakiye 0 olur; hiçbir ikinci borç/ödeme gerçekleşmez. Fatura farklı tutardaysa otomatik çifte kayıt yerine fark kontrolü.
 - Firma bazında **Platform Yönetimi admini tarafından açılıp kapatılan izin bayrağı** (ör. finance_document_bucket_tracking_enabled). Admin bayrak durumunu, tarihi ve gerekçeyi yönetir ama şirketin banka/cari/maaş ayrıntılarını göremez. Kapalı firmada iki ayrı görünüm özelliği sunulmaz; varsa geçmiş eksik belgelere ilişkin düzeltme iş akışı ve kayıtlar silinemez.
@@ -180,3 +180,36 @@ Kullanıcı aynı cari/tedarikçi için **hem faturası olan hem faturası olmay
 - Test: KDV boş, belge bekleniyor etiketli, KDV %0/istisna raporlarında yer almıyor, belge bazlı doğru oran, tek borç tek ödeme, dönem/vergi mutabakatı ve tenant ayrımı.
 
 Geliştirme yalnız tasarım aşamasında: canlı sistem veya gerçek muhasebe kayıtları etkilenmedi.
+
+## 12. Karar 50 — Tek hareket, tek belge grubu; ayrı kasa ve çek/senet portföyleri (2026-10-23, ONAYLANDI)
+
+**Kullanıcı Karar 48 kapsamındaki "bir ödemenin iki tür borca ayrılabilmesi" alternatifini açıkça reddetti.** Finans'ta tek bağımsız ödeme, tahsilat, havale/EFT, nakit çıkış/giriş, kredi kartı/POS hareketi, çek veya senet işlemi **yalnız tek belge grubunu** kapsar: `DOCUMENTED` (Belgeli) ya da `PENDING_DOCUMENT` (Belgesiz/Belge Bekleyen). Kayıt türü tek olan herhangi bir işlemde `document_bucket` ayrılmaz. Tek banka ödeme referansı iki gerçek ödeme gibi kopyalanmaz.
+
+### Nakit kasaları
+- Şirketin yetkili Finans ekibi, fiziksel/gerçekten ayrı tutulan nakit varlıklarını **iki ayrı kasa tanımı** ile izleyebilir: `Belgeli Kasa` ve `Belgesiz (Belge Bekleyen) Kasa`. İsimler ekran/operasyonel belge takibi içindir; ikinci gizli muhasebe veya kayıt dışı nakit defteri değildir. Kasa kodu, tek firma, para birimi, açılış, fiilî sayım, sorumlu, rol/limit, kasa hareketleri, tutanak ve fark mutabakatı gerekir.
+- Aynı fiziksel nakit iki kasada çoğaltılamaz. Kasalar arası gerçek para aktarımı olursa kaynak kasadan çıkış, hedef kasaya giriş aynı benzersiz virman kimliğiyle bağlanır ve iki taraf mutabık olur. Kasa sayımında fark/eksik belge için yetkili muhasebe incelemesi devam eder.
+
+### Çek ve senet portföyleri
+- Çek için **iki ayrı portföy** (Belgeli / Belge Bekleyen), senet için de **iki ayrı portföy** (Belgeli / Belge Bekleyen) desteklenir. Bir fiziksel kıymetli evrakın kimliği, alınan/verilen, seri-numara, taraf, tutar, para birimi, keşideci/lehtar, vade, ciro/tahsile verme/teminat/ödeme/iade/karşılıksız, mevcut sorumlu ve fiziksel saklama yeri izlenir.
+- `Belgesiz` etiketi çek/senedin kendisinin *geçersiz* olduğu anlamına gelmez; ticari alış/satışın dayanak belgesinin henüz tamamlanmadığını gösterir. Çek/senet bir defa doğar, eşzamanlı iki portföyde ayrı tutar sayılmaz; evrak bir kez tahsil edildiğinde cari alacak/banka olayı iki kez oluşmaz. Belge geldiğinde sınıfı güncellemek evrakın yeniden verilmesi veya mükerrer tahsil değildir.
+- Çek ve senet portföylerinde ayrı yaşlandırma, vade, bekleyen/ciro edilmiş/tahsilde/teminatta ve fiilî kasa teslimi raporları olabilir; kullanıcının hangi yetkili rolün hangi kasa/portföyü göreceği ayrıca rol kapsamına tabidir.
+
+### Banka, kart ve POS için aynı kategorileme
+- Gerçek bir banka hesabı, kredi kartı hesabı veya POS mutabakatı **tek gerçek fiziksel/finansal hesap**tır. Belge statüsü her **hareket üzerinde** ayrı tutulur; aynı IBAN veya banka ekstre hareketinden iki adet resmî gerçek bakiye yaratılmaz. Gerçekte iki ayrı banka/pos varsa iki hesap tanımlamak mümkündür.
+- Kart/çek/senet/gelen-giden havalede tek işlemde iki kategoriye bölünme teknik olarak reddedilir. Bu, banka bakiyelerinin doğru tutulması ve hukuki kayıtların saklanmaması ile uyumludur.
+
+### Ödeme mahsup ve raporlama
+- `financial_movement`: tenant, company, `document_bucket`, payment_method, instrument ID/account ID, amount/currency, counterparty, source reference, status and audit. `document_bucket` **tam bir adet**; `movement_id` benzersiz.
+- `settlement_allocation`: hedef borç/alacak belgelilik grubu kaynak hareketiyle uyuşmalı. Bir hareketin iki farklı belge kategorisine dağıtılmasını yasakla. Aynı kategori içinde birden fazla borcu kapatma iş kuralı ayrıca netleşebilir; kullanıcının reddettiği örnek **çapraz iki kategoriye** paylaştırmadır.
+- İki gerçek bağımsız havale veya iki ayrı nakit ödeme yapılmışsa her biri kendi benzersiz fiilî hareketiyle kaydedilir. Gerçekte tek havale varsa ikinci havale taklidi yaratılmaz; sınıf düzeltmesi için onaylı/izli mutabakat kullanılır.
+- Bankaya e-posta eki olarak indireceğimiz listeler birçok bağımsız ödeme içerebilir; **her ödeme satırı tek gruba** bağlıdır. Banka sonucu tek ödeme referansıyla eşlenir; dosya çıkarmak bakiye düşürmez.
+- Belgeler sonradan gelince mevcut cari/finans hareketleri tek kimlikle doğrulanır ve gerekiyorsa kategorisi kontrollü güncellenir; çek/senet ve kasa gerçeği ikinci kez kaydedilmez. Karar 49'un KDV:null ve belge bekleniyor ayrımı geçerlidir.
+
+### Platform admin ve yasal kayıt sınırları (kullanıcının devam sorusu)
+- Şirket bazlı `finance_document_bucket_tracking_enabled` özelliğini **yalnız Platform Yönetimi admini** açabilir/kapatabilir. Bu sadece Finans'taki belgeli/belge bekleyen iş akışı ve gösterim yetkisidir; admin diğer şirketin cari/risk/maaş/IBAN detaylarını görmez.
+- Kullanıcının "belgeler gelene kadar yasal kayıtlardan saklansa" düşüncesi **hukuken gerekli işlemlerin kaydedilmesini engelleyen bir sistem davranışı olarak kabul edilemez**. Belge bekleyen ticari kayıtlar otomatik **KDV indirimi, tamamlanmış fatura veya kesin resmî belge** değildir; fakat muhasebe/tahakkuk/SGK/vergi kaydının gerekli olup olmadığı yalnız fatura varlığına göre değil gerçek ekonomik olay ve mevzuata göre belirlenir.
+- Belgelerin zamanında temini için uyarı/mutabakat; muhasebe uzmanının doğru belge/sınıflama ve gerekiyorsa düzeltme girişi; yetkisiz geçmişi silme/geriye dönük gizleme engeli; etkin özelliğin şirket için kapatılmasıyla mevcut olayların kaybolmaması. Elden ücret gerekiyorsa kanuni bordro/SGK yükümlülüğü ayrı uygulanır; gizli beyan dışı maaş hesabı oluşturma.
+
+**Kabul:** Tek hareket iki belge kategorisine bölünmez; alacak/borç + havale, nakit, kart, POS, çek, senet hepsinde aynı; iki ayrı fiziksel nakit kasası birbirini iki kez saymaz; çek/senet her biri tek portföyde ve tek tahsilatta; bir IBAN = bir gerçek bakiye; belge sonradan gelince tek ekonomik borç korunur; platform izin kapansa bile rapor/audit/düzeltme durur değil, erişimi korunan yasal geçmiş olarak kalır; RLS ve yetki testleri uygulanır.
+
+**Açık diğer karar:** Fiziksel olarak ayrı iki nakit kasasının şube/konum ve sorumlu bazında daha fazla kasa tanımına izin verilmesi, kullanıcı tarafından üst limit olarak belirlenmemiştir; "iki kasa" desteklenir, fakat tüm işletmeler zorunlu olarak yalnız iki kasa kullanacak denmemeli.
