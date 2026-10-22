@@ -1,7 +1,7 @@
-# Finans — Çok Şirketli Finans Yönetimi ve Muhasebe Entegrasyonu
+# Finans — Şirket Bazlı İzole Finans Yönetimi ve Muhasebe Entegrasyonu
 
 Tarih: 2026-10-23
-Durum: **Karar 44 onaylandı** — Bağımsız kullanım + mevcut muhasebe yazılımı entegrasyonu her şirketçe seçilebilir; ayrıntıdaki aktarım yönleri/bağlantı yöntemi ayrıca onay bekliyor.
+Durum: **Karar 44, 45, 46 ve 47 onaylandı** — Firma bazında bağımsız/entegre Finans ve veri aktarım yönü; farklı şirketlerin tüm Finans verileri ayrı; bankaya e-postayla gönderilebilecek ödeme listesi indirme. **Gündem 48**: belge eksikliği ve fiilî ödemeler/bordro uyuşmazlığı için denetlenebilir kayıt önerisi, kullanıcı değerlendirmesinde.
 Bağlı ana belge: [İş Uygulamaları Platformu Ana Şartnamesi](SAAS_4_UYGULAMA_KAPSAM.md).
 
 ## 1. Karar 44 — Finans iki çalışma biçimini de desteklemeli (C ONAYLANDI)
@@ -30,7 +30,7 @@ Bağlı ana belge: [İş Uygulamaları Platformu Ana Şartnamesi](SAAS_4_UYGULAM
 - Kaynak tarafından silinmiş/değiştirilmiş finans kaydı sessiz silinmez veya üstüne yazılmaz. Belge tarihçesi ve onaylı finans düzeltme kuralları korunur; kapanmış döneme dış senkronizasyon müdahalesi özel yetki/onay olmadan yapılamaz.
 - Uyuşmazlık statüleri: `eşleşti`, `yeni`, `çelişki`, `yetersiz bilgi`, `hatalı veri`, `onay bekliyor`, `iptal/ters kayıt`. Her aktarım işinde işlenen, eklenen, güncellenen, atlanan, çakışan/hatalı kayıt sayıları ve satır/sistem kaynakları loglanır.
 - F1 ↔ F2 geçişi için **kapanış ve açılış bakiye mutabakatı**, cari ve hesap kodu eşleştirme, önceki işlem kaynağı ve geçiş tarihi, test importu, yedek/geri alma ve yetkili onayı şarttır. İki gerçek kişinin kritik onay ve eşzamanlı gönderim ilkesi devam eder.
-- Bir şirkette **iki ayrı resmî tüzel kişilik**, birden fazla şube veya inşaat projesi/iş kolu varsa; bunlar tek bakiyede körlemesine birleştirilmez. Tüzel kişilik arası transfer ile aynı işletmenin departmanlar arası masraf aktarımı farklı finans kayıtlarıdır. Mevzuata uygun defter/entegre kaynağa göre ayrım yapılır.
+- **Karar 46 ile onaylandı:** Finans'ta farklı yasal şirketler/tenantlar ne fiilî ne muhasebe bakiyesinde **birleştirilmez**. Cari, banka, kasa, POS, finans ve personel kayıtları şirket başına ayrıdır. Aynı yasal şirketin şube/proje/masraf merkezi takibi ancak kendi içinde olabilir; ayrı yasal şirketlerin finansı tek bakiyeye veya konsolide yönetim raporuna alınmaz.
 
 ## 3. Modüller arası rol ve sorumluluk
 
@@ -86,3 +86,74 @@ Bağlı ana belge: [İş Uygulamaları Platformu Ana Şartnamesi](SAAS_4_UYGULAM
 
 **Henüz ayrı karara bağlanmadı:** Hangi muhasebe sağlayıcılarının ilk sürümde destekleneceği, her sağlayıcının bağlantı yöntemi (resmî teknik belgelere göre), hangi nesnelerin iki yönlü yazılabilir olduğu ve ilk canlı geçiş tarihi bu onaydan çıkmaz. Şirketi/tüzel kişilikleri ve cari kayıt birincil kaynağını doğru modelleyerek önce güvenli bağımsız Finans çekirdeği ve S1'e hazırlan.
 
+## 7. Karar 46 — Finans şirket başına tamamen ayrı; çoklu şirket finans toplamı yasak (2026-10-23, ONAYLANDI)
+
+**Kullanıcı kararı:** Farklı şirketlerin cari, banka, kasa, kredi kartı, fatura, borç/alacak, tahsilat/ödeme ve personel ücret bilgileri **asla çapraz şirket toplamlarına, ortak cari kartına, birleşik ödeme listesine veya konsolide finans paneline** girmez.
+
+- Şirket kullanıcı kimliği ortak sistemde bulunabilse bile her Finans API sorgusu, işlemi, import/export, PDF/Excel çıktısı, banka ödeme listesi ve raporu **tek yetkili şirket bağlamı** ile çalışır. Tenant ID istemci seçimine körlemesine güvenilerek belirlenmez. DB RLS/API kontrolü, audit ve tenant-scoped idempotency zorunludur.
+- Aynı kullanıcının birden çok şirkette yetkisi varsa açık şirket seçimi sonrası eski şirket verisi önbellekten, aramadan, indirilebilir dosya adlarından ve yetki durumundan sızmamalıdır. Şirket A hesabı şirket B alıcısına yanlışlıkla bağlanmamalıdır.
+- Platform Yönetimi yalnız şirket ve uygulama erişimi/izin yönetir; finans detaylarını sırf platform admin olduğu için göremez. Şirket içinde tanımlı masraf merkezi/şube/proje, farklı tüzel kişilikleri tek deftere birleştirme izni değildir.
+- Test: aynı kullanıcı iki şirkete üye; veri tabanı/API/CSV/PDF/arama/oturum cache ile şirketler arası bakiye ya da hesap açığa çıkmaz; şirketler arası konsolidasyon UI veya API mevcut değildir.
+
+## 8. Karar 47 — Bankaya e-posta ekinde iletilebilir ödeme listesi (2026-10-23, ÖZELLİK ONAYLANDI)
+
+**Kullanıcının kesin talebi:** Yetkili Finans kullanıcısı **Ödeme Listesi** oluşturabilsin ve bankaya e-posta ile gönderilecek **dosya** olarak indirebilsin. Bu, uygulamanın bankaya kendiliğinden mail atması, banka entegrasyonuyla EFT/havale yapması veya herhangi bir bankanın kendi yükleme dosyasını kesin kabul edeceğinin garantisi değildir.
+
+### Önerilen ekran ve işlem yaşam döngüsü
+
+- **Yeni Ödeme Listesi:** Yalnız aktif tek firma içinde, yetkili ödeme taleplerinden/cari borçlardan satır seçimi veya gerekli izni olan kullanıcı için manuel satır ekleme. Taslak ve onaylı kayıtlar ayrı. Liste tek **kaynak şirket banka hesabı**, tek ilgili para birimi veya bankanın şablonuna göre alt listeler ile oluşturulmalı.
+- **Liste başlığı:** şirkete ait unvan/banka, çıkış hesabı IBAN, ödeme işleme tarihi, oluşturucu, liste kodu, ödeme türü, toplam, satır adedi, para birimi ve seçilen banka şablonu. **Liste satırı:** alıcı cari/kanuni ad-unvan, IBAN/hesap numarası, banka/BIC/şube gerekirse, açıklama, ödeme tutarı, para birimi, kaynak belge/talep ID ve vade/ödenecek tarih. Başlıklar bankanın gerçek formatı doğrultusunda yapılandırılabilir.
+- **Taslak → Önizleme/Kontrol → Onay Bekliyor → Onaylandı → Dosyası Oluşturuldu/İndirildi → Bankaya İletildi (yalnız kullanıcı teyidi veya doğrulanmış kanal) → Banka Sonucu Bekleniyor → Ödendi/Reddedildi/İade/İptal.** Bankaya gönderildi veya dosya indirildi, **gerçekleşmiş ödeme** sayılmaz ve ikinci cari-banka muhasebe hareketi oluşturmaz.
+- **Önerilen indirme türleri:** okunaklı PDF ödeme talimatı/listesi ve Excel (XLSX)/CSV yapılandırılabilir toplu ödeme dosyası. PDF'ye antet/talimat/imza alanı banka tarafından istenirse eklenebilir. **Bankaya özel gerçek şablon** gelmeden dosyayı o bankanın sistemine yüklenecek otomatik teknik dosya diye etiketleme; alıcı adı/IBAN sütunları, tarih ve para biçimi, karakter kodlaması, para birimi, onay/imza şartları bankanın belgelerine göre düzenlenmeli. Bankaya e-posta adresi veya banka hesap bilgisi uydurulmamalı.
+- **Güvenlik:** IBAN TR formatı ve mod97 teknik doğrulaması; bunun alıcı adının bankaca doğrulandığı anlamına gelmemesi; tutar/IBAN/unvan değişikliği sonrasında yeniden yönetici onayı; onaylı liste sürümleri/silme yasağı, RBAC, limit ve gerekli iki kişi onayı; kişisel/ücret bilgisi ve hesap numaralarının maskeleme/erişim denetimi. Link ve dosya erişimi şirket bazlı ve kayıtlı; CSV/Excel formula injection koruması, Türkçe karakter, farklı para birimleri ve ondalık biçimler test edilmeli.
+- **Çift ödeme engeli:** Bir faturaya bağlı aynı ödeme talebinin tekrar satıra konması, listelerin kopyalanması, başka banka dosyasının gönderilmesi ve banka sonucunun iki kez import edilmesi idempotent/eşleme/uyarı kontrolleriyle izlenir. Mükerrer/eksik dayanak veya beklenen belge için onay politikasını bypass etme. Ödeme listesi oluşturulması mal/hizmet alışının belge ihtiyacını ortadan kaldırmaz.
+- **Kontrol:** Gidiş/banka kabulü/ödeme sonucu ve Finans defterindeki gerçek hareketi ayrı sakla; bankadan dönen gerçekleşen ödeme referansı mutabakatı bir kez yansıt. Aynı firmadaki başka banka hesabına virman ve üçüncü kişiye havale ayrımı doğru tutulur.
+- **Testler:** birden çok alıcı, aynı alıcı iki ayrı faturaya ödeme, tek belgenin listeler arasında çift tahsis riski, geçersiz IBAN, liste değiştirilince onay sıfırlanması, PDF/XLSX satır ve toplam eşitliği, CSV güvenliği, şirket dışı erişim reddi, bankaya gönderildi ≠ ödendi.
+
+**Açık tasarım ayrıntıları:** Kullanıcının bankalardan gelen örnek ödeme talimat formatları veya kurumun zorunlu şablonu henüz sunulmadı; kesin banka formatı, çıktı türünün önceliği, e-posta başlığı/talimat metni ayrıca netleştirilebilir.
+
+## 9. Gündem 48 — Belge bekleyen alım, fiilî kasa/banka hareketi ve ücret/bordro farkını görünür takip (2026-10-23, TASARIM ÖNERİSİ / ONAY BEKLİYOR)
+
+### İş ihtiyacı ve güvenli sınır
+
+Kullanıcı aynı cari/tedarikçi için **hem faturası olan hem faturası olmayan işlemleri**, aynı şirket içindeki fiilî nakit hareketleri ile yasal/muhasebe kayıtlarını, personelde resmî bordro ve gerçekleşen toplam ücret veya nakit ödemeleri ayrı takip etmeyi sordu. Tasarım **kayıt eksikliği ve farkları görünür kılan mutabakat/uyumluluk** çözümü önerebilir; bir şirketin vergi ve ücret primlerini gizlemek üzere paralel "gizli/gayriresmi muhasebe defteri" veya çalışan maaşının vergi/SGK dışında tutulmasına yarayan fonksiyon kurulmamalıdır.
+
+### Önerilen üçlü ayrım (bir işlem üzerinde üç ayrı eksen)
+
+1. **Ekonomik olay / nakit gerçekliği:** sipariş/alış teslim edildi mi, ödeme planlandı mı, hangi kanal kullanıldı (banka/havale/kasa-nakit/POS), **gerçek para çıkışı veya girişi kesinleşti mi**? Fiziksel nakit sayımı ile banka ekstreleri ayrı mutabakat edilir. Nakit kanalı tek başına 'kayıt dışı' tanımı değildir.
+2. **Belge durumu:** geçerli belge mevcut; belge talep edildi / bekleniyor; eksik / uyuşmazlık; geçersiz; düzeltildi. Belgesiz hareket otomatik olarak resmî satış/alış faturası veya KDV indirimi yaratmaz.
+3. **Muhasebe/İK mutabakat durumu:** usulüne uygun kaydedilmiş; doğru belge/tahakkuk veya sınıflandırma bekliyor; bordro kayıt farkı; muhasebe düzeltmesi gerekli; tamamlandı. Muhasebe/SGK/vergi işlemi yetkili uzman tarafından çözülür; sistem gizli üçüncü kayıt kümesine yönlendirmez.
+
+### Aynı cari için iki tür alış — örnek
+
+- A tedarikçisinden bir **belgeli 60.000 TL alış** ve **henüz faturası gelmemiş 20.000 TL teslim/borç bildirimi** varsa: tek cari ID, belgeli muhasebe durumu 60.000; belge bekleyen inceleme havuzu 20.000. **Yönetim amaçlı takip edilen toplam 80.000** ancak varsayılan resmî muhasebe/cari bakiye diye sunulamaz. Belge gelince 20.000 TL'lik bekleyen kayıt ilgili fatura veya gerekli yasal belgeye **bağlanır**, yeniden ikinci alacak/borç yaratılmaz. Daha önce gerçekleşmiş ödeme varsa aynı olayla mahsup/mutabakat edilir.
+- Ayrı belge olayının gerçek tarih/belge tipi/vergi işlemleri ilgili firma muhasebe uzmanı tarafından belirlenir. Yasal dayanak yoksa sahte fatura, tarihe geriye dönük gizli düzeltme, belge yokluğunu görünmez yapma veya KDV indirimi işlemi yapılmaz.
+- Tek cari kartında **'muhasebece doğrulanmış bakiye', 'belge bekleyen işlem tutarı', 'mutabakat bekleyen fiilî hareket'** alanları önerilir. Toplam takip edilen yükümlülük ayrı ve belirgin **operasyonel/öngörülen** nitelikte olabilir; aynı ödenmiş satırın borca ikinci kez katılması engellenir.
+
+### Kasa / banka
+
+- Kasa sayımı (fiziksel TL) ve bankanın gerçek ekstresi esas para gerçekliği katmanıdır. Deftere işlenmemiş 15.000 TL nakit ödeme gerçekleşmişse fiziksel kasa 15.000 TL azalır; ilgili muhasebe belge/kayıt eşleşmesi bulunmadığında **mutabakat farkı** oluşur. Bu fark kasadan veya rapordan gizlenmez.
+- **Açık kasa eksiği, belge eksikliği, geçmiş farka yetkisiz geriye dönük düzeltme, tedarikçi IBAN'ı değişimi** yetkili Finans inceleme kuyruğu ve varsa ek yönetici onayına gider. Belgesiz nakit işlemi hukuka aykırı bir 'kara kasa' gibi normalleştirilmez.
+
+### İK / ücret
+
+- Hak edilmiş ücret ve iş sözleşmesi, bordro tahakkuku, bankadan/net nakit yapılmış **gerçek ödeme kanalı** ve SGK/vergi/bildirim eşlemesi yetkili İK sistemi üzerinden ilişkilendirilir. Banka/nakit ayrımı, ücretin kanunî bildirim statüsünü belirlemez.
+- Örnek: çalışana bordroya göre 40.000 TL görünürken ayrıca 10.000 TL nakit ödenmişse sistem **10.000 TL bordro–gerçek ödeme uyuşmazlığını** gösterir; İK/finans uzmanı bunun hukuki mahiyetini değerlendirip doğru bordro/tahakkuk/prim/vergi düzeltmesini yapmalıdır. **10.000 TL'lik beyan dışı tutarı gizli 'gayriresmî maaş' defterinde ücret mevzuatından kaçıran yapı oluşturulmaz.** Ücret net/brüt ve bordro ilişkisi rastgele denklenmez.
+- Çalışanın tüm maaş detayları Finans'ın ödeme listesi ekranı, şirket dışı kullanıcı, satış personeli, diğer şirket veya platform admin için otomatik görünür olmaz. Bankaya maaş dosyası hazırlanacaksa ayrı gizlilik/onay kapsamı tanımlanır.
+
+### Veri modeli önerisi
+
+- `economic_event`: tenant_id, source ID, cari/personel bağlantısı, olay türü, tahmini/gerçekleşmiş tutar, vade/ödeme kanalı ve olay tarihi.
+- `document_verification`: belge türü, referans, doğrulama statüsü, teslim tarihi, ilişkilendirilmiş olay, doğrulayan finans/muhasebe yetkilisi.
+- `accounting_reconciliation`: şirket, olay ID, entegrasyon/muhasebe kaynak kimliği, muhasebeleştirme/ön tahakkuk/değerlendirme durumu, fark, açıklama, kapanış ve denetim.
+- `payroll_reconciliation`: çalışan ve bordro dönemi, hak edilmiş/brüt/net ve fiilî ödeme bileşenleri yetkili erişimle, mevzuat uzmanı sonucu ve düzeltme referansı.
+- `movement_reference`: tekil ödeme ve fatura kaynak IDs; gelen belgeyi bekleyen borca ve banka ödeme sonucuna bir kez bağlayan idempotent kayıt ilişkisi.
+- UI'ya **'resmî para / gayriresmî para'** adında ikinci gizli banka/kasa defteri eklenmez. Bunun yerine **Belgesi Tamam, Belge Bekliyor, Mutabakat Gerekiyor, Bordro Farkı** filtreleri. Şirket karşılaştırma/total ekranı yok (Karar 46).
+
+### Mutabakat ve kabul
+
+- Eksik belgelerin yasal olarak tamamlattırılması, gerekli defter/beyan/prim işlemleri yalnız yetkili muhasebe/İK değerlendirmesiyle. Beyan edilmesi gereken tutarlar daha sonra da gider/ücret kaydına usulüne uygun yansıtılır; sistem dışı bırakılamaz. Bu yazılım bir vergi/SGK kaçırma otomasyonuna dönüşmeyecek.
+- Faturası henüz gelmeyen 20.000 TL'nin aynı faturayla bir kez eşlenmesi; gerçekleşen 15.000 TL kasa çıkışının doğru fiilî kasa durumu ve hesap mutabakatı göstermesi; bordro 40.000 ile fiilî ek 10.000 TL arasındaki farkın yalnız yetkiliye görünmesi ve düzeltme bağlantısı; şirket izolasyonu, belge/borç mükerrerliği, vergi-KDV/salary payroll ifşası ve yanlış ödeme listesine gönderim kontrolü testleri.
+- Canlı prod veya gerçek şirket verisi işlenmez; karar sonrası önce veri modeli + bağımsız staging ve testli geçiş planı.
+
+**Kullanıcının teyidi beklenecek karar:** Aynı caride iki ayrı satır ve özet: **muhasebe bakiyesi / belge bekleyen işlem / mutabakat farkı** olarak mı gösterilsin? Belge bekleyen ile faturası usulüne uygun kayıt edilmiş tutarın birleştirilmesi yalnız tanımlı yönetim özetinde, 'resmî muhasebe bakiyesi' etiketine dönüşmeden yapılabilir.
