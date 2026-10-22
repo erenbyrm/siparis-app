@@ -146,3 +146,11 @@ Her PR/commit için değişikliklerin özeti, dokunulan alanlar, dört ayrı uyg
 - Eski tek depolu sipariş ve stok verisi geriye dönük uyumlu biçimde **varsayılan Merkez Depo** kapsamına taşınabilmeli; mevcut kullanıcılar/siparişler ve üretim-depo-sevkiyat akışı kaybolmamalı.
 - **Henüz kararlaştırılmadı:** Siparişin depolara miktar dağıtımı sistemce otomatik mi önerilecek, yetkili kişi mi yapacak? Bu açık karar sonraki görüşmede netleştirilecektir.
 
+## 14. Karar 22 — Depo dağılımı önerisi (2026-10-22, GEÇİCİ TERCİH — tekrar değerlendirilebilir)
+
+- Kullanıcı **B seçeneğini şimdilik tercih etti**; bu karar nihai/kesin değil.
+- Sistem, onaylı siparişin ürünlerini ve adetlerini depoların **kullanılabilir (fiziksel − ayrılmış)** stoklarına göre birden fazla depoya dağıtmayı **önerir**.
+- Öneri otomatik olarak kesin rezervasyon veya sevkiyat oluşturmaz. Yetkili kullanıcı/müdür öneriyi inceleyip değiştirip onaylayabilir; mevcut şirket/depo/işlem yetkileri ve gerekirse onay zinciri uygulanır.
+- Depo bazında stok ve diğer siparişlere ayrılmış miktarlar eşzamanlı kontrol edilir; olumsuz stok/çifte rezervasyon yapılamaz.
+- Ön siparişin tek sipariş numarası ve çoklu sevkiyat/kısmi teslimat ilişkileri korunur (bkz. Karar 21).
+- **Açık tasarım sorusu:** Önerinin öncelik algoritması (en yakın depo, stok miktarı, en az sayıda sevkiyat, maliyet, teslim tarihi gibi) daha sonra kullanıcıyla belirlenecek. Henüz belirlenmemiş kriteri otomatik kesin kabul etme.
