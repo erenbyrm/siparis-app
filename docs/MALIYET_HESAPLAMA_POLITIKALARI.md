@@ -171,4 +171,39 @@ Giderin sınıflandırması ve hangi ürün/hat/gider merkezine ait olduğu, **h
 
 **Kullanıcı tarafından kesin onaylandı:** Toplu iskonto revizyonunda aynı ürünün net satış fiyatı, kapsamdaki müşteriler için aynı yüzdesel maliyet/referans artışı hedefiyle güncellenir. Liste fiyatları sabit, müşteri nakit/vadeli oranları ayrı, yönetici onayı zorunlu; geçerli eski sipariş ve teklifler korunur.
 
-**Sıradaki açık veri modeli kararı:** Mevcut müşteri nakit/vadeli oranı firma genelinde **üründen bağımsız tek oran** mı olacak; **ürün veya ürün grubu bazlı iskonto oranları** da desteklenecek mi? Örneğin SCC22 maliyeti %5, SCC66 maliyeti %15 artarsa tek müşteri iskontosunu değiştirerek aynı anda iki üründe ayrı ayrı aynı yüzdesel net artış gerçekleştirmek matematiksel olarak mümkün değildir. Tek oran yaklaşımı seçilirse toplu müşteri oranı için ayrıca ağırlıklandırma veya ürün özel ek iskonto/fiyatlama kuralı gerekir. Karar kullanıcıdan alınmadan veri modeli varsayılmayacak.
+**Karar 39 ile veri modeli yönü netleşti:** İskonto grubu tekil ürün değil, firmanın yönetebildiği **üst/alt kategori ağacı** olacak. Aynı kategorideki farklı ürünlerin maliyet artış oranlarının tek kategori iskontosuyla birebir eşleştirilememesi sebebiyle kategori genel değişim hesabı ayrıca seçilmeli; ayrıntılar Karar 39'da.
+
+## 12. Karar 39 — Kategori ağacı ve müşteri kategori bazlı nakit/vadeli iskontoları (2026-10-22, ÜST/ALT KATEGORİ YAPISI ONAYLANDI)
+
+**Kullanıcı tek tek stok kodlarına özgü genel iskonto yönetimi yerine çok kademeli ürün kategorilerini tercih etti.** Yukarıdaki Karar 38 fiyatlandırma kurallarına yeni kategori modeli eklenir. Örnek resmi olmayan ağaç:
+```text
+Alüminyum Merdivenler
+  Alüminyum Çift Çıkışlı Merdivenler
+  [Daha başka alüminyum merdiven alt kategorileri]
+Profil Merdivenler
+  Çift Çıkışlı Profil Merdivenler
+  Tek Çıkışlı Profil Merdivenler
+İskeleler
+İthal Merdivenler
+```
+Kategori adları / sırası / grup yerleşimi kullanıcı tarafından yönetilecek, **yeni seviye ve dal eklenebilecek**; yukarıdaki ağacın birebir kesin ürün master-data olduğu iddia edilmeyecek.
+
+### Önerilen veri modeli ve iskonto çözümleme
+
+- `product_categories`: tenant/company ID, category ID, parent ID, ad/kod, sıralama, aktiflik, oluşturulma/taşınma geçmişi, isteğe bağlı bölüm/üst kategori görüntüleme. Döngüsel `parent_id` engellenir; çok katmanlı dal sorguları yetki/tenant izolasyonuyla yapılır.
+- `products` mevcut stok kodları ve fiyat/kapasite bilgisi bozulmadan bir **birincil aktif kategori** ve geçmişte geçerli kategori sürümüyle eşlenir. Çoklu etiket (arayüz araması) ileride olabilir ama ticari iskonto çakışmasına yol açabilecek iki ayrı birincil dal ataması otomatik yapılmaz.
+- `customer_discount_policies`: tenant, customer, category (genel default için null), **payment_type = cash / term**, iskonto yüzdesi, vade/özel sözleşme varsa referans, geçerlilik başlangıç/bitiş, yetki/onay ve kaynak politika sürümü. Her müşteri için nakit ve vadeli oranlar ayrıdır. Kategori tek başına bütün müşterilere tek zorunlu iskonto dayatmaz.
+- **En yakın alt kategori kuralı (öneri):** Ürünün bağlı olduğu aktif dalın *en yakın özel iskonto tanımı* kazanır; çocukta nakit oranı varsa o kullanılır, çocukta vadeli oran yoksa en yakın üstteki vadeli oran miras alınır. Aynı `customer+category+payment_type` için etkin zaman aralığında çakışan iki kayıt yasaklanır. Kategori oranları üst üste eklenmez.
+- Müşteri genel iskonto kaydı yoksa eksik değer rastgele %0 sayılmamalı: açık şirket varsayılan fiyat politikası/uyarı; varsa sözleşmeye göre. Özel sözleşme veya sipariş bazlı söz verilmiş fiyatların öncelik sırası ayrıca kayda alınır.
+- İskonto hesaplaması net liste fiyatını sabit tutar ve doğru KDV/iskonto/vade sırasına göre yapılır. Her satırda uygulanan `category_id`, `discount_policy_id`, nakit/vadeli türü, sürüm ve tarih snapshot saklanır. Eski sipariş/fatura fiyatları kategori taşınmasıyla değişmez.
+- Kategori taşıma/yeniden adlandırma önce yöneticiye **etkilenecek müşteriler ve iskonto politikalarını** simüle eder; onaysız otomatik yeniden fiyatlama veya başka müşterinin sözleşmesini genişletme olmaz. Yetkisiz satış personeli şirketin tüm müşterilerini veya gizli satın alma fiyatlarını göremez.
+
+### Kategori bazlı maliyet kaynaklı toplu iskonto revizyonu
+
+- Karar 38 doğrultusunda **aynı ürün ve ödeme biçimi için müşterilerin net fiyatı aynı oranda artırılabilir**. Yeni yapı artık iskonto parametresini ürün yerine müşteri-kategori-alt kategori üzerinden yönetir; tek kategori iskontosu aynı kategorinin bütün ürünlerine aynı çarpanla uygulanır.
+- **Matematik sınırlaması (mutlaka kod/test koşulu):** A kategorisinde X maliyet artışı %5, Y maliyet artışı %15 ise iki ürüne ayrı ayrı +%5 ve +%15 net fiyat artışı **tek bir müşteri/kategori iskontosuyla aynı anda sağlanamaz**. Uygulama sessiz ürün bazlı override yaratmaz; yöneticiye ilgili ürünlerin ayrı r değerleri, simüle edilen ortak kategori artışı ve ürün/kategori bazlı brüt marj sapmalarını gösterir.
+- **Açık kategori endeksi seçenekleri, onay bekliyor:** (K1) önceki 3/6 ay satış cirosu veya üretim miktarına göre uygun biçimde ağırlıklı oran; (K2) kategori içindeki en yüksek maliyet artışını referans alarak koruyucu oran; (K3) yöneticinin elle belirleyeceği kategori genel net fiyat artışı. Farklı ürün birimlerini adet/kilo olarak doğrudan ağırlıklandırma; özel sözleşme ile liste fiyatı tavanı, nakit/vadeli sapma ve müşteri eksi/negatif iskonto senaryolarını uyar.
+- **Önizleme/onay:** Yönetici etkilenen ana/alt kategorileri seçer. Ekran ana kategoriye bağlı altların hepsini seçme/seçmeme ayrımını açık gösterir. Müşteri nakit/vadeli eski-yeni iskonto, baz ürün net fiyatları, tutar ve marj değişimi, istisnalar, liste fiyatı sınırı ve düşük marj riski gösterilir. Yalnız onaylanan geçerli kategori iskonto sürümleri yeni teklif/siparişlerde yürürlüğe girer; geçmiş siparişlerin liste/net fiyatı kesinlikle değişmez.
+- **Testler:** üst kategori için varsayılan iskonto, alt kategori override ve ayrı nakit/vadeli miras; 3+ seviyeli kategori; çakışma/döngü; müşteri A/B oran ayrımı; yalnız bir kategori değişince diğer kategori etkilenmez; kategoride farklı maliyet artışlarında doğru uyarı; kategori taşıma etki analizi; yönetici onayı olmadan toplu iskonto yayınlanamaz; negatif iskonto ve net>liste fiyatı; özel sözleşme; eski sipariş snapshot ve tenant/RBAC sızıntısı testleri.
+
+**Açık tasarım onayı:** Alt kategoriye özel oran yazılmamışsa üst kategori oranının otomatik miras alınması ve alt kategori özel oranı girilince yalnız o alt kategoride geçerli olması yaklaşımı kullanıcıdan teyit edilecek. **Açık iş kararı:** Kategori içi farklı maliyet zamlarını hangi ortak yüzdeyle yansıtalım (K1/K2/K3)? Kullanıcı tercihi bekleniyor.
