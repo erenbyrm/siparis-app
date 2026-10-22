@@ -156,4 +156,27 @@ Kullanıcı aynı cari/tedarikçi için **hem faturası olan hem faturası olmay
 - Faturası henüz gelmeyen 20.000 TL'nin aynı faturayla bir kez eşlenmesi; gerçekleşen 15.000 TL kasa çıkışının doğru fiilî kasa durumu ve hesap mutabakatı göstermesi; bordro 40.000 ile fiilî ek 10.000 TL arasındaki farkın yalnız yetkiliye görünmesi ve düzeltme bağlantısı; şirket izolasyonu, belge/borç mükerrerliği, vergi-KDV/salary payroll ifşası ve yanlış ödeme listesine gönderim kontrolü testleri.
 - Canlı prod veya gerçek şirket verisi işlenmez; karar sonrası önce veri modeli + bağımsız staging ve testli geçiş planı.
 
-**Kullanıcının teyidi beklenecek karar:** Aynı caride iki ayrı satır ve özet: **muhasebe bakiyesi / belge bekleyen işlem / mutabakat farkı** olarak mı gösterilsin? Belge bekleyen ile faturası usulüne uygun kayıt edilmiş tutarın birleştirilmesi yalnız tanımlı yönetim özetinde, 'resmî muhasebe bakiyesi' etiketine dönüşmeden yapılabilir.
+**Karar 48 ve 49 ile onaylandı:** Her cari Belgeli ve Belgesiz (Belge Bekleyen) alt bakiyelerle takip edilir, ödemenin hangi açık türden düşüleceği seçilir, Platform Yönetimi admini şirket özelliğini açıp kapatır. Belge beklerken KDV ayrıştırılmaz, KDV: Belge Bekleniyor olarak gösterilir. Ayrıntılar aşağıdadır.
+
+
+## 10. Karar 48 — Cari bazında Belgeli/Belgesiz bakiye ve mahsup seçimi (2026-10-23, ONAYLANDI)
+
+**Kullanıcı şartı:** Tek cari hesabında birbirinden ayrı **Belgeli** ve **Belgesiz (Belge Bekleyen)** açık bakiye ve hareket dökümü görünür. Bir tahsilat/ödeme kayıt edilirken yetkili kullanıcının **hangi bakiye türünden düşüleceğini** seçmesi zorunludur; uygun açık borç/olay kimliği ve tutar doğrulanır. Bu işlem başka bir cari veya şirket verisine mahsup yapılamaz.
+
+- Veri önerisi: cari tekil kimlik; her ekonomik olayın tenant, cari, tutar, para birimi, belge durumu ve kaynak kimliği; ödeme için tek gerçek hareket kimliği ve bu harekete bağlı mahsup satırları (hedef açık borç kimliği, kategori, tutar, tarih/versiyon). Bir kez gönderilen veya banka sonucu doğrulanan ödeme, aynı belgeye ikinci kez mahsup yaratamaz. Nakit/banka ödeme kanalı **belgeli/belgesiz durumundan farklı bir alandır**.
+- Belgeli bakiye muhasebece teyitli belgeye bağlı işlemleri; belgesiz bakiye belgesi beklenen hareketlerin yönetim amaçlı açık tutarını gösterir. Kanunen tahakkuku gereken işlemi belgede gecikme var diye zorunlu defter/beyan dışında tutmaya olanak verme. Yetkili uzmanların belge ve vergi farklarını düzeltme kuyruğu olmalı.
+- Örnek: cari Belgeli 60.000 TL, Belgesiz 20.000 TL. Belgesiz borca 10.000 TL gerçek ödeme yapılırsa Belgesiz 10.000 TL açık kalır, Belgeli 60.000 TL. Sonradan 20.000 TL toplam tutarlı doğrulanmış fatura geldiğinde önceki 10.000 TL ödeme korunur; kalan 10.000 TL açık tutar Belgeli tarafına geçer. Belgeli açık bakiye 70.000, Belgesiz açık bakiye 0 olur; hiçbir ikinci borç/ödeme gerçekleşmez. Fatura farklı tutardaysa otomatik çifte kayıt yerine fark kontrolü.
+- Firma bazında **Platform Yönetimi admini tarafından açılıp kapatılan izin bayrağı** (ör. finance_document_bucket_tracking_enabled). Admin bayrak durumunu, tarihi ve gerekçeyi yönetir ama şirketin banka/cari/maaş ayrıntılarını göremez. Kapalı firmada iki ayrı görünüm özelliği sunulmaz; varsa geçmiş eksik belgelere ilişkin düzeltme iş akışı ve kayıtlar silinemez.
+- Cari toplamı, aynı ekonomik olayı iki defa saymayan açıklamalı operasyonel gösterimdir; vergiye esas resmî cari bakiyesi başlığında iki tutarı mutlak doğru olarak birleştirme. Yetki, tenant/RLS, export, audit, nakit mutabakatı ve bankaya gönderilebilir ödeme listesi kontrolleri zorunlu.
+- Test: doğru alt bakiye seçimi, yanlış tutar reddi, eşzamanlı iki ödeme, belge gelince mevcut borcu taşıma, kısmi ödeme, düzeltilen belge, yanlış şirket/cari, bayrak açık-kapalı, admin finans içeriğini göremez.
+
+## 11. Karar 49 — Belge bekleyen işlemde KDV henüz gösterilmeyecek (2026-10-23, ONAYLANDI)
+
+**Kullanıcı şartı:** Faturası/fişi veya geçerli vergi belgesi gelene kadar belgesiz geçici işlem **KDV ayrıştırılmadan** görünecek. Vergi alanı **KDV: Belge Bekleniyor** olmalı; **KDV %0 veya istisna** sayılamaz.
+
+- Belge bekleyen harekette bir adet takip tutarı vardır; bu tutarın matrah ya da KDV dahil brüt olduğu henüz belgeden kesinleşmiş sayılmaz. Teknikte vat_rate=null, vat_amount=null, vat_status=awaiting_document; 0.00 KDV'den farklı durumdur. Belge gelmeden varsayımsal oranla matrah/KDV çıkarmak, indirim raporu veya fatura oluşturmak yok.
+- Belge geldiğinde yetkili muhasebe/finans doğrulamasıyla belge türü, gerçek brüt, matrah, vergi oranı/tutarı ve hukuken indirim/düşüm uygunluğu belirlenir. Her fişin indirilebilir KDV hakkı sağladığı varsayılmaz. Geçici 20.000 TL takibi, gerçek belgede 20.000 TL toplam olarak görünüyorsa 20.000 TL üzerine ikinci defa KDV eklenmez.
+- Gerçek banka/kasa ödemeleri ve önceki mahsup kayıtları, belge türü güncellenirken bozulmaz; sadece doğrulanmış fark yetkili düzeltmeyle işlenir. Belge bekleyen statüsü vergi/SGK/bordro yükümlülüklerini gizleme veya süresiz erteleme aracı olarak kullanılamaz.
+- Test: KDV boş, belge bekleniyor etiketli, KDV %0/istisna raporlarında yer almıyor, belge bazlı doğru oran, tek borç tek ödeme, dönem/vergi mutabakatı ve tenant ayrımı.
+
+Geliştirme yalnız tasarım aşamasında: canlı sistem veya gerçek muhasebe kayıtları etkilenmedi.
