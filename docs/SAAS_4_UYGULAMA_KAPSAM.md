@@ -357,4 +357,22 @@ Siparişin hazır kısmının erken/kısmi ya da topluca sevkiyatına müşteri 
 - **Rapor:** Ürün bazında "önceki ay gerçek maliyet", "güncel alüminyum kg bedeli", "alüminyum fiyat artış etkisi", "fiyatlandırmaya esas koruyucu maliyet", "bu ay tahmini fiili maliyet", "ay kapanınca gerçek maliyet", "satış fiyatı" ayrı gösterilsin. Önceki satış anındaki referans ve fiyat tarihsel olarak korunur.
 - **Üretim kapasitesiyle ortak gider dağıtımı** (Karar 34) gerçek aylık maliyette uygulanmaya devam eder; fiyatlandırma koruması bu hesapları bozmaz. "Pratik/Kontrollü/Ayrıntılı" şirket profilleriyle sade ekran veya detaylı maliyet kırılımı seçilebilir.
 
-**Bir sonraki karar:** Koruyucu referansın **alüminyum fiyatı aşağı düştüğünde asla otomatik düşmemesi** şirketin kullanabileceği bir fiyatlandırma ayarı mı olsun (önerilen), yoksa bütün şirketlere zorunlu mu dayatılsın? Kullanıcı yanıtı bekleniyor.
+**Karar 35 ile çözüldü:** Koruyucu referansın aşağı yönlü alüminyum fiyat hareketinde otomatik düşmemesi **şirket bazında seçilebilir**, tüm şirketlere dayatılmaz. Detaylı yöntemler yeni [Maliyet Hesaplama Politikaları](MALIYET_HESAPLAMA_POLITIKALARI.md) belgesinde tanımlıdır.
+
+## 29. Karar 35 — Şirket bazında farklı maliyet hesaplama politikaları (2026-10-22, ONAYLANDI)
+
+**Kesin kullanıcı kararı:** Alüminyum kg fiyatı düşüşünü satışa esas koruyucu maliyete otomatik yansıtmama seçeneği **tüm şirketlere zorunlu DEĞİLDİR**. Kullanıcı ayrıca Karar 33–34, ay içi gider eksikliği ve önceki ay referans maliyeti yaklaşımını ayrıntılandırarak şirketlere **birbirinden farklı maliyet yöntemleri seçtirmemizi** istedi. Ürün/firma/finans raporu geçmişini ve 4 ayrı uygulamanın ayrımını bozmadan yapılacak.
+
+**Codex'in okuyacağı ayrıntılı teknik tasarım:** [Maliyet Hesaplama Politikaları — Seçenekler ve Güvenlik](MALIYET_HESAPLAMA_POLITIKALARI.md). Bu belgedeki P/G/T yöntem kodları, hesap örnekleri, koruyucu fiyat tabanı, ay devri, kapasite ve gider havuzu ayrımı, veri güvenilirliği, yetkiler, aşamalı yol haritası ve test koşulları ana şartnamenin parçasıdır.
+
+### Şirketin birbirinden bağımsız olarak seçebileceği üç eksen
+
+1. **Satış fiyatına esas referans maliyet (P):** P1 önceki kapalı ay + yalnız yukarı yönlü alüminyum fiyat koruması (**kullanıcı tarafından önerilen yöntem; şirket seçebilir**); P2 iki yönlü güncel hammadde güncellemesi; P3 güncel reçete ve tahmini işçilik/üretim gideri; P4 3/6 aylık ağırlıklı ortalama; P5 bütçeli/standart maliyet; P6 yetkili manuel ve süreli referans.
+2. **Genel üretim gideri dağıtımı (G):** G1 ürün/hat günlük üretim kapasitesiyle eşdeğer hat günü (**Karar 34, önerilen**); G2 gerçek makine saati; G3 standart saat; G4 fiili işçilik saati; G5 gider türüyle ilgili alan/sayaç/personel gibi fiziksel anahtar; G6 yalnız benzer/homojen ürünlerde pratik adet/ağırlık/katsayı. Bu, gelir tablosuna istenilen giderin rastgele üretim maliyeti yazılması anlamına gelmez; doğru sınıflama ve normal kapasite ilkeleri korunur.
+3. **Ay içi beklenen maliyet yöntemi (T):** T1 önceki kapanmış dönem ve bilinen zamlar; T2 aylık bütçe/tahakkuk planı, gerçek kayıt geldiğinde yerini alması; T3 ağırlıklı dönem ortalaması; T4 standart maliyet ve fiili sapma karşılaştırması.
+
+**Vazgeçilmez ayrım:** P politikası **ticari teklif/fiyatlandırma içindir**; muhasebe/fiili maliyet, mali tablolarda geçerli değerleme ve kâr raporlarını manipüle edemez. İndirim, fiyat yönetimi, maaş gizliliği, firmalar arası tenant izolasyonu, rol/onay ve geçmiş işlem sürüm güvenliği devam eder. Her maliyet sürümü şirket, tarih ve yöntemiyle izlenir; eski onaylı sipariş/fatura sonradan değiştirilmez.
+
+**Önerilen başlangıç kombinasyonu (henüz özel olarak seçilmiş şirket ayarı değildir):** Önceki ay esaslı koruyucu P1 + kapasite tabanlı G1 + bütçeli gider T2. Her firma kurulumda kendi yöntemini seçebilir, sonra yetkili onayıyla değiştirebilir. Daha karmaşık yöntemleri Faz 1'de zorla kodlama: önce dört ayrı app mimarisi ve veri güvenliği, sonra hesaplayıcılar/aşamalı testler.
+
+**Sonraki açık karar:** P1 koruyucu hesaplamada kullanılacak **alüminyum kilogram fiyatının kaynak yöntemi** (son gerçek alış mı, güncel tedarikçi teklif listesi mi, yönetici tarafından girilen onaylı referans fiyat mı?) kullanıcıyla netleştirilecek.
