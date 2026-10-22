@@ -99,6 +99,28 @@ Giderin sınıflandırması ve hangi ürün/hat/gider merkezine ait olduğu, **h
 ## 8. Henüz açıklığa kavuşturulacak ayarlar
 
 - SÖZBİR şirketinin ilk açılış profili önerisi: **P1 (Önceki Ay + yalnız alüminyum yukarı yönlü güncelleme), G1 (ürün kapasitesi), T2 (bütçe+tahakkuk)**. Kullanıcının P1/G1 görüşleri mevcut; T2 varsayılanı henüz ayrıca onaylanmadı.
-- P1 alüminyum fiyat kaynağı (son onaylı satın alma mı, tedarikçi teklif listesi mi, yöneticinin girdiği kg fiyatı mı?); güncelleme sıklığı.
+- **Karar 36 ile netleşti:** Üç kg fiyatı kaynağı da firma bazında seçilebilir ve kayıt geçmişiyle desteklenir. Güncellemenin otomatik bildirim mi yoksa yönetici onayıyla mı etkin olacağı ve kaynak öncelik/fallback ayarları sonraki görüşmede kesinleştirilecek.
 - Şirket/ürün/grup seviyesinde fiyatlandırma referansının manuel düşürülmesi için hangi yönetici onayı gerektiği.
 - Normal kapasite ve atıl saat dağıtımı, muhasebe ve finansal raporlama standardı danışman onayı.
+
+## 9. Karar 36 — Üç alternatif alüminyum kilogram fiyat kaynağı (2026-10-22, ONAYLANDI)
+
+**Kullanıcı onayı:** Her şirket, satış referans maliyetinde kullanılacak alüminyumun **kg birim fiyatı için üç farklı kaynağı** destekleyen sistemi kullanabilecek. Bu üç kaynak firmanın tercihine göre yapılandırılacak; bütün şirketlere tek bir fiyat kaynağı zorlanmayacak. Karar 35'in P1/P2/P3 gibi satış fiyatlandırma yaklaşımlarına veri sağlayan bu seçim, **gerçek muhasebe stok değerleme fiyatını değiştirmez**.
+
+| Kaynak kodu | Şirketin seçebileceği yöntem | Doğrulama ve kısıt |
+| --- | --- | --- |
+| A1 | **Son geçerli alış faturası** | Finans'ta kaydedilmiş ve yetkili doğrulaması yapılmış gerçek tedarik alış belgesinden aynı profil/alaşım/kalite ve karşılaştırılabilir birimde **net kg alış bedeli** türetilir. İade, iskonto, fatura düzeltmesi, ölçü birimi, para birimi, belge tarihi, satıcı ve (uygunsa) ek gider etkileri izlenir. Satın alma tarihi eskiyse görünür uyarı verilir. |
+| A2 | **Tedarikçinin güncel fiyat listesi / teklifi** | Belirli tedarikçi, ürün/malzeme grubu ve geçerlilik tarihine bağlı kg fiyatı Finans/Satınalma tarafından girilir veya daha sonra entegrasyonla alınabilir. İskonto/vade/teslim biçimi, KDV hariç/dahil bilgisi, para birimi ve teklifin bitiş tarihi korunur. Süresi bitmiş teklif otomatik kesin fiyat sayılmaz. |
+| A3 | **Yetkili yöneticinin onayladığı referans kg fiyatı** | Sorumlu yönetici fiyatı, kaynak/açıklama, geçerlilik başlangıç tarihi, yetki, onay geçmişi ve gerekirse geçerlilik bitişiyle belirler. Keyfî değişiklik geçmiş tekliflerin maliyet fotoğrafını değiştirmez; büyük sapma ve olağandışı düşük değerler yetki/uyarıya tabi olabilir. |
+
+### Fiyat kaynağının sistem davranışı
+
+- Her firma A1, A2 veya A3 kaynağını **aktif öncelikli kaynak** olarak seçer; ürün/alaşım/tedarikçi grubu için yetkili istisna tanımlayabilir. Öncelik ve yedek kaynaklar ileride firma ayarından tanımlanabilir, fakat kullanıcının istemediği otomatik **sessiz kaynak geçişi** yapılmaz; kaynak geçersizse yöneticiye görünür uyarı gösterilir ve yetkilendirilmiş alternatif politika işletilir.
+- **Fiyat karşılaştırılabilirliği:** Net kg birim fiyatının tanımı belgeli olmalıdır: KDV hariç/hariç olmayan fiyat dönüşümü, kg/ton/metre/ürün başı ölçüler, alaşım, profil tipi, sipariş miktarı, nakliye, tedarikçi iskontosu, vadeli/peşin ödeme koşulları, fiyatın para birimi ve geçerli döviz kuru. Uygun kg ağırlık dönüşümü bilinmiyorsa hesap kesin fiyat iddiasında bulunmaz.
+- **Artış hesaplayıcısı P1:** Yalnız ürünün alüminyum maliyet bileşeninde, **karşılaştırılabilir onaylı mevcut kg fiyatı ile onaylı baz kg fiyatı arasındaki artış** yansıtılır. Aynı fiyat değişikliği tekrarlanınca ikinci kez zam hesaplanamaz; fiyat düştüğünde P1'in koruyucu bileşeni kendiliğinden düşmez. P2 gibi iki yönlü yöntemler farklı davranır.
+- **Fiyat güncelleme kayıtları:** Kaynak tipi, referans belge/teklif id, ürün/malzeme kapsamı, eski-yeni fiyat, fiyatın alındığı tarih, sistemde kaydedildiği zaman, kim tarafından ve hangi yetkiyle onaylandığı, yürürlük tarihi ve eski tekliflerdeki kaynak snapshot'ı denetlenebilir. Aynı dönemde veri bulunmazsa sistem sıfır fiyat ve sahte kesin maliyet üretmez.
+- **Gerçek alış fiyatı vs satış referansı:** Stokta farklı tarihlerden alımlar varsa A1'in seçilmesi tek başına tüm mevcut stokun fiili değerini değiştirmez. Kullanılabilir stokun finansal maliyeti, muhasebe politikasına göre ayrı hesaplanır; bu seçim sadece satış maliyet referansına güvenilir pazar fiyatı girdisi sağlar.
+- **Kullanım kolaylığı:** Pratik profilde 'Alüminyum kg fiyatını nereden alalım?' sorusuna üç anlaşılır seçenek; Kontrollü/Ayrıntılı profilde tedarikçi karşılaştırmaları, teklif geçmişi, uyarı eşiği, grup ve para birimi ayarları. Hiçbir firmada zorunlu elle üç fiyat birden girme yükü yok.
+- **Testler:** A1 son geçerli fatura seçimi, iade/düzeltme; A2 süresi dolmuş teklifin engellenmesi; A3 yetkisiz manuel düzenleme ret; A1→A2→A3 şirket seçimi; kg/ton ve para birimi dönüşümü; aynı artışın ikinci kez yansımaması; P1 aşağı koruma ve P2 iki yönlü hareket; tenant veri izolasyonu; gizli maliyetin üretim personeline sızmaması; önceki satış snapshot'larının değişmemesi.
+
+**Henüz açık ayrıntı:** Fiyat güncellenince satış referansına **otomatik yürürlüğe girsin mi**, yoksa **yetkili Finans/Satış Müdürü inceleyip onaylayınca mı etkin olsun**? Özellikle yükselen fiyatın yeni teklifleri koruması ile hatalı faturanın yanlış zam yaratmaması arasında şirket bazlı ayar uygun olabilir. Kullanıcıdan karar alınacak.
