@@ -190,3 +190,22 @@ Siparişin hazır kısmının erken/kısmi ya da topluca sevkiyatına müşteri 
 - **Gecikme hiçbir şekilde ürünleri otomatik depoya kabul ettirmez** ve üretimden doğrudan sevkiyata izin vermez. Sevkiyat yalnızca fiilen kabul edilmiş ve kullanılabilir stoktan yapılır (Karar 25).
 - Olaylar işlem geçmişine eklenir; sonradan filtrelenebilir gecikme raporları oluşturulabilir. Bildirim kanalı/tekrar sıklığı, şirket tercihine göre sonraki aşamada yapılandırılabilir.
 - Mevcut SÖZBİR Operasyon üretim→depo kabulü→sevk sırası değiştirilmeyecek; mevcut testler korunacak, gecikme ve yetkisiz kabul/sevk için yeni testler eklenecek.
+
+## 19. Üretim, reçete, fire, dara ve maliyet — TASARIM TASLAĞI (henüz kullanıcı onayı bekliyor)
+
+> Bu bölüm kullanıcı "başla" diyerek üretim tasarımına geçince oluşturulmuş **öneridir**, nihai onaylı gereksinim değildir. Codex bu bölümü mimari gereksinim/gelecek faz hazırlığı olarak değerlendirsin; kritik muhasebe ve reçete politikalarını kullanıcıdan onay almadan gerçek üretim verisine uygulamasın.
+
+### İş akışı
+- Mevcut onaylı müşteri siparişine veya depoya stok üretim talebine bağlı **üretim iş emri**; üretim planı ve ürün/miktar/hat/termin bilgisi.
+- Her bitmiş ürün için şirket/tesis bazında **versiyonlanmış üretim reçetesi (BOM)**: malzeme kodu, standart tüketim ve birimi (adet/metre/kg vb.), fire toleransı, alternatif malzeme, geçerlilik tarihi, varsa yarı mamul ve dış işlem adımları.
+- İş emri açıldığında kullanılan reçete versiyonu o işe bağlanır. Daha sonraki reçete revizyonu tamamlanmış iş emrinin tarihsel tüketimini değiştirmez. İş emrine özel reçete/fiili tüketim değişikliğinin yetkisi ve onayı ayrı belirlenir.
+- **Hammadde kullanılabilirliği:** miktar ve birim dönüşümleri doğru hesaplanır; stok rezervasyonu fiziksel tüketim değildir. İşe sarf etme, depodan çıkış, üretim tüketimi, kalan malzemeyi iade ve hurda hareketleri ayrı muhasebe/stok olaylarıdır; tek işlem tekrar gönderilince ikinci kez stok eksilmez.
+- **Planlanan vs fiili:** Üretim elemanı üretilen sağlam adet, hatalı/yeniden işlenecek adet, kullanılan hammaddeler, fire sebepleri, varsa tartı brüt ağırlık/dara/net ağırlık kaydeder. Dara (kap/ambalaj ağırlığı) ile fiziksel fire birbirine eşit değildir ve aynı alanı kullanamaz.
+- **Fire türleri:** normal kesim kaybı, geri kazanılabilir hurda, kusurlu ürün, yeniden işleme ve telafi edilemez fire ayrı. İstisnai fire oranı şirket tarafından belirlenmiş yönetici onayına düşer. Hurda satılabilir/yeniden kullanılabilir stok olarak ayrı sınıflanabilir; çifte sayım olamaz.
+- **Dış işlem:** büküm, galvaniz, boya vb. taşeron işlemleri ve yarı mamul dışarı gönderme, dönüşte sayım/kalite kabulü, dış işlem miktar ve bedeli; kaybolan, reddedilen, geri dönen malzemeler izlenebilir.
+- **Üretim→depo:** Üretim tamamlandı kaydı sevk edilebilir stok yaratmaz. Sadece depocunun sayarak fiziksel kabul ettiği miktar ilgili depoya girer; Karar 25 ve kabul SLA'sı Karar 26 aynen geçerlidir.
+- **Maliyet:** İş emrinde planlanan/gerçekleşen malzeme, fiili veya standart işçilik, dış işlem, enerji/genel üretim gideri, hurda geri kazanımı ve varsa fire maliyetleri ayrı raporlanır. Üretim toplam maliyeti ile sağlam kabul edilen ürün başına maliyet belirlenebilir; yarı mamul/WIP, iade ve hurda değerlemesi sonradan Finans yetkileri ve şirket politikasıyla kesinleştirilecek. Veri kaynağı yoksa uydurulmuş maliyet veya gerçek kâr gösterilmez.
+- **Finans entegrasyonu:** fiyatlandırma/maliyet kaynağı Finans; üretim veri kaynağı Operasyon. Muhasebeye kayıt gönderme ve çift kayıt oluşmasını engelleyen olay/idempotency tasarımı gerekir. Üretim elemanı gizli alış fiyatını, işçilik ücretini veya kâr marjını otomatik görmez.
+- **Raporlar:** plan/fiili tüketim, ürün/parti/iş emri bazında fire, hurda, üretim maliyeti, birim maliyet, kapasite, kalite, gecikme, işçilik ve taşeron takibi. Her şey firma ve rol bazında filtrelenir; izlenebilir geçmiş tutulur.
+- **Aşamalı geliştirme:** Önce malzeme kartı, temel BOM, stokta yeterlilik, iş emrinde üretim bildirimi ve depo kabulü, fiili tüketim/fire. Daha sonra çok kademeli BOM, lot/seri izleme, çok süreçli üretim, gelişmiş maliyet/işçilik, dış işlem ve varyans raporları. Mevcut 0.13.0 üretim planı ve depo kabulü silinmez.
+- **İlk karar sorusu:** standart reçete her ürün için temel olsun, iş emrine özel malzeme/tüketim değişikliği yetkilendirilmiş üretim müdürü onayıyla mümkün olsun mu? Bu henüz kesinleşmedi.
