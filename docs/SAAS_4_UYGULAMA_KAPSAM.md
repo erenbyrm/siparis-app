@@ -130,3 +130,19 @@ Her fazda veri geçiş/rollback ve kabul testlerini ver, mevcut fonksiyonları k
 Her PR/commit için değişikliklerin özeti, dokunulan alanlar, dört ayrı uygulamanın gerçek entrypoint/build durumu, mevcut Operasyon regresyon özeti, test sonuçları, güvenlik kontrolleri, canlı veriye dokunulup dokunulmadığı, gereken ek kararlar ve sonraki adımlar raporlanmalı.
 
 **Kabul edilmez:** dört uygulama yerine tek mevcut uygulamaya dört sekme eklenmesi; eski çalışan özelliklerin kaybolması; diğer tenant verisinin görünmesi; platform ADMİNİ'ne firma içi tüm erişimin verilmesi; risk/maaş verisinin sales ekranı/API'de sızması; kendi kritik talebini kendi onaylama; onaysız kredi/stock hareketleri; gerekli izole ortam olmadan canlı SQL veya release.
+
+
+## 13. Karar 21 — Tek siparişin birden fazla depodan karşılanması (2026-10-22, ONAYLANDI)
+
+- **Seçim B:** Aynı müşteri siparişi birden fazla depoda ayrı ayrı hazırlanıp ayrı sevkiyatlarla teslim edilebilir. Ürünleri önce tek merkez depoya transfer etme zorunluluğu **yoktur**.
+- Tek bir kanonik `order_id` / kullanıcıya görünen sipariş numarası korunur. Altında depoya özgü hazırlama/rezervasyon (`fulfillment`) ve sevkiyat/teslimat kayıtları tutulur. Örn. SIP-001, Merkez Depo 60 + Şube Deposu 40 = toplam 100.
+- Her depo sorumlusu yalnız yetkili olduğu depoya atanmış miktarı hazırlar, sayar ve depodan çıkarır; siparişin tamamını veya başka deponun miktarlarını yanlışlıkla kapatamaz.
+- Stok rezervasyonu **depo bazında ve eşzamanlı işlem güvenliğiyle** yapılır; iki depo, iki satıcı veya iki cihaz aynı fiziksel adedi ikinci kez ayıramaz. Rezervasyon/üretim/transfer/araç yükleme/teslimat birbirinden ayrı stok hareketidir.
+- Hazırlanan, araca yüklenen, depodan çıkan, müşteriye fiilen teslim edilen, iade edilen, açık kalan ve iptal edilmiş miktarlar ayrı durumlarda saklanır. **Depodan sevk edildi = müşteriye teslim edildi değildir.**
+- Müşteri isterse iki farklı zamanda ve iki ayrı araçla teslimat alabilir; müşteri portalında tek sipariş ve altında ayrı teslimat durumları görünür. İrsaliye/teslimat fişi depo ve sefer bazında ayrılabilir; ortak sipariş ilişkisi kaybolmaz.
+- Her alt sevkiyatta gerçek teslim miktarı siparişe işlenir. Sipariş ancak toplam net teslim, kapanış/iptal gibi açıkça tanımlı koşulları karşıladığında tamamlanır; kısmi teslimatta açık kalan miktar korunur. Fazla teslim ayrı yetkilendirme ve gerekçe gerektirir.
+- Satır bazında farklı ürünler de farklı depolara, aynı satırdaki aynı üründen miktar parçaları da farklı depolara atanabilir.
+- Maliyet, sevkiyat ve ödeme raporları hem tek sipariş toplamını hem depo/sevkiyat detaylarını göstermeli; fatura/cari/kredi limiti hesabında çift sayım olmamalı.
+- Eski tek depolu sipariş ve stok verisi geriye dönük uyumlu biçimde **varsayılan Merkez Depo** kapsamına taşınabilmeli; mevcut kullanıcılar/siparişler ve üretim-depo-sevkiyat akışı kaybolmamalı.
+- **Henüz kararlaştırılmadı:** Siparişin depolara miktar dağıtımı sistemce otomatik mi önerilecek, yetkili kişi mi yapacak? Bu açık karar sonraki görüşmede netleştirilecektir.
+
