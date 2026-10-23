@@ -233,4 +233,78 @@ Geliştirme yalnız tasarım aşamasında: canlı sistem veya gerçek muhasebe k
 5. **Yasal ve yönetim özeti:** Belgeli ve Belgesiz belge bekleyen tutarlar varsayılan ayrı gösterilir; ancak aynı gerçek kasanın parasını, aynı çekin değerini veya aynı belgeden doğan alacağı **çift sayan hiçbir ara toplam oluşturulmaz**. Muhasebe kayıt/tahakkuk, kanunî defter, vergi/bordro bildirimleri doğru usulüne göre ayrıca sürer; belgesiz etiketini kayıt gizleme olarak kullanma.
 6. **Örnek test:** Belgeli grupta Merkez TL, Şube TL, Döviz TL; Belgesiz grupta Merkez TL, Şantiye TL, Şube TL, Proje TL kasaları. Her birinin raporu ayrı, grup raporu yalnız o grubun gerçek alt kasaları, diğer grup karışmıyor. Çek portföyleri ikiden fazla; bir çek Tahsilde portföyüne aktarıldığında iki kez tahsil alacağı doğmuyor. Ayrı şirketler arasında rapor birleştirme yok (Karar 46); admin belge takibi özelliğini kapatsa önceki rapor geçmişi silinmiyor.
 
-**Sıradaki açık teknik detay:** Ayrı kasalar arasında virman yapmak ve belge grupları arasında fiziki kasa transferi durumunda hangi yetki/onay ve muhasebe sınıflaması uygulanacağı, Karar 50'deki **tek finans hareketi tek belge grubunda** kuralı ihlal etmeden tasarlanacak; bu kullanıcı tarafından ayrıca onaylanmadı.
+**Karar 52 ile netleşti:** Kasalar arası gerçek virman yapılabilir. Virmanın kaynak/hedef kaydı tek transfer kimliği ve fiilî para hareketiyle bağlanır. Belge grupları arasında geçişin **izin/onay, muhasebe mutabakatı ve tek finans hareketi tek belge grubu** ilkeleri aşağıdaki Karar 52'de ayrıca tanımlandı.
+
+
+## 14. Karar 52 — Kasa virmanı, çek/senet tahsilatı, bankaya tahsile verme, ciro, yeni evrak ve vade takibi (2026-10-23, ONAYLANDI)
+
+**Kullanıcının kesin istediği işlevler:** Kasalar arası virman yapılması; alınan çek/senet bedelinin nakit kasaya veya bankaya tahsil edilebilmesi; bankaya tahsile gönderilen çek/senedin **eldeki portföyden çıkarılıp Bankada Tahsilde olarak izlenmesi**; alınan çek/senedin alacaklı cariye **ciro edilmesi**; yeni alınan/verilen/kendi düzenlenen çek ve senet açılması; vade, ödeme, tahsil, iade/karşılıksız ve durum raporları.
+
+- **Kasa virmanı:** Bir gerçek transfer \`transfer_id\` ile iki kasa hareketini (kaynak çıkış, hedef giriş) bağlar. Tek şirket/para birimi veya gerçek döviz dönüştürme referansı, tutar, tarih, kaynak-hedef, gönderen/alıcı, onay, fiilî teslim, sayım ve audit izlenir. Gerçek şirket toplam fiziki nakdi virman yüzünden artmaz. Belge grubunu değiştiren kasa hareketleri **iki ayrı gerçek para hareketi taklidi veya kayıt gizleme** amacıyla kullanılamaz; gerekli muhasebe sınıflaması/onay ve işlem kökeni korunur.
+- **Evrak modeli:** \`instrument_id\` (tek değişmez), \`tenant_id\`, \`type=cheque|promissory_note\`, \`received|issued\`, \`document_bucket\`, seri/no, taraf/cari, keşideci, lehtar, tutar/para birimi, düzenleme/teslim/vade, banka/hesap (ilgiliyse), saklayan, fiziki konum, portföy, son durum, ek kaynak belgesi ve işlem/audit tarihi. Aynı evrak iki portföyde bakiyeye katılmaz.
+- **Bankaya tahsile gönderme:** \`ELDEKI_PORTFOY\` → \`BANKAYA_GONDERILDI / BANKADA_TAHSILDE\`. Evrak **eldeki fiziksel portföy listesinden düşer**, fakat bankada emanette/alacak tahsilini bekleyen kayıt olarak görünür, alacak ve risk ortadan kalkmış sayılmaz. Banka işlemi gerçekleştiğinde \`TAHSIL_EDILDI\` ve tek banka tahsil hareketi; karşılıksız/iade için bankadan dönen evrak tek eski ID ile \`IADE\` durumuna ve gerektiğinde eldeki portföye döner. Sadece bankaya teslim aşamasında banka parası gelmiş sayılmaz.
+- **Kasaya tahsil:** Çek/senet bedeli fiilen nakit ödendiğinde, bu **nakit tahsilatın belgelendirilmesi ve şirketin ilgili kasa bakiyesine tek gerçek giriş** olarak izlenir; aslında nakde çevrilmeyen kıymetli evrak kasaya para gibi eklenmez. Nakit veya banka ödeme kanalı, evrakın belge grubu ve ilgili cari idempotent referansla eşleşir.
+- **Ciro:** Eldeki çek/senet hukuken uygun ciro/teslim ile başka bir cari alacaklıya devredilir: kime, hangi borç karşılığında, tarihte ve tutarda, evrakın fiziki teslimi ve sorumluluk geçmişi izlenir. Evrak eldeki portföyden çıkar, \`CIRO_EDILDI\` olarak cari hareketine bağlanır. Karar 53 cari kapanışını yönetir. Ciro hukuki sorumluluğu kendiliğinden sona erdirmeyebilir.
+- **Yeni verilen/alınan çek-senet:** Düzenlenme, verilme, teslim, vade, ödeme ve iade yaşam döngüsü; açık verilen çek/senet ödeme planı ve gecikme/karşılıksız alarmları; durum, vade ve banka/portföy bazında raporlar. Onaylı işlem düzeltme ve kaynak muhasebe entegrasyonu çift banka/cari hareketi yaratmaz.
+
+**Bağlayıcı önceki kurallar:** Karar 46 şirketler ayrı; Karar 48/49 belge bekleme/KDV; Karar 50 tek ödeme/tahsilat tek belge grubu; Karar 51 birden fazla kasa/çek/senet portföyü ve ayrı rapor. Hukuken gerekli kayıt/bildirim gizlenmez; çek/senet verildi, ciro edildi, bankaya tahsile gönderildi ve bankada gerçekten ödendi anları ayrılır.
+
+## 15. Karar 53 — Ciro: tedarikçi cari borcu teslimde kapanır, iade alınırsa yeniden açılır (2026-10-23, A ONAYLANDI)
+
+**Kullanıcı açıkça A'yı seçti:** Müşteriden alınan çek veya hukuken devredilebilir senet, tedarikçiye/başka alacaklıya ciro edilip teslim edildiğinde **ilgili tedarikçi cari açık borcu operasyonel olarak kapanacak**. Çek/senet tahsil edilene kadar caride açık borç olarak bekletilmeyecek. İlgili evrak \`CIRO_EDILDI\` kayıt/raporuna geçecek.
+
+Örnek: Tedarikçiye 100.000 TL borç varken portföydeki 100.000 TL müşteri çeki ona ciro edilip teslim edilir → tedarikçi açık carisi 0; eldeki portföyden tek evrak çıkar; ciro/karşı cari bağlantısı korunur. Evrak ödenmez ve **gerçekten iade alınırsa** \`IADE_ALINDI\` hareketi eski ciroyu tersler; tedarikçi açık borcu 100.000 TL yeniden oluşur ve **aynı** çek tek evrak olarak portföye döner. İade sonrası karşılıksız çekin hukuki rücu riski ve tahsil edilebilirliği ayrıca izlenir.
+
+**Kritik çift sayım sınırı:** Ciro ve iade, aynı çekten ikinci alacak/borç veya ikinci nakit çıkışı üretmez; gerçek iade kanıtı ve yetkili onay gerekir; mevzuattaki ciro sorumlulukları ve yasal muhasebe kayıtları ayrıca korunur. Kategoriler arasında tek ciro/ödeme ikiye bölünmez.
+
+## 16. Karar 54 — Kendi verilen çek: cari kapanır, Verilen Çekler yükümlülüğü kalır (2026-10-23, B ONAYLANDI)
+
+**Kullanıcı B seçeneğini onayladı:** Şirket kendi çekini tedarikçiye düzenleyip teslim edince ilgili tedarikçi **cari açık borcu kapanır**, onun yerine **Verilen Çekler / Ödenecek Çekler** yükümlülüğü doğar ve vadesinde gerçekten bankadan ödendiğinde kapanır. Çekin teslimi tek başına bankada para çıkışı değildir.
+
+**100.000 TL örnek:** cari borcu 100.000 → çek verildiğinde tedarikçi açık cari 0, verilen çek 100.000, banka değişmedi → bankada çek ödendiğinde banka çıkışı 100.000 **bir kez**, verilen çek yükümlülüğü 0. Banka çek ödemediyse \`ODENMEDI/KARSILIKSIZ\` ve gerekirse yetkili onaylı iade, uzlaşma, yenileme ve cari yeniden açma kaydı; verilen çek yükümlülüğü ve yeniden açılmış cari aynı tutarı iki defa toplam borca eklemez.
+
+Çek no/seri, hesap, banka, karşı cari, belge grubu, düzenlenme/teslim/vade, tutar/para birimi, banka ödeme sonucu, karşılıksız ve iptal geçmişi tek kimlikte izlenir. Verilen Çekler vade raporu, banka bazlı gelecek ödeme planı ve nakit akışı tahmininde ayrı gösterilir. Hukuki/muhasebe sınıflama ve risk kaydı mevzuat esaslarına tabidir.
+
+## 17. Karar 55 — Kendi verilen senet de Verilen Senetler hesabında aynı şekilde izlenir (2026-10-23, ONAYLANDI)
+
+**Kullanıcının açık talebi:** "Aynı şeyi senette de takip edelim." Şirketin **kendi düzenlediği senet** tedarikçiye/borçlu olduğu cariye teslim edildiğinde, tedarikçinin **cari açık borcu kapanır** ve **Verilen Senetler – Ödenecek** hesabına/vade portföyüne aktarılır. **Nakit kasa veya banka bakiyesi senet verildiğinde değişmez.**
+
+**100.000 TL örnek:** tedarikçi cari borcu 100.000 → 100.000 TL kendi senedini teslim → cari 0, Verilen Senetler 100.000, banka/kasa aynı. Senet vadesinde **gerçekten ödeme yapıldığında** banka veya fiziki nakit kasadan **bir kez** 100.000 TL düşülür; Verilen Senetler yükümlülüğü 0 olur. Ödeme hangi gerçek kanaldan yapıldıysa aynı gerçek hareketi iki kanalda yazma. Senedin tahsile verilmesi veya vadesinin gelmesi tek başına ödeme kanıtı değildir.
+
+**Ödenmez/iade edilirse:** \`VADESI_GECTI\`, \`ODENMEDI\`, \`IADE\`, \`IPTAL\`, \`YENILENDI\`, \`UZLASMA\` durumları; fiilî/kanıtlı iade veya geçerli işlemde cari borcun yeniden açılması, verilen senet yükümlülüğünün doğru kapatılması ve eskisinin geçmişinin tutulması. Hem cari hem Verilen Senetler aynı borcu iki kez toplam yükümlülük yapamaz. \`instrument_id\`, senet no, lehtar, karşı cari, para, tarih, vade, teslim, imza/onay, ödeme/banka/kasa sonucuna idempotent bağlantı gerekir.
+
+**Raporlar:** Verilen Senetler açık tutarı ve vade planı, senet bazında ödenen/ödenmeyen, bankadan/kasadan ödeme çıkış tarihi, tarihe/kişiye/duruma göre rapor, çeklerden bağımsız kasa/portföy ve belge grubu raporları. Muhasebe ve senet hukuku bakımından geçerli tahakkuk yükümlülüğü özel uzman denetiminde.
+
+## 18. Karar 56 — POS komisyon hesabı ve tek çekim/taksit bazında manuel oranlar (2026-10-23, ONAYLANDI)
+
+**Kullanıcının kesin talebi:** POS'tan geçen **brüt tahsilat**, kesilen **banka/POS komisyonu** ve hesaba yatan **net tutar** ayrı izlenecek. POS komisyonları özel hesapta raporlanacak. Komisyon oranları **manuel** tanımlanabilecek; **tek çekim ve taksitli satışlarda farklı komisyonlar** uygulanabilecek.
+
+**Kullanıcının örneği (aynı mantıkla):** POS'tan 10.000 TL çekildi, 500 TL komisyon kesildi → **Brüt POS tahsilatı 10.000 TL**, **POS Komisyon Gideri 500 TL**, **Banka Net Giriş 9.500 TL**. 500 TL ikinci bir müşteri borcu veya ikinci gerçek banka çıkışı değildir; POS mutabakatında brüt ile neti uzlaştıran ayrı gider/kesintidir. Brüt satış geliri/tahsilat ile banka net girişi birbirine karıştırılamaz.
+
+### Tanımlar ve oranlar
+
+- Her şirket kendi POS/sanal POS veya banka üye işyeri anlaşmasını ayrı tanımlar: \`pos_id\`, bağlı banka ve gerçek hesaba yatış yeri, para birimi, kart tipi/planı (gerekiyorsa), kesinti politikası, geçerlilik tarih aralığı, hesap/kayıt yetkisi. Aynı firmanın 4 veya daha fazla POS'u bağımsız izlenebilir. **Şirketler arası tek ortak POS hesabı yoktur** (Karar 46).
+- **Manuel oran tablosu:** \`tek çekim\`, \`2 taksit\`, \`3 taksit\`, ... \`N taksit\` için şirketin yetkili Finans kullanıcısı **farklı yüzde komisyon oranları** belirleyebilir; bankaya/POS'a göre, başlangıç/geçerlilik tarihi, oran ve varsa sabit işlem masrafı ayrı. **Taksit sayısı ile oran eşlemesi** geçmiş kayıtları geriye dönük değiştirmez. Kart tipine/tahsilat gününe/erken bloke çözümüne özel oranlar sonraki şirket ihtiyacına göre ayarlanabilir, zorunlu varsayılmamalı.
+- Tek POS işlemi yaratılırken \`gross_amount\`, \`installment_count\`, \`commission_rate\`, \`fixed_fee\` (varsa), \`commission_amount\`, \`expected_net_deposit\`, \`expected_deposit_date\`, \`document_bucket\`, \`linked_cari_or_sales_event\`, \`merchant_transaction_id\`, \`bank_deposit_reference\` ve \`status\` izlenir. Oran işlemin kaydına **snapshot** olarak alınır; yetkili kullanıcı gerektiğinde işlem özelinde manuel oran/tutar düzeltmesi yaparsa sebep/onay/tarihçe zorunlu.
+- **Temel hesap:** \`Komisyon = Brüt Tahsilat × (Komisyon Yüzdesi / 100) + varsa sabit masraf\`; \`Beklenen Net Banka Yatışı = Brüt − Kesinti\`. Brüt 10.000 ve oran %5 → komisyon 500, banka 9.500. Belgeye göre komisyona ilişkin ayrıca BSMV/KDV veya ek tahsilat kesintisi varsa **gerçek sağlayıcı ekstresi ve mevzuata** göre ayrıca modellenir; banka kesintisini sessiz varsayma.
+- **POS Takas/Bloke Takip Hesabı:** Kart işlemi onaylanınca 10.000 TL gerçek banka bakiyesine peşinen eklenmez; **beklenen POS alacağı/takas tutarı** 10.000 TL olur. Banka POS çözümü onaylandığında 9.500 gerçek banka girişi ve 500 komisyon gideri ile toplam 10.000 alacak kapatılır. Böylece müşteriden 10.000 tahsilat ve bankaya 9.500 yatış ayrı görünür, **iki ayrı satış veya iki ayrı tahsilat yapılmaz**.
+- Bankaya ertesi gün, belirli blokaj sonrası veya taksitli/çoklu transferle ödeme yapılan anlaşmalarda **beklenen yatış tarihleri / parçalı banka yatırmaları** planlanabilir; tek POS tahsilat olayı tekrarlanmaz. Gerçek banka ekstresi daha farklı komisyon gösterirse otomatik silip değiştirme değil **beklenen-gerçekleşen komisyon farkı** ve yetkili mutabakat yapılır.
+- İade/iptal/chargeback, başarısız provizyon ve iptal edilen POS işlemi için ters olay; bankanın komisyon iadesi/iade etmeme durumu fiilî banka kaydına göre ayrıdır. İşlem henüz bankaya geçmemişken durumu \`bekleniyor\`; gerçek yatış teyidi sonrası \`hesaba geçti\`.
+- Karar 50: tek POS işlemi **bir** Belgeli veya Belgesiz (Belge Bekleyen) belge grubuna bağlanır, iki gruba paylaştırılmaz. POS komisyonunun bu tahsilata bağlı **maliyet alt kaydı** olması farklı gruba bölünmüş ikinci bağımsız ödeme olduğu anlamına gelmez. Belgeli/Belgesiz şirket özelliği yalnız Platform Yönetimi admininin firma bazlı aç/kapat kontrolündedir; asıl hukuki işlem belgelendirme ve vergi kayıt sorumluluğu korunur.
+
+### Ayrı hesaplar ve raporlar
+
+- \`POS Tahsilatları / Bekleyen POS Alacakları\`, \`POS Komisyon Giderleri\`, \`POS Net Banka Yatışları\`, \`POS Banka Mutabakat Farkları\` **ayrı** gösterimler ve ilgili Finans gider/kaynak hesaplarıdır. Bunlar aynı nakdi iki kere sayan fiziksel banka hesabı değildir.
+- Her banka/POS, tek çekim veya taksit sayısı, tarih aralığı, belge grubu, ödenecek banka hesabı, tahsilat/beklenti/kapanış, komisyon ve net tutar filtreleri. Raporlarda **brüt işlem toplamı, beklenen komisyon, gerçek komisyon, fark, beklenen net, fiilî bankaya yatan net, henüz yatmayan tutar** ayrı sütunlar. Belgeli/Belgesiz raporları karışmaz; şirketler birleşmez.
+- Özellikle banka toplu POS mutabakatında yüzlerce satır tek net banka yatırma hareketine denk gelebilir; toplu referans ID ve satır eşleştirmeleri ile toplam kesinti farkı izlenir. \`bank_deposit_event_id\` aynı tahsilatın ikinci kez banka bakiyesi artırmasını engeller. Excel/PDF/CSV rapor ve tarihsel komisyon oranları saklanır.
+
+### Kabul örnekleri
+
+1. **Tek çekim %5:** 10.000 TL brüt; 500 TL kesinti; 9.500 TL banka net. Cari müşterinin ödeme durumunda tek 10.000 TL tahsilat olayı; bir POS alacağı/takas mahsup, bir net banka giriş; 500 TL gider.
+2. **Taksit farklı oran:** Aynı POS'ta tek çekim oranı %2, 3 taksit oranı %6 olarak **örnek şirket ayarı** girilebilir; 10.000 TL / 3 taksit için beklenen komisyon 600, beklenen net 9.400. Bu oranlar **banka tarifesi iddiası değil**, manuel girilecek örneklerdir.
+3. **Oran revizyonu:** Yeni tarihte 3 taksit komisyonunu %7 seçince geçmiş %6 işlemi geriye dönük değişmez. Gerçek POS ekstresinde 650 TL kesilmişse beklenen-gerçek 50 TL fark raporu, yetkili onayı ve doğru kayda göre kapatma.
+4. **Çift sayım ve haklar:** Aynı POS işlemi yeniden import edildiğinde ikinci 10.000 TL tahsilat yok; bankanın toplu yatan 9.500 TL kaydı iki kez bankaya girmez; Belgeli/Belge Bekleyen ve farklı şirket verisi izole, maliyet/komisyon yetkileri kullanıcı rollerine uygun.
+
+**Kullanıcıdan sonraki detay kararı:** POS tahsilatları için **banka ne zaman yatırır** (anlık, ertesi iş günü, N günlük bloke) ve **taksitli işlemlerin neti tek seferde mi, taksit taksit mi yatar** soruları ayrı konfigürasyon politikası olarak netleştirilecek. Karar 56, herhangi bir bankanın fiilî aktarım planına ilişkin hazır entegrasyon bulunduğu iddiası değildir.
+
+**Kritik iş akışı ayrımı:** POS komisyonu gider kaydı mali müşavirce doğrulanmış belge/BSMV/KDV/usul kurallarına göre işlenmelidir; belge bekleyen kayıt yasal bildirimi gizlememelidir. Kararlar yalnız tasarım belgelerini günceller; uygulama koduna, canlı muhasebe verilerine veya production sisteme müdahale izni vermez.
